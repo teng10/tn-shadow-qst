@@ -14,6 +14,7 @@ class MpoUtilsTests(parameterized.TestCase):
 
   @parameterized.parameters(2, 3, 4, 6, 9)
   def test_z_to_basis_mpo(self, size):
+    """Tests the rotation MPO by building an explicit vector rotation."""
     #TODO(YT): make random state deterministic.
     random_mps = qtn.MPS_rand_state(size, bond_dim=5) 
     random_basis = np.random.randint(0, 2, size)
@@ -22,8 +23,9 @@ class MpoUtilsTests(parameterized.TestCase):
     actual_rotated_mps_vector = rotated_mps.to_dense()
     # build ED vector
     random_vector = random_mps.to_dense()
+    rotation_options = [mps_utils.HADAMARD, mps_utils.Y_HADAMARD, mps_utils.EYE]
     rotation_matrices = [
-      [mps_utils.HADAMARD, mps_utils.Y_HADAMARD, mps_utils.EYE][i]
+      np.conjugate(rotation_options[i]).T
       for i in random_basis
     ]
     rotation_matrix = functools.reduce(np.kron, rotation_matrices)

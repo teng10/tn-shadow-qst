@@ -9,7 +9,7 @@ from tn_generative import typing
 
 
 HADAMARD = qmb.gen.operators.hadamard()
-Y_HADAMARD = np.roll(HADAMARD, 1, 0) * np.array([[1.0, 1.0j]])
+Y_HADAMARD = np.array([[0.0, -1.0j], [1.0j, 0.0]])
 EYE = qmb.gen.operators.eye(2)
 
 
