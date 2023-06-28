@@ -2,14 +2,19 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-def gibbs_sampler(key, mps):
+import quimb.tensor as qtn
+
+from tn_generative import typing
+
+def gibbs_sampler(key: jax.random.PRNGKey, mps: qtn.MatrixProductState) -> typing.Array:
   """Sample an observation from `mps` using gibbs sampling method.
+
   Args: 
-    key: jax.random.PRNGKey.
-    mps: qtn.MatrixProductState.
+    key: random key for sampling a measurement.
+    mps: mps state from which a sample is drawn.
+
   Returns:
-    outcomes (jnp.ndarray) of shape (L,) of integers in {0, 1} 
-    where L is the system size.
+    outcomes of shape (L,) of integers in {0, 1} where L is the system size.
   """
   mps = mps.copy()  # let's not modify outside copy here.
   keys = jax.random.split(key, mps.L)

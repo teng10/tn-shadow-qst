@@ -1,4 +1,4 @@
-"""Tests for mps_sampling_utils."""
+"""Tests for mps_sampling."""
 import functools
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -9,7 +9,7 @@ import jax.numpy as jnp
 import quimb.tensor as qtn
 import quimb.gen as qugen
 
-from tn_generative  import mps_sampling_utils
+from tn_generative  import mps_sampling
 
 # set backend to JAX for vmap and jit.
 qtn.contraction.set_tensor_linop_backend('jax')
@@ -23,7 +23,7 @@ class MpsUtilsTests(parameterized.TestCase):
     """test neel state by sampling the shot configuration."""
     prodct_state = qtn.tensor_builder.MPS_neel_state(size, down_first=True)
     key = jax.random.PRNGKey(seed)
-    actual_sample = mps_sampling_utils.gibbs_sampler(key, prodct_state)
+    actual_sample = mps_sampling.gibbs_sampler(key, prodct_state)
     expected_sample = ((1 + (-1) ** np.arange(size)) / 2).astype(int)
     np.testing.assert_array_equal(actual_sample, expected_sample)  
 
@@ -45,7 +45,7 @@ class MpsUtilsTests(parameterized.TestCase):
     ghz_state = qtn.tensor_builder.MPS_ghz_state(size)
     key = jax.random.PRNGKey(seed)
     keys_sample = jax.random.split(key, num_samples_ghz)
-    sample_fn = functools.partial(mps_sampling_utils.gibbs_sampler, mps=ghz_state)
+    sample_fn = functools.partial(mps_sampling.gibbs_sampler, mps=ghz_state)
     gibbs_sampling_batched = jax.vmap(sample_fn)
     actual_samples = gibbs_sampling_batched(keys_sample)
     actual_pdf = counts_to_probs(actual_samples, bins=2 ** size)
@@ -58,7 +58,7 @@ class MpsUtilsTests(parameterized.TestCase):
     random_state = qtn.tensor_builder.MPS_rand_state(size, bond_dim=bond_dim)
     key = jax.random.PRNGKey(seed)
     keys_sample = jax.random.split(key, num_samples_random)
-    sample_fn = functools.partial(mps_sampling_utils.gibbs_sampler, mps=random_state)
+    sample_fn = functools.partial(mps_sampling.gibbs_sampler, mps=random_state)
     gibbs_sampling_batched = jax.vmap(sample_fn)
     actual_samples = gibbs_sampling_batched(keys_sample)
     bins = np.arange(2 ** size + 1) -0.5   # bin centers, starting from 0
