@@ -29,11 +29,13 @@ def z_to_basis_mpo(basis: typing.Array) -> qtn.MatrixProductOperator:
   hadamard_ops = jnp.stack([HADAMARD] * n_sites)
   y_hadamard_ops = jnp.stack([Y_HADAMARD] * n_sites)
   eye_ops = jnp.stack([EYE] * n_sites)
-  all_ops = jnp.stack([hadamard_ops, y_hadamard_ops, eye_ops]) # (x, y, z): (0, 1, 2)
+  # convention: (x, y, z): (0, 1, 2).
+  all_ops = jnp.stack([hadamard_ops, y_hadamard_ops, eye_ops])
   one_hot_basis = jax.nn.one_hot(basis, 3, axis=0)
   operators = (jnp.expand_dims(one_hot_basis, (-2, -1)) * all_ops).sum(axis=0)
   per_site_ops = [jnp.squeeze(x) for x in jnp.split(operators, n_sites)]
   return qtn.MPO_product_operator(per_site_ops)
+
 
 def amplitude_via_contraction(
     mps: qtn.MatrixProductState,
@@ -44,7 +46,7 @@ def amplitude_via_contraction(
   if measurement.shape != (mps.L,):
     raise ValueError(f'Cannot contract {mps.L=} with {measurement.shape=}.')
   arrays = jax.nn.one_hot(measurement, mps.phys_dim())
-  arrays = [jnp.squeeze(x) for x in jnp.split(arrays, mps.L)] # changed x[0]
+  arrays = [jnp.squeeze(x) for x in jnp.split(arrays, mps.L)]
   bit_state = qtn.MPS_product_state(arrays)  # one-hot `measurement` MPS.
   if basis is not None:
     rotation_mpo = z_to_basis_mpo(basis)
