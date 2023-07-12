@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Callable
+from typing import Callable, Tuple, Union
 
 import numpy as np
 import jax

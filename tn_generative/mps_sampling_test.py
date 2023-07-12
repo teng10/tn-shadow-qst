@@ -85,7 +85,7 @@ class FixedBasisSamplerTest(parameterized.TestCase):
     qtn.contraction.set_contract_backend('jax')
   
   @parameterized.parameters(2, 3, 4)
-  def test_fixed_basis_sampler(self, size, seed=42):
+  def test_fixed_basis_sampler_basis_choice(self, size, seed=42):
     """Test fixed basis sampler is sampling in the correct basis."""
     key = jax.random.PRNGKey(seed)
     qugen.rand.seed_rand(seed)
@@ -111,7 +111,7 @@ class FixedBasisSamplerTest(parameterized.TestCase):
     dict(size=3, num_samples=10000),
     dict(size=4, num_samples=10000),
   )
-  def test_random_basis_sampler(self, size, num_samples, seed=42):
+  def test_random_basis_sampler_basis_choice(self, size, num_samples, seed=42):
     """Test random basis sampler is sampling randomly."""
     key = jax.random.PRNGKey(seed)
     keys = jax.random.split(key, num_samples)
@@ -132,31 +132,40 @@ class FixedBasisSamplerTest(parameterized.TestCase):
     dict(size=3, num_samples=800),
     dict(size=4, num_samples=800),
   )
-  def test_random_uniform_basis_sampler(self, size, num_samples, seed=42):
-    """Test the uniform random basis sampler for X/Y/Z 
-    is sampling probabilistically."""
-    rng = np.random.RandomState(seed)
-    random_arr = rng.uniform(size=3)
-    uniform_probabilities = random_arr / np.sum(random_arr)
+  def test_random_uniform_basis_sampler_basis_choice(
+    self, size, num_samples, seed=42,
+  ):
+    """Test the uniform basis for X/Y/Z is sampling probabilistically."""
+    basis_probabilities = np.array([0.2, 0.3, 0.5])
     key = jax.random.PRNGKey(seed)
     keys = jax.random.split(key, num_samples)
     qugen.rand.seed_rand(seed)
     mps = qtn.tensor_builder.MPS_rand_state(size, bond_dim=2)
     sampler_fn = functools.partial(
         mps_sampling.random_uniform_basis_sampler, 
-        mps=mps, x_y_z_probabilities=uniform_probabilities)
+        mps=mps, x_y_z_probabilities=basis_probabilities)
     random_sampler_batched = jax.vmap(sampler_fn, in_axes=(0,))
     _, bases = random_sampler_batched(keys)
-    bases_int_repr = [int(''.join(map(str, list(basis))), 3) for basis in bases]
-    bins = np.arange(3 ** size + 1) -0.5
-    counts, _ = np.histogram(bases_int_repr, bins=bins)
-    pdf = counts / num_samples
-    expected_bases_int_repr = [
-        int(str(int(b)) * size, 3) for b in range(3)]
-    expected_pdf = np.zeros(3 ** size)
-    for i, p in enumerate(uniform_probabilities):
-      expected_pdf[expected_bases_int_repr[i]] = p 
-    np.testing.assert_allclose(pdf, expected_pdf, atol=1e-2)
+    unique_vals, counts = np.unique(bases, return_counts=True, axis=0)
+    with self.subTest('basis_values'):
+      actual_bases = np.sort(unique_vals, axis=0)
+      expected_bases = np.arange(3)[:, np.newaxis] * np.ones(size)
+      np.testing.assert_allclose(actual_bases, expected_bases)
+
+    with self.subTest('basis_counts'):
+      actual_probabilities = counts / np.sum(counts)
+      np.testing.assert_allclose(
+        actual_probabilities, basis_probabilities, atol=1e-2)
+    # bases_int_repr = [int(''.join(map(str, list(basis))), 3) for basis in bases]
+    # bins = np.arange(3 ** size + 1) -0.5
+    # counts, _ = np.histogram(bases_int_repr, bins=bins)
+    # pdf = counts / num_samples
+    # expected_bases_int_repr = [
+    #     int(str(int(b)) * size, 3) for b in range(3)]
+    # expected_pdf = np.zeros(3 ** size)
+    # for i, p in enumerate(basis_probabilities):
+    #   expected_pdf[expected_bases_int_repr[i]] = p 
+    # np.testing.assert_allclose(pdf, expected_pdf, atol=1e-2)
 
 
 if __name__ == '__main__':

@@ -1,17 +1,23 @@
+from typing import Tuple
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 
 import quimb.tensor as qtn
 
-from tn_generative.typing import Array, SamplerFn, MeasurementAndBasis, Tuple
-from tn_generative.mps_utils import z_to_basis_mpo
+from tn_generative import typing
+from tn_generative import mps_utils
+
+Array = typing.Array
+SamplerFn = typing.SamplerFn
+MeasurementAndBasis = typing.MeasurementAndBasis
 
 
 def gibbs_sampler(
     key: jax.random.PRNGKey, 
-    mps: qtn.MatrixProductState
-    ) -> Array:
+    mps: qtn.MatrixProductState,
+) -> Array:
   """Sample an observation from `mps` using gibbs sampling method.
 
   Args: 
@@ -58,7 +64,7 @@ def fixed_basis_sampler(
     basis: Array | int,
     base_sample_fn: SamplerFn = gibbs_sampler,
 ) -> MeasurementAndBasis:
-  """Draws a sample from `mps` in fixed basis specified by `basis_value`.
+  """Draws a sample from `mps` in fixed basis specified by `basis`.
 
   Samples `mps` in a fixed `basis` by rotating `mps` to that basis and sampling
   from the resulting state. Basis is specified using [0, 1, 2] --> [X, Y, Z]
@@ -78,15 +84,16 @@ def fixed_basis_sampler(
     raise ValueError(f'`basis` must be at most 1D, got: {basis.shape=}.')
   basis = jnp.broadcast_to(basis, [mps.L])
   mps = mps.copy()
-  rotation_mpo = z_to_basis_mpo(basis)
+  rotation_mpo = mps_utils.z_to_basis_mpo(basis)
   rotated_mps = rotation_mpo.apply(mps)
   return base_sample_fn(key, rotated_mps), basis
+
 
 def random_basis_sampler(
     key: jax.random.PRNGKeyArray,
     mps: qtn.MatrixProductState,
     base_sample_fn: SamplerFn = gibbs_sampler,
-):
+) -> MeasurementAndBasis:
   """Draws a sample from `mps` in random X, Y or Z basis at each site.
 
   Samples `mps` in an X, Y or Z basis selected randomly at each site.
@@ -102,9 +109,10 @@ def random_basis_sampler(
   sample_key, basis_key = jax.random.split(key, 2)
   basis = jax.random.randint(basis_key, [mps.L], minval=0, maxval=3)
   mps = mps.copy()
-  rotation_mpo = z_to_basis_mpo(basis)
+  rotation_mpo = mps_utils.z_to_basis_mpo(basis)
   rotated_mps = rotation_mpo.apply(mps)
   return base_sample_fn(sample_key, rotated_mps), basis
+
 
 def random_uniform_basis_sampler(
     key: jax.random.PRNGKeyArray,
@@ -131,6 +139,6 @@ def random_uniform_basis_sampler(
   basis_val = jax.random.choice(basis_key, jnp.arange(3), p=x_y_z_probabilities)
   basis = jnp.ones(mps.L).astype(int) * basis_val
   mps = mps.copy()
-  rotation_mpo = z_to_basis_mpo(basis)
+  rotation_mpo = mps_utils.z_to_basis_mpo(basis)
   rotated_mps = rotation_mpo.apply(mps)
   return base_sample_fn(sample_key, rotated_mps), basis
