@@ -67,14 +67,96 @@ class MpsSamplersTest(parameterized.TestCase):
       key = jax.random.PRNGKey(seed)
       keys_sample = jax.random.split(key, num_samples_random)
       sample_fn = functools.partial(
-        mps_sampling.gibbs_sampler, mps=random_state)
+          mps_sampling.gibbs_sampler, mps=random_state)
       gibbs_sampling_batched = jax.vmap(sample_fn)
       actual_samples = gibbs_sampling_batched(keys_sample)
       bins = np.arange(2 ** size + 1) -0.5   # bin centers, starting from 0
       actual_pdf = samples_to_pdf(actual_samples, bins=bins)
       expected_pdf = jnp.squeeze(jnp.abs(random_state.to_dense()) ** 2)
       np.testing.assert_allclose(
-        abs(actual_pdf - expected_pdf), np.zeros_like(expected_pdf), atol=1e-2)
+          abs(actual_pdf - expected_pdf), 
+          np.zeros_like(expected_pdf), atol=1e-2)
+
+
+class FixedBasisSamplerTest(parameterized.TestCase):
+  """Tests for fixed basis sampler mps utilities."""
+
+  def setUp(self):
+    # set backend to JAX for vmap and jit.
+    qtn.contraction.set_contract_backend('jax')
+  
+  @parameterized.parameters(2, 3, 4)
+  def test_fixed_basis_sampler_basis_choice(self, size, seed=42):
+    """Test fixed basis sampler is sampling in the correct basis."""
+    key = jax.random.PRNGKey(seed)
+    qugen.rand.seed_rand(seed)
+    mps = qtn.tensor_builder.MPS_rand_state(size, bond_dim=2)
+    
+    with self.subTest("x basis"):
+      basis = np.zeros(size)
+      _, basis = mps_sampling.fixed_basis_sampler(key, mps, basis)
+      np.testing.assert_array_equal(basis, np.zeros(size))
+
+    with self.subTest("y basis"):
+      basis = np.ones(size)
+      _, basis = mps_sampling.fixed_basis_sampler(key, mps, basis)
+      np.testing.assert_array_equal(basis, np.ones(size))
+
+    with self.subTest("z basis"):
+      basis = 2. * np.ones(size)
+      _, basis = mps_sampling.fixed_basis_sampler(key, mps, basis)
+      np.testing.assert_array_equal(basis, 2. * np.ones(size))
+
+  @parameterized.parameters(
+    dict(size=2, num_samples=5000), 
+    dict(size=3, num_samples=10000),
+    dict(size=4, num_samples=10000),
+  )
+  def test_random_basis_sampler_basis_choice(self, size, num_samples, seed=42):
+    """Test random basis sampler is sampling randomly."""
+    key = jax.random.PRNGKey(seed)
+    keys = jax.random.split(key, num_samples)
+    qugen.rand.seed_rand(seed)
+    mps = qtn.tensor_builder.MPS_rand_state(size, bond_dim=2)
+    sampler_fn = functools.partial(mps_sampling.random_basis_sampler, mps=mps)
+    random_sampler_batched = jax.vmap(sampler_fn, in_axes=(0,))
+    _, bases = random_sampler_batched(keys)
+    bases_int_repr = [int(''.join(map(str, list(basis))), 3) for basis in bases]
+    bins = np.arange(3 ** size + 1) -0.5   # bin centers, starting from 0
+    counts, _ = np.histogram(bases_int_repr, bins=bins)
+    pdf = counts / num_samples
+    expected_pdf = np.ones(3 ** size) / 3 ** size
+    np.testing.assert_allclose(pdf, expected_pdf, atol=1e-2)
+
+  @parameterized.parameters(
+    dict(size=2, num_samples=800),
+    dict(size=3, num_samples=800),
+    dict(size=4, num_samples=800),
+  )
+  def test_random_uniform_basis_sampler_basis_choice(
+    self, size, num_samples, seed=42,
+  ):
+    """Test the uniform basis for X/Y/Z is sampling probabilistically."""
+    basis_probabilities = np.array([0.2, 0.3, 0.5])
+    key = jax.random.PRNGKey(seed)
+    keys = jax.random.split(key, num_samples)
+    qugen.rand.seed_rand(seed)
+    mps = qtn.tensor_builder.MPS_rand_state(size, bond_dim=2)
+    sampler_fn = functools.partial(
+        mps_sampling.random_uniform_basis_sampler, 
+        mps=mps, x_y_z_probabilities=basis_probabilities)
+    random_sampler_batched = jax.vmap(sampler_fn, in_axes=(0,))
+    _, bases = random_sampler_batched(keys)
+    unique_vals, counts = np.unique(bases, return_counts=True, axis=0)
+    with self.subTest('basis_values'):
+      actual_bases = np.sort(unique_vals, axis=0)
+      expected_bases = np.arange(3)[:, np.newaxis] * np.ones(size)
+      np.testing.assert_allclose(actual_bases, expected_bases)
+
+    with self.subTest('basis_counts'):
+      actual_probabilities = counts / np.sum(counts)
+      np.testing.assert_allclose(
+          actual_probabilities, basis_probabilities, atol=1e-2)
 
 
 if __name__ == '__main__':
