@@ -74,7 +74,8 @@ class MpsSamplersTest(parameterized.TestCase):
       actual_pdf = samples_to_pdf(actual_samples, bins=bins)
       expected_pdf = jnp.squeeze(jnp.abs(random_state.to_dense()) ** 2)
       np.testing.assert_allclose(
-          abs(actual_pdf - expected_pdf), np.zeros_like(expected_pdf), atol=1e-2)
+          abs(actual_pdf - expected_pdf), 
+          np.zeros_like(expected_pdf), atol=1e-2)
 
 
 class FixedBasisSamplerTest(parameterized.TestCase):
@@ -92,19 +93,19 @@ class FixedBasisSamplerTest(parameterized.TestCase):
     mps = qtn.tensor_builder.MPS_rand_state(size, bond_dim=2)
     
     with self.subTest("x basis"):
-      basis = np.zeros(size, np.float16)
+      basis = np.zeros(size)
       _, basis = mps_sampling.fixed_basis_sampler(key, mps, basis)
-      np.testing.assert_array_equal(basis, np.zeros(size, np.float16))
+      np.testing.assert_array_equal(basis, np.zeros(size))
 
     with self.subTest("y basis"):
-      basis = np.ones(size, np.float16)
+      basis = np.ones(size)
       _, basis = mps_sampling.fixed_basis_sampler(key, mps, basis)
-      np.testing.assert_array_equal(basis, np.ones(size, np.float16))
+      np.testing.assert_array_equal(basis, np.ones(size))
 
     with self.subTest("z basis"):
-      basis = 2. * np.ones(size, np.float16)
+      basis = 2. * np.ones(size)
       _, basis = mps_sampling.fixed_basis_sampler(key, mps, basis)
-      np.testing.assert_array_equal(basis, 2. * np.ones(size, np.float16))
+      np.testing.assert_array_equal(basis, 2. * np.ones(size))
 
   @parameterized.parameters(
     dict(size=2, num_samples=5000), 
@@ -155,17 +156,7 @@ class FixedBasisSamplerTest(parameterized.TestCase):
     with self.subTest('basis_counts'):
       actual_probabilities = counts / np.sum(counts)
       np.testing.assert_allclose(
-        actual_probabilities, basis_probabilities, atol=1e-2)
-    # bases_int_repr = [int(''.join(map(str, list(basis))), 3) for basis in bases]
-    # bins = np.arange(3 ** size + 1) -0.5
-    # counts, _ = np.histogram(bases_int_repr, bins=bins)
-    # pdf = counts / num_samples
-    # expected_bases_int_repr = [
-    #     int(str(int(b)) * size, 3) for b in range(3)]
-    # expected_pdf = np.zeros(3 ** size)
-    # for i, p in enumerate(basis_probabilities):
-    #   expected_pdf[expected_bases_int_repr[i]] = p 
-    # np.testing.assert_allclose(pdf, expected_pdf, atol=1e-2)
+          actual_probabilities, basis_probabilities, atol=1e-2)
 
 
 if __name__ == '__main__':
