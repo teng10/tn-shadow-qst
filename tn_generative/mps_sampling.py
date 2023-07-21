@@ -3,6 +3,7 @@ from typing import Tuple
 import jax
 import jax.numpy as jnp
 import numpy as np
+import functools
 
 import quimb.tensor as qtn
 
@@ -12,6 +13,22 @@ from tn_generative import mps_utils
 Array = typing.Array
 SamplerFn = typing.SamplerFn
 MeasurementAndBasis = typing.MeasurementAndBasis
+
+SAMPLER_REGISTRY = {} # global registry for samplers.
+
+
+def _register_sampler(sampler_fn: SamplerFn, sampler_name: str):
+  """Registers `sampler_fn` in global `TASK_REGISTRY`."""
+  registered_fn = SAMPLER_REGISTRY.get(sampler_name, None)
+  if registered_fn is None:
+    SAMPLER_REGISTRY[sampler_name] = sampler_fn
+  else: # todo (YT): check if this is the right way to do this, or overwrite?
+    if registered_fn != sampler_fn:
+      raise ValueError(f'{sampler_name} is already registerd {registered_fn}.')
+
+
+register_sampler = lambda name: functools.partial(
+    _register_sampler, sampler_name=name) # decorator for registering samplers.
 
 
 def gibbs_sampler(
@@ -142,3 +159,12 @@ def random_uniform_basis_sampler(
   rotation_mpo = mps_utils.z_to_basis_mpo(basis)
   rotated_mps = rotation_mpo.apply(mps)
   return base_sample_fn(sample_key, rotated_mps), basis
+
+
+register_sampler('x_basis_sampler')(
+    functools.partial(fixed_basis_sampler, basis=0))
+register_sampler('z_basis_sampler')(
+    functools.partial(fixed_basis_sampler, basis=2))
+register_sampler('xz_basis_sampler')(
+    functools.partial(random_uniform_basis_sampler,
+                      x_y_z_probabilities=[0.5, 0.0, 0.5]))
