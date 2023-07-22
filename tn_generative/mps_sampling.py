@@ -1,9 +1,10 @@
+"""Sampling methods for MPS states."""
 from typing import Tuple
+import functools
 
 import jax
 import jax.numpy as jnp
 import numpy as np
-import functools
 
 import quimb.tensor as qtn
 
@@ -14,15 +15,15 @@ Array = typing.Array
 SamplerFn = typing.SamplerFn
 MeasurementAndBasis = typing.MeasurementAndBasis
 
-SAMPLER_REGISTRY = {} # global registry for samplers.
+SAMPLER_REGISTRY = {}  # Global registry for samplers.
 
 
 def _register_sampler(sampler_fn: SamplerFn, sampler_name: str):
-  """Registers `sampler_fn` in global `TASK_REGISTRY`."""
+  """Registers `sampler_fn` in global `SAMPLER_REGISTRY`."""
   registered_fn = SAMPLER_REGISTRY.get(sampler_name, None)
   if registered_fn is None:
     SAMPLER_REGISTRY[sampler_name] = sampler_fn
-  else: # todo (YT): check if this is the right way to do this, or overwrite?
+  else:  # TODO(YT): check if this is the right way to do this, or overwrite?
     if registered_fn != sampler_fn:
       raise ValueError(f'{sampler_name} is already registerd {registered_fn}.')
 
