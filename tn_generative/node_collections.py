@@ -118,18 +118,18 @@ def get_nearest_neighbors(
 ) -> NodesCollection:
   """Returns neighbors of `lattice` nodes within distance `nb_radius`."""
 
-  all_indices = np.arange(lattice.points.shape[0])
+  all_indices = lattice.n_sites
   all_pairs = np.array(
       list(itertools.combinations(all_indices, 2))
   )
 
-  def _close_pairs_pdist(points: np.ndarray) -> np.ndarray:
+  def _close_pairs_indices(points: np.ndarray) -> np.ndarray:
     """Returns indices of pairs of points within distance `nb_radius`."""
     d = sp_spatial.distance.pdist(points)
     close_pairs_indices = (d <= nb_radius).nonzero()[0]
     return all_pairs[close_pairs_indices]
 
-  pairwise_indices = _close_pairs_pdist(lattice.points)
+  pairwise_indices = _close_pairs_indices(lattice.points)
   nodes_coords = lattice.points[np.stack(pairwise_indices)]
   return NodesCollection.from_coords(nodes_coords, lattice)
 

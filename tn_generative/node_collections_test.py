@@ -34,7 +34,7 @@ class NodesTests(parameterized.TestCase):
     """Tests that the nearest neighbors are correct."""
     bonds = node_collections.get_nearest_neighbors(self.expanded_lattice, 1.1)
     print(bonds.lattice.points.shape)
-    expected_nodes = np.array([[ 0, 1], [ 0, 2], [ 1, 3], [ 1, 6], [ 2, 4],
+    expected_nodes = np.array([[0, 1], [0, 2], [1, 3], [1, 6], [2, 4],
         [2, 7], [3, 5], [3,  6], [4, 7], [4, 8], [5, 10], [6, 9], [6, 11],
         [7, 9], [7, 12], [8, 13], [9, 11], [9, 12], [10, 14], [10, 16],
         [11, 14], [11, 17], [12, 15], [12, 18], [13, 15], [13, 19], [14, 16],
