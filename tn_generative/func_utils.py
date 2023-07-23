@@ -1,4 +1,4 @@
-#@title || Functional utilities (func_utils.py)
+"""Functional utilities."""
 import functools
 
 import numpy as np

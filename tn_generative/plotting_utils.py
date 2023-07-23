@@ -1,10 +1,10 @@
-#@title ||  Helper function for plotting. 
+"""Helper function for plotting."""
 
-from tn_generative import lattice
+from tn_generative import lattices
 from tn_generative import node_collections
 
 
-def plot_lattice(la: lattice.Lattice, ax, annotate: bool = False):
+def plot_lattice(la: lattices.Lattice, ax, annotate: bool = False):
   ax.scatter(*la.points.T)
   if annotate:
     for i in range(la.n_sites):
@@ -28,7 +28,7 @@ def plot_bonds(nodes_collection, ax, c='r', lw=3, plot_with_arrows: bool=False):
 
 def plot_loops(nodes_collection, ax, c='r', lw=2, plot_with_arrows: bool=False):
   edge_coords = node_collections.extract_edge_coords(nodes_collection)
-  for i, edge in enumerate(edge_coords):
+  for edge in edge_coords:
     if plot_with_arrows:
       dx = edge[1, 0] - edge[0, 0]
       dy = edge[1, 1] - edge[0, 1]

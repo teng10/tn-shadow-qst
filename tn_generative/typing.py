@@ -1,3 +1,4 @@
+"""Typing definitions for the tn_generative package."""
 from typing import Callable, Tuple, Union
 
 import numpy as np

@@ -1,4 +1,4 @@
-#@title || Lattice class and lattice helper functions (lattice.py)
+"""Lattice class and lattice helper functions."""
 from __future__ import annotations
 import dataclasses
 from typing import Mapping, Tuple
@@ -7,15 +7,15 @@ import math
 import numpy as np
 import shapely
 
-# from tn_generative import typing
 from tn_generative import func_utils
 
-# Array = typing.Array  # probably remove this because only need np.ndarray
+
 vectorized_method = func_utils.vectorized_method
 
 
 @dataclasses.dataclass
 class Lattice:
+  """Lattice class for storing lattice points and performing operations."""
   points: np.ndarray
   decimal_precision: int = 3
   loc_to_idx: Mapping[Tuple[str, ...], int] = dataclasses.field(
@@ -55,13 +55,12 @@ class Lattice:
       raise ValueError('Attempting to merge lattice with overlapp.')
     return Lattice(unique_combined, common_precision)
 
-  def shift(self, vector: np.ndarray) -> Lattice:  # returning Lattice ok?
+  def shift(self, vector: np.ndarray) -> Lattice:
     """Returns a new lattice shifted by `vector`."""
     new_points = np.round(self.points + vector, self.decimal_precision)
     return Lattice(new_points, self.decimal_precision)
 
   def __add__(self, other):
-    # COMMENT (YT): why do we need this?
     return self.merge(other)
 
   def __radd__(self, other):
@@ -83,10 +82,10 @@ def get_restricted(
 
   Args:
     lattice: input lattice.
-    polygon: a shapely polygon specifying.
+    polygon: a shapely polygon specifying restricted boundaries.
 
   Returns:
-    An array of points that are contained in `poly`.
+    A part of `lattice` that is contains only points within the `polygon`.
   """
   new_points = []
   for point in lattice.points:
@@ -94,6 +93,7 @@ def get_restricted(
     if polygon.contains(shapely_point):
       new_points.append(point)
   return Lattice(np.stack(new_points), lattice.decimal_precision)
+
 
 def generate_shapely_hexagon(length:float, x: float, y: float,
 ) -> shapely.geometry.Polygon:

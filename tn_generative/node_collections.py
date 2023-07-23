@@ -1,23 +1,24 @@
 """Nodes collection and loops"""
 from __future__ import annotations
 import dataclasses
+import itertools
 from typing import Mapping, Tuple
 
 import numpy as np
 import einops
 import scipy.spatial as sp_spatial
 
-# from tn_generative import typing
-from tn_generative import lattice
+from tn_generative import lattices
 from tn_generative import func_utils
 
-# Array = typing.Array  #TODO(YT): probably remove this because only need np.ndarray
-Lattice = lattice.Lattice
+
+Lattice = lattices.Lattice
 vectorized_method = func_utils.vectorized_method
 
 
 @dataclasses.dataclass
 class NodesCollection:
+  """Collection of nodes on a lattice for storing bonds with Lattice class."""
   nodes: np.ndarray
   lattice: Lattice
   tuple_to_idx: Mapping[Tuple[int, ...], int] = dataclasses.field(
@@ -72,12 +73,12 @@ class NodesCollection:
       return self
     raise NotImplementedError(f'__radd__ not implemented for {type(other)=}')
 
-  @classmethod  # Question: why is this a class method, different from others?
+  @classmethod
   def from_coords(
       cls: NodesCollection,
       path_coords: np.ndarray,
       lattice: Lattice,
-  ) -> NodesCollection:  # TODO(YT): this is correct???
+  ) -> NodesCollection:
     paths = lattice.get_idx(path_coords)
     return cls(paths, lattice)
 
@@ -112,24 +113,24 @@ def tile_on_lattice(base_loop, a1, a2, n_steps):
 
 
 def get_nearest_neighbors(
-    lattice: Lattice, 
+    lattice: Lattice,
     nb_radius: float,
-    ) -> NodesCollection:
+) -> NodesCollection:
   """Returns neighbors of `lattice` nodes within distance `nb_radius`."""
-  # TODO(YT): define `close_pairs_pdist` in `lattice.py`. 
-  def condensed_to_pair_indices(n,k):
-    x = n-(4.*n**2-4*n-8*k+1)**.5/2-.5
-    i = x.astype(int)
-    j = k+i*(i+3-2*n)/2+1
-    return i.astype(int),j.astype(int)
 
-  def close_pairs_pdist(X, max_d):
-    d = sp_spatial.distance.pdist(X)
-    k = (d<max_d).nonzero()[0]
-    return condensed_to_pair_indices(X.shape[0],k)   
-  
-  pairwise_distance = close_pairs_pdist(lattice.points, nb_radius)
-  nodes_coords = lattice.points[np.stack(pairwise_distance).T]
+  all_indices = np.arange(lattice.points.shape[0])
+  all_pairs = np.array(
+      list(itertools.combinations(all_indices, 2))
+  )
+
+  def _close_pairs_pdist(points: np.ndarray) -> np.ndarray:
+    """Returns indices of pairs of points within distance `nb_radius`."""
+    d = sp_spatial.distance.pdist(points)
+    close_pairs_indices = (d <= nb_radius).nonzero()[0]
+    return all_pairs[close_pairs_indices]
+
+  pairwise_indices = _close_pairs_pdist(lattice.points)
+  nodes_coords = lattice.points[np.stack(pairwise_indices)]
   return NodesCollection.from_coords(nodes_coords, lattice)
 
 
