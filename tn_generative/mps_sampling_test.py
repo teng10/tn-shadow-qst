@@ -159,5 +159,5 @@ class FixedBasisSamplerTest(parameterized.TestCase):
           actual_probabilities, basis_probabilities, atol=1e-2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   absltest.main()

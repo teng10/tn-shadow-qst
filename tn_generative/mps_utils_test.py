@@ -72,5 +72,5 @@ class MpoUtilsTests(parameterized.TestCase):
                                  atol=1e-6, rtol=1e-6)
       
 
-  if __name__ == '__main__':
+  if __name__ == "__main__":
     absltest.main()
