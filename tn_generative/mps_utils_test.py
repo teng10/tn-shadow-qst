@@ -6,8 +6,10 @@ from absl.testing import parameterized
 import numpy as np
 import quimb.tensor as qtn
 import quimb.gen as qugen
+import jax
 
 from tn_generative  import mps_utils
+from tn_generative import func_utils
 
 
 class MpoUtilsTests(parameterized.TestCase):
@@ -70,7 +72,39 @@ class MpoUtilsTests(parameterized.TestCase):
       expected_amplitude = 1.0 / np.sqrt(2**size)
       np.testing.assert_allclose(actual_amplitude, expected_amplitude, 
                                  atol=1e-6, rtol=1e-6)
-      
+
+class MpsUtilsTests(parameterized.TestCase):
+  """Tests utils for matrix product states."""      
+
+  @parameterized.parameters(2, 3, 4, 5)
+  def test_normalization(self, size):
+    """Test normalization of MPS by comparing with quimb default."""
+    np.random.seed(42)
+    qugen.rand.seed_rand(42)
+    mps = qtn.MPS_rand_state(size, bond_dim=5)  # default is normalized.
+    rand_arrays = [np.random.randn(*x) for x in 
+        func_utils.shape_structure(mps.arrays)]
+    mps_rand = qtn.MatrixProductState(arrays=rand_arrays)
+    mps_rand.normalize()
+    rand_mps_arrays_qu = mps_rand.arrays
+    mps_rand = qtn.MatrixProductState(arrays=rand_arrays)
+    mps_normed = mps_utils._uniform_normalize(mps_rand)
+    rand_mps_arrays = mps_normed.arrays
+    np.testing.assert_allclose(mps_normed.H @ mps_normed, 1.0)
+    # check that the two normalizations are not the same.  #TODO: remove?
+    # self.assertTrue(not np.any(rand_mps_arrays - rand_mps_arrays_qu))
+  
+
+  @parameterized.parameters(3, 4, 5)
+  def test_xr_mps_conversion(self, size):
+    """Test conversion between xarray and quimb MPS."""
+    np.random.seed(42)
+    qugen.rand.seed_rand(42)
+    mps = qtn.MPS_rand_state(size, bond_dim=5)
+    mps_xr = mps_utils.mps_to_xarray(mps)
+    mps_qu = mps_utils.xarray_to_mps(mps_xr)
+    np.testing.assert_equal(mps.arrays, mps_qu.arrays)
+
 
   if __name__ == "__main__":
     absltest.main()
