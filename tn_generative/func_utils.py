@@ -2,6 +2,10 @@
 import functools
 
 import numpy as np
+import jax
+
+
+shape_structure = lambda tree: jax.tree_util.tree_map(lambda x: x.shape, tree)
 
 
 def vectorized_method(otypes=None, signature=None):
