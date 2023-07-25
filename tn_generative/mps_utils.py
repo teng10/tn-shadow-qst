@@ -1,11 +1,16 @@
+"""Helper functions for manipulating MPS objects."""
+from typing import Sequence
+
 import jax
 import jax.numpy as jnp
 import numpy as np
-
-# Quimb imports for tensor network manipulations
+import xarray as xr
 import quimb as qmb
 import quimb.tensor as qtn
+
 from tn_generative import typing
+
+Array = typing.Array
 
 
 HADAMARD = qmb.gen.operators.hadamard()
@@ -52,3 +57,51 @@ def amplitude_via_contraction(
     rotation_mpo = z_to_basis_mpo(basis)
     bit_state = rotation_mpo.apply(bit_state)  # rotate to local bases.
   return (mps | bit_state) ^ ...
+
+
+def _uniform_normalize(mps: qtn.MatrixProductState) -> qtn.MatrixProductState:
+  """Normalizes `mps` by uniformly adjusting parameters of all tensors."""
+  mps_copy = mps.copy()
+  nfact = (mps_copy.H @ mps_copy)**0.5
+  return mps_copy.multiply(1 / nfact, spread_over='all')
+
+
+def uniform_param_normalize(mps_arrays: Sequence[Array])-> Sequence[Array]:
+  """Normalizes `mps_arrays` by calling `_uniform_normalize` on mps."""
+  mps = qtn.MatrixProductState(arrays=mps_arrays)
+  return _uniform_normalize(mps).arrays
+
+
+def mps_to_xarray(mps: qtn.MatrixProductState) -> xr.Dataset:
+  """Packages `mps` parameters to xarray.Dataset."""
+  if mps.L < 3:
+    raise ValueError(f'Cannot convert {mps.L=} to xarray.Dataset.')
+  mps = mps.copy()  # avoid modifying outside copy.
+  # TODO(yteng) consider extending this to support non-default reconstruction.
+  mps.permute_arrays('lrp')  # left, right, physical indices.
+  mps.expand_bond_dimension(mps.max_bond())  # for simplicity keep max dim.
+  mps_arrays = mps.arrays
+  bulk_array = np.stack(mps_arrays[1:-1])
+  bulk_dims = ('bulk_site', 'left_ind', 'right_ind', 'phys_ind')
+  return xr.Dataset(
+      data_vars={
+          'left_tensor': (('right_ind', 'phys_ind'), mps_arrays[0]),
+          'bulk_tensor': (bulk_dims, bulk_array),
+          'right_tensor': (('left_ind', 'phys_ind'), mps_arrays[-1]),
+      },
+      coords={
+          'left_ind': np.arange(mps.max_bond()),
+          'right_ind': np.arange(mps.max_bond()),
+          'phys_ind': np.arange(mps.phys_dim()),
+          'bulk_site': np.arange(1, mps.L - 1),
+      }
+  )
+
+
+def xarray_to_mps(ds: xr.Dataset) -> qtn.MatrixProductState:
+  """Converts MPS arrays packaged in `ds` to `qtn.MatrixProductState`."""
+  ds = ds.transpose('bulk_site', 'left_ind', 'right_ind', 'phys_ind', ...)
+  bulk_arrays = np.split(ds.bulk_tensor.values, ds.sizes['bulk_site'])
+  bulk_arrays = [x[0, ...] for x in bulk_arrays]
+  mps_arrays = [ds.left_tensor.values] + bulk_arrays + [ds.right_tensor.values]
+  return qtn.MatrixProductState(mps_arrays)
