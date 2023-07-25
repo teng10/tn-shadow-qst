@@ -118,7 +118,7 @@ def get_nearest_neighbors(
 ) -> NodesCollection:
   """Returns neighbors of `lattice` nodes within distance `nb_radius`."""
 
-  all_indices = lattice.n_sites
+  all_indices = np.arange(lattice.n_sites)
   all_pairs = np.array(
       list(itertools.combinations(all_indices, 2))
   )
