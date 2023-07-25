@@ -61,11 +61,9 @@ def amplitude_via_contraction(
 
 def _uniform_normalize(mps: qtn.MatrixProductState) -> qtn.MatrixProductState:
   """Normalizes `mps` by uniformly adjusting parameters of all tensors."""
-  # NOTE: this is not a pure function as quimb objects get modified in place.
-  # Question: shouldn't we be using `mps.copy()` here?
-  # TODO(YT): check default normalize in quimb.
-  nfact = (mps.H @ mps)**0.5
-  return mps.multiply(1 / nfact, spread_over='all')
+  mps_copy = mps.copy()
+  nfact = (mps_copy.H @ mps_copy)**0.5
+  return mps_copy.multiply(1 / nfact, spread_over='all')
 
 
 def uniform_param_normalize(mps_arrays: Sequence[Array])-> Sequence[Array]:

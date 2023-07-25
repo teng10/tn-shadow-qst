@@ -6,10 +6,8 @@ from absl.testing import parameterized
 import numpy as np
 import quimb.tensor as qtn
 import quimb.gen as qugen
-import jax
 
 from tn_generative  import mps_utils
-from tn_generative import func_utils
 
 
 class MpoUtilsTests(parameterized.TestCase):
@@ -19,7 +17,7 @@ class MpoUtilsTests(parameterized.TestCase):
   def test_z_to_basis_mpo(self, size, seed=42):
     """Tests the rotation MPO by building an explicit vector rotation."""
     qugen.rand.seed_rand(seed)
-    random_mps = qtn.MPS_rand_state(size, bond_dim=5) 
+    random_mps = qtn.MPS_rand_state(size, bond_dim=5)
     random_basis = np.random.randint(0, 2, size)
     mpo = mps_utils.z_to_basis_mpo(random_basis)
     rotated_mps = mpo.apply(random_mps)
@@ -39,20 +37,20 @@ class MpoUtilsTests(parameterized.TestCase):
   @parameterized.parameters(2, 3, 4, 5)
   def test_amplitude_via_contraction(self, size):
     """Tests the amplitude of an MPS state for explicit states."""
-    with self.subTest('ghz_state'):
+    with self.subTest("ghz_state"):
       ghz_state = qtn.tensor_builder.MPS_ghz_state(size)
       measurement = np.zeros(size)
       actual_amplitude = mps_utils.amplitude_via_contraction(
           ghz_state, measurement)
-      expected_amplitude = 1 / np.sqrt(2) 
+      expected_amplitude = 1 / np.sqrt(2)
       np.testing.assert_allclose(actual_amplitude, expected_amplitude)
       measurement = np.ones(size)
       actual_amplitude = mps_utils.amplitude_via_contraction(
           ghz_state, measurement)
       expected_amplitude = 1 / np.sqrt(2)
       np.testing.assert_allclose(actual_amplitude, expected_amplitude)
-     
-    with self.subTest('neel_state'):
+
+    with self.subTest("neel_state"):
       neel_state = qtn.tensor_builder.MPS_neel_state(size, down_first=True)
       measurement = (1. + (-1.)**np.arange(size)) / 2.
       actual_amplitude = mps_utils.amplitude_via_contraction(
@@ -62,7 +60,7 @@ class MpoUtilsTests(parameterized.TestCase):
   @parameterized.parameters(2, 3, 4, 5)
   def test_amplitude_via_contraction_basis(self, size):
     """Tests the amplitude of an MPS state in different basis."""
-    with self.subTest('product_state'):  #TODO (YT): add random state tests.
+    with self.subTest("product_state"):  #TODO (YT): add random state tests.
       product_state = qtn.tensor_builder.MPS_computational_state(
           np.zeros(size, dtype=int))
       rng = np.random.default_rng()
@@ -70,11 +68,11 @@ class MpoUtilsTests(parameterized.TestCase):
       actual_amplitude = mps_utils.amplitude_via_contraction(
           product_state, measurement, basis=np.zeros(size))
       expected_amplitude = 1.0 / np.sqrt(2**size)
-      np.testing.assert_allclose(actual_amplitude, expected_amplitude, 
+      np.testing.assert_allclose(actual_amplitude, expected_amplitude,
                                  atol=1e-6, rtol=1e-6)
 
 class MpsUtilsTests(parameterized.TestCase):
-  """Tests utils for matrix product states."""      
+  """Tests utils for matrix product states."""
 
   @parameterized.parameters(2, 3, 4, 5)
   def test_normalization(self, size):
@@ -82,18 +80,13 @@ class MpsUtilsTests(parameterized.TestCase):
     np.random.seed(42)
     qugen.rand.seed_rand(42)
     mps = qtn.MPS_rand_state(size, bond_dim=5)  # default is normalized.
-    rand_arrays = [np.random.randn(*x) for x in 
-        func_utils.shape_structure(mps.arrays)]
-    mps_rand = qtn.MatrixProductState(arrays=rand_arrays)
-    mps_rand.normalize()
-    rand_mps_arrays_qu = mps_rand.arrays
-    mps_rand = qtn.MatrixProductState(arrays=rand_arrays)
-    mps_normed = mps_utils._uniform_normalize(mps_rand)
-    rand_mps_arrays = mps_normed.arrays
-    np.testing.assert_allclose(mps_normed.H @ mps_normed, 1.0)
-    # check that the two normalizations are not the same.  #TODO: remove?
-    # self.assertTrue(not np.any(rand_mps_arrays - rand_mps_arrays_qu))
-  
+    non_normalized_mps = qtn.MatrixProductState(
+        arrays=[np.random.randn(*x.shape) for x in mps.arrays])
+    normalized_mps = mps_utils._uniform_normalize(non_normalized_mps)
+    np.testing.assert_allclose(
+        normalized_mps.H @ normalized_mps, 1.0, atol=1e-6
+    )
+
 
   @parameterized.parameters(3, 4, 5)
   def test_xr_mps_conversion(self, size):

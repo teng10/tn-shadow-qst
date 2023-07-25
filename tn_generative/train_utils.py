@@ -1,6 +1,6 @@
 """Training and evaluation helper functions."""
-from typing import Any, Dict, Optional, Sequence
 import functools
+from typing import Any, Dict, Optional, Sequence
 
 import pandas as pd
 import xarray as xr
@@ -12,7 +12,7 @@ import quimb.tensor as qtn
 from tn_generative import mps_utils
 
 def measurement_log_likelihood(
-    mps: qtn.MatrixProductState, 
+    mps: qtn.MatrixProductState,
     measurement: jax.Array,
     basis: jax.Array | None = None,
 ) -> float:
@@ -34,7 +34,7 @@ def batched_neg_ll_loss_fn(
   batched_ll_fn = jax.vmap(measurement_log_likelihood, in_axes=(None, 0, 0))
   mps = qtn.MatrixProductState(arrays=mps_arrays)
   norm = mps.norm().real  # NOTE: can compute norm once and reuse.
-  loss_fn = lambda p, m, b: (-jnp.mean(batched_ll_fn(p, m, b)) 
+  loss_fn = lambda p, m, b: (-jnp.mean(batched_ll_fn(p, m, b))
     + 2 * jnp.log(norm)
   )
   return loss_fn(mps, measurements, bases)
@@ -73,11 +73,12 @@ def evaluate_model(mps, train_ds):
   })
 
 
-#@title Defining two training variants: (1) full batch LBFGS; (2) mini-batch SGD
-def run_full_batch_training_regularizer(
+#TODO(YT): implement two training variants:
+# (1) full batch LBFGS (implemented); (2) mini-batch SGD
+def run_full_batch_training(
     mps: qtn.MatrixProductState,
     train_ds: xr.Dataset,
-    training_config: Dict[str, Any], 
+    training_config: Dict[str, Any],
     regularization_fn: Optional[callable]=None,
     beta: Optional[float]=1.
 ):
@@ -89,16 +90,18 @@ def run_full_batch_training_regularizer(
     training_config: dictionary containing training configuration.
     regularization_fn: function that computes regularization term.
     beta: regularization strength.
-  
+
   Returns:
     train_df: pandas dataframe containing training loss and optimization step.
   """
   measurements = train_ds.measurement.values
   bases = train_ds.basis.values
 
-  regularization_fn = functools.partial(regularization_fn, train_ds=train_ds)
   if regularization_fn is not None:
-    loss_fn = lambda psi, m, b: (batched_neg_ll_loss_fn(psi.arrays, m, b) 
+    # TODO(YT): partial PhysicalSystem and estimator_fn, beta?.
+    # Could also pass `beta` through `training_config`.
+    regularization_fn = functools.partial(regularization_fn, train_ds=train_ds)
+    loss_fn = lambda psi, m, b: (batched_neg_ll_loss_fn(psi.arrays, m, b)
     + beta * regularization_fn(psi.arrays))
   else:
     loss_fn = lambda psi, m, b: batched_neg_ll_loss_fn(psi.arrays, m, b)
