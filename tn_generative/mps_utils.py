@@ -1,4 +1,5 @@
 """Helper functions for manipulating MPS objects."""
+import functools
 from typing import Sequence
 
 import jax
@@ -11,14 +12,14 @@ import quimb.tensor as qtn
 from tn_generative import typing
 
 Array = typing.Array
-
+EST_REGISTRY = {}  # define registry for estimator functions.
 
 HADAMARD = qmb.gen.operators.hadamard()
 Y_HADAMARD = np.array([[0.0, -1.0j], [1.0j, 0.0]])
 EYE = qmb.gen.operators.eye(2)
 
 
-def z_to_basis_mpo(basis: typing.Array) -> qtn.MatrixProductOperator:
+def z_to_basis_mpo(basis: Array) -> qtn.MatrixProductOperator:
   """Returns MPO that rotates from `z` to `basis` basis.
 
   Args:
@@ -59,7 +60,7 @@ def amplitude_via_contraction(
   return (mps | bit_state) ^ ...
 
 
-def _uniform_normalize(mps: qtn.MatrixProductState) -> qtn.MatrixProductState:
+def uniform_normalize(mps: qtn.MatrixProductState) -> qtn.MatrixProductState:
   """Normalizes `mps` by uniformly adjusting parameters of all tensors."""
   mps_copy = mps.copy()
   nfact = (mps_copy.H @ mps_copy)**0.5
@@ -67,9 +68,9 @@ def _uniform_normalize(mps: qtn.MatrixProductState) -> qtn.MatrixProductState:
 
 
 def uniform_param_normalize(mps_arrays: Sequence[Array])-> Sequence[Array]:
-  """Normalizes `mps_arrays` by calling `_uniform_normalize` on mps."""
+  """Normalizes `mps_arrays` by calling `uniform_normalize` on mps."""
   mps = qtn.MatrixProductState(arrays=mps_arrays)
-  return _uniform_normalize(mps).arrays
+  return uniform_normalize(mps).arrays
 
 
 def mps_to_xarray(mps: qtn.MatrixProductState) -> xr.Dataset:
@@ -105,3 +106,44 @@ def xarray_to_mps(ds: xr.Dataset) -> qtn.MatrixProductState:
   bulk_arrays = [x[0, ...] for x in bulk_arrays]
   mps_arrays = [ds.left_tensor.values] + bulk_arrays + [ds.right_tensor.values]
   return qtn.MatrixProductState(mps_arrays)
+
+
+def _register_est_fn(get_est_fn, est_name: str):
+  """Registers `get_est_fn` in global `EST_REGISTRY`."""
+  registered_fn = EST_REGISTRY.get(est_name, None)
+  if registered_fn is None:
+    EST_REGISTRY[est_name] = get_est_fn
+  else:
+    if registered_fn != get_est_fn:
+      raise ValueError(f'{est_name} is already registerd {registered_fn}.')
+
+
+register_est_fn = lambda name: functools.partial(
+    _register_est_fn, est_name=name
+)
+
+
+@register_est_fn('dmrg')
+def get_estimator_dmrg(ds, mpo):
+  """An estimator function that uses MPS from DMRG to compute expectation value.
+  """
+  # COMMENT(YT): do you have to use the wrapper function here? Silly, but I think yes.
+  def estimator_fn_dmrg(ds, mpo):
+    mps = xarray_to_mps(ds)
+    return (mps.H | (mpo.apply(mps))) ^ ...
+  return estimator_fn_dmrg(ds, mpo)
+
+
+@register_est_fn('placeholder')
+def get_estimator_placeholder(ds, mpo):
+  """A placeholder estimator function that always returns 1.0."""
+  estimator_plcaeholder = lambda ds, mpo: 1.
+  return estimator_plcaeholder(ds, mpo)
+
+
+@register_est_fn('shadow')
+def get_estimator_shadow(ds, mpo):
+  """An shadow estimator function that uses `measurement` and `basis` from
+  dataset to compute expectation value.
+  """
+  raise NotImplementedError('Shadow estimator is not implemented yet.')

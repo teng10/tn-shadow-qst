@@ -10,3 +10,9 @@ Array = Union[np.ndarray, jnp.ndarray]
 MeasurementAndBasis = Tuple[Array, Array]
 SamplerFn = Callable[
     [jax.random.PRNGKeyArray, qtn.MatrixProductState], MeasurementAndBasis]
+DTYPES_REGISTRY = {
+    'complex128': np.complex128,
+    'complex64': np.complex64,
+    'float64': np.float64,
+    'float32': np.float32,
+}
