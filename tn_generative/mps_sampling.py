@@ -8,12 +8,12 @@ import numpy as np
 
 import quimb.tensor as qtn
 
-from tn_generative import typing
+from tn_generative import types
 from tn_generative import mps_utils
 
-Array = typing.Array
-SamplerFn = typing.SamplerFn
-MeasurementAndBasis = typing.MeasurementAndBasis
+Array = types.Array
+SamplerFn = types.SamplerFn
+MeasurementAndBasis = types.MeasurementAndBasis
 
 SAMPLER_REGISTRY = {}  # Global registry for samplers.
 

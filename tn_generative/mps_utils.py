@@ -9,9 +9,9 @@ import xarray as xr
 import quimb as qmb
 import quimb.tensor as qtn
 
-from tn_generative import typing
+from tn_generative import types
 
-Array = typing.Array
+Array = types.Array
 EST_REGISTRY = {}  # define registry for estimator functions.
 
 HADAMARD = qmb.gen.operators.hadamard()
