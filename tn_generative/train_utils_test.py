@@ -5,6 +5,7 @@ from absl.testing import parameterized
 
 import numpy as np
 import jax
+from jax import config as jax_config
 import haiku as hk
 import quimb.tensor as qtn
 import quimb.gen as qugen
@@ -17,18 +18,20 @@ from tn_generative  import mps_utils
 from tn_generative  import mps_sampling
 from tn_generative  import data_generation
 from tn_generative  import train_utils
+from tn_generative import regularizers
 from tn_generative  import typing
 
 DTYPES_REGISTRY = typing.DTYPES_REGISTRY
-EST_REGISTRY = mps_utils.EST_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
-REG_REGISTRY = data_generation.REG_REGISTRY
+REGULARIZER_REGISTRY = regularizers.REGULARIZER_REGISTRY
+
 
 class RunDataGeneration(parameterized.TestCase):
   """Tests data generation."""
 
   def setUp(self):
-    # Generate data for training.
+    # Generate data for training.  #TODO(YT): use config file.
+    jax_config.update('jax_enable_x64', True)
     def surface_code_config():
       config = config_dict.ConfigDict()
       # Task configuration.
@@ -49,7 +52,7 @@ class RunDataGeneration(parameterized.TestCase):
       config.sampling.num_samples = 500
       return config
 
-    config = surface_code_config()
+    config = surface_code_config()  #TODO(YT): move to run_data_generation.py
     dtype = DTYPES_REGISTRY[config.dtype]
     task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
     task_mpo = task_system.get_ham_mpo()
@@ -87,11 +90,11 @@ class RunDataGeneration(parameterized.TestCase):
     target_mps_ds = mps_utils.mps_to_xarray(mps)
     self.ds = xr.merge([target_mps_ds, ds])
 
-  def get_experiment_config(self):
+  def get_experiment_config(self):    #TODO(YT): move to config_training.py
     config = config_dict.ConfigDict()
     config.model = config_dict.ConfigDict()
     config.model.bond_dim = 5
-    config.model.dtype = 'complex64'
+    config.model.dtype = 'complex128'
     config.model.init_seed = 43
     # data.
     config.data = config_dict.ConfigDict()
@@ -103,7 +106,7 @@ class RunDataGeneration(parameterized.TestCase):
     config.training.reg_name = 'surface_code'
     config.training.reg_kwargs = {'beta': 1.}
     config.training.reg_strength = 1.
-    config.training.estimator = 'dmrg'
+    config.training.estimator = 'mps'
     # physical system.
     config.task_name = 'surface_code'
     # use zero field surface code to get only stabilizers.
@@ -112,12 +115,15 @@ class RunDataGeneration(parameterized.TestCase):
 
 
   def run_full_batch_experiment(self, exp_config, ds):
+    #TODO(YT): move to run_train.py
     train_config = exp_config.training
     model_config = exp_config.model
     train_ds = ds.isel(sample=slice(0, exp_config.data.num_training_samples))
     system = TASK_REGISTRY[exp_config.task_name](**exp_config.task_kwargs)
-    estimator_fn = EST_REGISTRY[train_config.estimator]
-    reg_fn = REG_REGISTRY[train_config.reg_name]
+    estimator_fn = functools.partial(
+        mps_utils.estimate_observable, method=train_config.estimator
+    )
+    reg_fn = REGULARIZER_REGISTRY[train_config.reg_name]
     reg_fn = reg_fn(system=system,
         estimator_fn=estimator_fn, train_ds=train_ds, **train_config.reg_kwargs
     )

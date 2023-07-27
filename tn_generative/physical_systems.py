@@ -2,7 +2,7 @@
 import abc
 from abc import abstractmethod
 import itertools
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import einops
@@ -11,18 +11,14 @@ import quimb.experimental.operatorbuilder as quimb_exp_op
 
 from tn_generative import node_collections
 from tn_generative import lattices
+from tn_generative import typing
 
 
 class PhysicalSystem(abc.ABC):
   """Abstract class for defining physical systems."""
 
-  @property
-  def n_sites(self) -> int:
-    """Returns number of sites."""
-    return self._n_sites
-
   @abstractmethod
-  def get_terms(self) -> List[Tuple[float, Tuple[str, int]]]:
+  def get_terms(self) -> typing.TermsTuple:
     """Returns list of terms in the hamiltonian."""
     return None
 
@@ -32,18 +28,24 @@ class PhysicalSystem(abc.ABC):
 
   @abstractmethod
   def get_obs_mpos(self,
-      terms: Optional[List[Tuple[float, Tuple[str, int]]]] = None,
-  ) -> List[qtn.MatrixProductOperator]:
-    """Returns MPOs for observables. 
+      terms: Optional[typing.TermsTuple] = None,
+  ) -> list[qtn.MatrixProductOperator]:
+    """Returns MPOs for observables.
+
     Note: this method returns terms in `get_terms` method with +1 coupling.
 
     Args:
       terms: list of terms to include in the MPOs. Default (None) is to include
         all terms in the Hamiltonian.
-    
+
     Return:
       List of MPOs.
     """
+    if terms is None and self.get_terms() is None:
+      raise ValueError(
+          f'subclass {self.__name__} did not implement' +
+          'custom `get_terms` or pass explicit `terms` to `get_obs_mpos`.'
+      )
 
 class SurfaceCode(PhysicalSystem):
   """Implementation for surface code.
@@ -58,7 +60,7 @@ class SurfaceCode(PhysicalSystem):
       coupling_value: float = 1.0,
       onsite_z_field: float = 0.,
   ):
-    self._n_sites = int(Lx * Ly)
+    self.n_sites = int(Lx * Ly)
     self.Lx = Lx
     self.Ly = Ly
     self.coupling_value = coupling_value
@@ -66,7 +68,7 @@ class SurfaceCode(PhysicalSystem):
     self.hilbert_space = quimb_exp_op.HilbertSpace(self.n_sites)
 
   def _get_surface_code_collections(self,
-      ) -> Tuple[node_collections.NodesCollection, ...]:
+      ) -> tuple[node_collections.NodesCollection, ...]:
     """Constructs `NodeCollection`s for all terms in surface code Hamiltonian.
     """
     if self.Lx % 2 != 1 or self.Ly % 2 !=1:
@@ -136,7 +138,7 @@ class SurfaceCode(PhysicalSystem):
     return z_plaquettes, x_plaquettes, z_boundaries, x_boundaries
 
   def get_terms(self,
-  ) -> List[Tuple[float, Tuple[str, int]]]:
+  ) -> typing.TermsTuple:
     """Generates all stabilizer terms in the surface code
     from 4-plaquettes and 2-site boundaries.
 
@@ -206,8 +208,8 @@ class SurfaceCode(PhysicalSystem):
     return surface_code_ham.build_mpo()
 
   def get_obs_mpos(self,
-      terms: Optional[List[Tuple[float, Tuple[str, int]]]] = None,
-  ) ->  List[qtn.MatrixProductOperator]:
+      terms: Optional[typing.TermsTuple] = None,
+  ) ->  list[qtn.MatrixProductOperator]:
     """Get observables `terms` as MPOs.
 
     Args:

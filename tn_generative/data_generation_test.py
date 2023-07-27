@@ -24,7 +24,7 @@ class RunDataGeneration(absltest.TestCase):
 
   def setUp(self):
     """Set up config for data generation using surface code."""
-    def surface_code_config():
+    def surface_code_config():  #TODO(YT): move to config_data.py
       config = config_dict.ConfigDict()
       # Task configuration.
       config.dtype = 'complex128'
@@ -48,7 +48,7 @@ class RunDataGeneration(absltest.TestCase):
 
   def test_generate_surface_code(self):
     """Tests data generation for surface code."""
-    config = self.config
+    config = self.config  #TODO(YT): move to run_data_generation.py
     dtype = DTYPES_REGISTRY[config.dtype]
     task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
     task_mpo = task_system.get_ham_mpo()
@@ -82,6 +82,7 @@ class RunDataGeneration(absltest.TestCase):
     ds = runner.run_combos(combos, parallel=False)
     target_mps_ds = mps_utils.mps_to_xarray(mps)
     ds = xr.merge([target_mps_ds, ds])
+
 
   if __name__ == '__main__':
     absltest.main()
