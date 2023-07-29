@@ -14,6 +14,8 @@ import pandas as pd
 import xyzpy
 from ml_collections import config_dict
 
+from tn_generative.train_configs  import surface_code_training_config
+from tn_generative.configs_data  import config_get_data_surface_code
 from tn_generative  import mps_utils
 from tn_generative  import mps_sampling
 from tn_generative  import data_generation
@@ -32,27 +34,9 @@ class RunDataGeneration(parameterized.TestCase):
   def setUp(self):
     # Generate data for training.  #TODO(YT): use config file.
     jax_config.update('jax_enable_x64', True)
-    def surface_code_config():
-      config = config_dict.ConfigDict()
-      # Task configuration.
-      config.dtype = 'complex128'
-      config.task = config_dict.ConfigDict()
-      config.task.name = 'surface_code'
-      config.task.kwargs = {'size_x': 3, 'size_y': 3, 'onsite_z_field': 0.1}
-      # DMRG configuration.
-      config.dmrg = config_dict.ConfigDict()
-      config.dmrg.bond_dims = 5
-      config.dmrg.solve_kwargs = {
-          'max_sweeps': 40, 'cutoffs': 1e-6, 'verbosity': 1
-      }
-      # Sampler configuration.
-      config.sampling = config_dict.ConfigDict()
-      config.sampling.sampling_method = 'xz_basis_sampler'
-      config.sampling.init_seed = 42
-      config.sampling.num_samples = 500
-      return config
+    config = config_get_data_surface_code.get_config()
+    config.output.save_data = False
 
-    config = surface_code_config()  #TODO(YT): move to run_data_generation.py
     dtype = DTYPES_REGISTRY[config.dtype]
     task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
     task_mpo = task_system.get_ham()
@@ -90,29 +74,6 @@ class RunDataGeneration(parameterized.TestCase):
     target_mps_ds = mps_utils.mps_to_xarray(mps)
     self.ds = xr.merge([target_mps_ds, ds])
 
-  def get_experiment_config(self):    #TODO(YT): move to config_training.py
-    config = config_dict.ConfigDict()
-    config.model = config_dict.ConfigDict()
-    config.model.bond_dim = 5
-    config.model.dtype = 'complex128'
-    config.model.init_seed = 43
-    # data.
-    config.data = config_dict.ConfigDict()
-    config.data.num_training_samples = 1000
-    # training.
-    config.training = config_dict.ConfigDict()
-    config.training.num_training_steps = 10
-    config.training.opt_kwargs = {}
-    config.training.reg_name = 'hamiltonian'
-    config.training.reg_kwargs = {'beta': 1.}
-    config.training.reg_strength = 1.
-    config.training.estimator = 'mps'
-    # physical system.
-    config.task_name = 'surface_code'
-    # use zero field surface code to get only stabilizers.
-    config.task_kwargs = {'size_x': 3, 'size_y': 3, 'onsite_z_field': 0.}
-    return config
-
 
   def run_full_batch_experiment(self, exp_config, ds):
     #TODO(YT): move to run_train.py
@@ -147,7 +108,7 @@ class RunDataGeneration(parameterized.TestCase):
 
 
   def test_full_batch_experiment(self):
-    experiment_config = self.get_experiment_config()
+    experiment_config = surface_code_training_config.get_config()
     qtn.contraction.contract_backend('jax')  # set backend for current thread
     self.run_full_batch_experiment(experiment_config, self.ds)
 
