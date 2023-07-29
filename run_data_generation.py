@@ -23,10 +23,9 @@ FLAGS = flags.FLAGS
 DTYPES_REGISTRY = types.DTYPES_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
 
-current_date = datetime.now().strftime('%m%d')
-
 
 def main(argv):
+  current_date = datetime.now().strftime('%m%d')
   config = FLAGS.config
   dtype = DTYPES_REGISTRY[config.dtype]
   task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)

@@ -19,9 +19,9 @@ from tn_generative  import mps_sampling
 from tn_generative  import data_generation
 from tn_generative  import train_utils
 from tn_generative import regularizers
-from tn_generative  import typing
+from tn_generative  import types
 
-DTYPES_REGISTRY = typing.DTYPES_REGISTRY
+DTYPES_REGISTRY = types.DTYPES_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
 REGULARIZER_REGISTRY = regularizers.REGULARIZER_REGISTRY
 
@@ -103,7 +103,7 @@ class RunDataGeneration(parameterized.TestCase):
     config.training = config_dict.ConfigDict()
     config.training.num_training_steps = 10
     config.training.opt_kwargs = {}
-    config.training.reg_name = 'surface_code'
+    config.training.reg_name = 'hamiltonian'
     config.training.reg_kwargs = {'beta': 1.}
     config.training.reg_strength = 1.
     config.training.estimator = 'mps'

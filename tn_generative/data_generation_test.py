@@ -9,7 +9,7 @@ import quimb.tensor as qtn
 import xarray as xr
 import xyzpy
 
-from tn_generative import config_data
+from tn_generative.configs_data import config_get_data_surface_code
 from tn_generative  import mps_utils
 from tn_generative  import mps_sampling
 from tn_generative  import data_generation
@@ -24,7 +24,7 @@ class RunDataGeneration(absltest.TestCase):
 
   def setUp(self):
     """Set up config for data generation using surface code."""
-    self.config = config_data.get_config()
+    self.config = config_get_data_surface_code.get_config()
 
   def test_generate_surface_code(self):
     """Tests data generation for surface code."""
