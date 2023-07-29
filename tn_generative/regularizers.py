@@ -30,14 +30,14 @@ register_reg_fn = lambda name: functools.partial(
 )
 
 
-@register_reg_fn('surface_code')
-def get_surface_code_reg_fn(
+@register_reg_fn('hamiltonian')
+def get_hamiltonian_reg_fn(
     system: PhysicalSystem,
     train_ds: xr.Dataset,
     estimator_fn: Callable[[xr.Dataset, qtn.MatrixProductOperator], float],
     beta: Optional[Union[np.ndarray, float]] = 1.,
 ) -> Callable[[Sequence[jax.Array]], float]:
-  """Returns regularization function for surface code stabilizers.
+  """Returns regularization function for terms in a hamiltonian.
 
   Args:
     system: physical system where the dataset is generated from.
@@ -49,14 +49,14 @@ def get_surface_code_reg_fn(
   Return:
     reg_fn: regularization function takes MPS arrays.
   """
-  stabilizer_mpos = system.get_ham_mpos()
+  ham_mpos = system.get_ham_mpos()
   stabilizer_estimates = np.array([
-      estimator_fn(train_ds, stabilizer) for stabilizer in stabilizer_mpos
+      estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_mpos
   ])
   def reg_fn(mps_arrays: Sequence[jax.Array]):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     stabilizer_expectations = jnp.array([
-        (mps.H @ (s.apply(mps))) for s in stabilizer_mpos
+        (mps.H @ (s.apply(mps))) for s in ham_mpos
     ])
     return jnp.sum(
         beta * jnp.abs(stabilizer_expectations - stabilizer_estimates)**2

@@ -8,9 +8,9 @@ import xarray as xr
 import quimb as qmb
 import quimb.tensor as qtn
 
-from tn_generative import typing
+from tn_generative import types
 
-Array = typing.Array
+Array = types.Array
 
 HADAMARD = qmb.gen.operators.hadamard()
 Y_HADAMARD = np.array([[0.0, -1.0j], [1.0j, 0.0]])

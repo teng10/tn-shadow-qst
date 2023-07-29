@@ -11,14 +11,14 @@ import quimb.experimental.operatorbuilder as quimb_exp_op
 
 from tn_generative import node_collections
 from tn_generative import lattices
-from tn_generative import typing
+from tn_generative import types
 
 
 class PhysicalSystem(abc.ABC):
   """Abstract class for defining physical systems."""
 
   @abstractmethod
-  def get_terms(self) -> typing.TermsTuple:
+  def get_terms(self) -> types.TermsTuple:
     """Returns list of terms in the hamiltonian."""
     return None
 
@@ -39,16 +39,16 @@ class PhysicalSystem(abc.ABC):
     if self.get_terms() is None:
       raise ValueError(
           f'subclass {self.__name__} did not implement custom `get_terms`'
-      )    
-    
+      )
+
   @abstractmethod
   def get_obs_mpos(self,
-      terms: Optional[typing.TermsTuple],
+      terms: Optional[types.TermsTuple],
   ) -> list[qtn.MatrixProductOperator]:
     """Returns MPOs for observables.
 
     Args:
-      terms: list of terms to include in the MPOs. 
+      terms: list of terms to include in the MPOs.
 
     Return:
       List of MPOs.
@@ -145,7 +145,7 @@ class SurfaceCode(PhysicalSystem):
     return z_plaquettes, x_plaquettes, z_boundaries, x_boundaries
 
   def get_terms(self,
-  ) -> typing.TermsTuple:
+  ) -> types.TermsTuple:
     """Generates all stabilizer terms in the surface code
     from 4-plaquettes and 2-site boundaries.
 
@@ -230,9 +230,9 @@ class SurfaceCode(PhysicalSystem):
               [term], hilbert_space=hilbert_space).build_mpo()
       )
     return mpos
-  
+
   def get_obs_mpos(self,
-      terms: Optional[typing.TermsTuple] = None,
+      terms: Optional[types.TermsTuple] = None,
   ) ->  list[qtn.MatrixProductOperator]:
     """Get observables `terms` as MPOs.
 

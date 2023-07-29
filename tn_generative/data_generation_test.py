@@ -8,14 +8,14 @@ import haiku as hk
 import quimb.tensor as qtn
 import xarray as xr
 import xyzpy
-from ml_collections import config_dict
 
+from tn_generative.configs_data import config_get_data_surface_code
 from tn_generative  import mps_utils
 from tn_generative  import mps_sampling
 from tn_generative  import data_generation
-from tn_generative  import typing
+from tn_generative  import types
 
-DTYPES_REGISTRY = typing.DTYPES_REGISTRY
+DTYPES_REGISTRY = types.DTYPES_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
 
 
@@ -24,27 +24,7 @@ class RunDataGeneration(absltest.TestCase):
 
   def setUp(self):
     """Set up config for data generation using surface code."""
-    def surface_code_config():  #TODO(YT): move to config_data.py
-      config = config_dict.ConfigDict()
-      # Task configuration.
-      config.dtype = 'complex128'
-      config.task = config_dict.ConfigDict()
-      config.task.name = 'surface_code'
-      config.task.kwargs = {'size_x': 3, 'size_y': 3, 'onsite_z_field': 0.1}
-      # DMRG configuration.
-      config.dmrg = config_dict.ConfigDict()
-      config.dmrg.bond_dims = 10
-      config.dmrg.solve_kwargs = {
-          'max_sweeps': 40, 'cutoffs': 1e-6, 'verbosity': 1
-      }
-      # Sampler configuration.
-      config.sampling = config_dict.ConfigDict()
-      config.sampling.sampling_method = 'xz_basis_sampler'
-      config.sampling.init_seed = 42
-      config.sampling.num_samples = 500
-      return config
-
-    self.config = surface_code_config()
+    self.config = config_get_data_surface_code.get_config()
 
   def test_generate_surface_code(self):
     """Tests data generation for surface code."""
