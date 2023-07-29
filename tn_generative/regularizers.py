@@ -49,7 +49,7 @@ def get_surface_code_reg_fn(
   Return:
     reg_fn: regularization function takes MPS arrays.
   """
-  stabilizer_mpos = system.get_obs_mpos()
+  stabilizer_mpos = system.get_ham_mpos()
   stabilizer_estimates = np.array([
       estimator_fn(train_ds, stabilizer) for stabilizer in stabilizer_mpos
   ])

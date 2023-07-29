@@ -51,7 +51,7 @@ class RunDataGeneration(absltest.TestCase):
     config = self.config  #TODO(YT): move to run_data_generation.py
     dtype = DTYPES_REGISTRY[config.dtype]
     task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
-    task_mpo = task_system.get_ham_mpo()
+    task_mpo = task_system.get_ham()
     # Running DMRG
     qtn.contraction.set_tensor_linop_backend('numpy')
     qtn.contraction.set_contract_backend('numpy')

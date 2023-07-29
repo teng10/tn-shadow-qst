@@ -109,14 +109,15 @@ def xarray_to_mps(ds: xr.Dataset) -> qtn.MatrixProductState:
 def estimate_observable(
   ds: xr.Dataset,
   mpo: qtn.MatrixProductOperator,
-  method: str = 'placeholder',
-  ) -> float:
+  method: str = 'mps',
+) -> float:
   """Estimates expectation value of `mpo` with `ds` using `method`.
 
   Args:
     ds: xarray.Dataset containing MPS parameters.
     mpo: MPO to estimate expectation value.
-    method: method to use for estimation. Default is 'placeholder' returns 1.
+    method: method to use for estimation. Should we either `mps`, `shadow` or
+    `placeholder`. Default is exact computation using 'mps'.
 
   Return:
     estimated expectation value.
@@ -132,6 +133,6 @@ def estimate_observable(
       raise ValueError(f'{expectation_val=} is not real.')
     return expectation_val.real
   elif method == 'shadow':
-    raise NotImplementedError(f'{method} method not implemented.')
+    raise NotImplementedError(f'{method=} not implemented.')
   else:
     raise ValueError(f'Unexpected estimation method {method}.')

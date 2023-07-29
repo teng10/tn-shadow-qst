@@ -23,29 +23,36 @@ class PhysicalSystem(abc.ABC):
     return None
 
   @abstractmethod
-  def get_ham_mpo(self) -> qtn.MatrixProductOperator:
+  def get_ham(self) -> qtn.MatrixProductOperator:
     """Returns a hamiltonian MPO."""
 
   @abstractmethod
-  def get_obs_mpos(self,
-      terms: Optional[typing.TermsTuple] = None,
+  def get_ham_mpos(self,
   ) -> list[qtn.MatrixProductOperator]:
-    """Returns MPOs for observables.
+    """Returns MPOs for list of terms in the hamiltonian.
 
     Note: this method returns terms in `get_terms` method with +1 coupling.
 
+    Return:
+      List of MPOs in the hamiltonian.
+    """
+    if self.get_terms() is None:
+      raise ValueError(
+          f'subclass {self.__name__} did not implement custom `get_terms`'
+      )    
+    
+  @abstractmethod
+  def get_obs_mpos(self,
+      terms: Optional[typing.TermsTuple],
+  ) -> list[qtn.MatrixProductOperator]:
+    """Returns MPOs for observables.
+
     Args:
-      terms: list of terms to include in the MPOs. Default (None) is to include
-        all terms in the Hamiltonian.
+      terms: list of terms to include in the MPOs. 
 
     Return:
       List of MPOs.
     """
-    if terms is None and self.get_terms() is None:
-      raise ValueError(
-          f'subclass {self.__name__} did not implement' +
-          'custom `get_terms` or pass explicit `terms` to `get_obs_mpos`.'
-      )
 
 class SurfaceCode(PhysicalSystem):
   """Implementation for surface code.
@@ -201,12 +208,29 @@ class SurfaceCode(PhysicalSystem):
       surface_code_ham += term
     return surface_code_ham
 
-  def get_ham_mpo(self,
+  def get_ham(self,
   ) -> qtn.MatrixProductOperator:
     """Get surface code hamiltonian as MPO."""
     surface_code_ham = self._get_surface_code_hamiltonian_builder()
     return surface_code_ham.build_mpo()
 
+  def get_ham_mpos(self,
+  ) ->  list[qtn.MatrixProductOperator]:
+    """Get observables in `get_terms` as MPOs.
+
+    Returns:
+      List of MPOs in the hamiltonian.
+    """
+    hilbert_space = self.hilbert_space
+    mpos = []
+    terms = [(1., *term[1:]) for term in self.get_terms()]
+    for term in terms:
+      mpos.append(
+          quimb_exp_op.SparseOperatorBuilder(
+              [term], hilbert_space=hilbert_space).build_mpo()
+      )
+    return mpos
+  
   def get_obs_mpos(self,
       terms: Optional[typing.TermsTuple] = None,
   ) ->  list[qtn.MatrixProductOperator]:
@@ -221,9 +245,6 @@ class SurfaceCode(PhysicalSystem):
     """
     hilbert_space = self.hilbert_space
     mpos = []
-    if terms is None:
-      # default: get all stabilizer terms in the surface code.
-      terms = [(1., *term[1:]) for term in self.get_terms()]
     for term in terms:
       mpos.append(
           quimb_exp_op.SparseOperatorBuilder(

@@ -55,7 +55,7 @@ class RunDataGeneration(parameterized.TestCase):
     config = surface_code_config()  #TODO(YT): move to run_data_generation.py
     dtype = DTYPES_REGISTRY[config.dtype]
     task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
-    task_mpo = task_system.get_ham_mpo()
+    task_mpo = task_system.get_ham()
     qtn.contraction.set_tensor_linop_backend('numpy')
     qtn.contraction.set_contract_backend('numpy')
     mps = qtn.MPS_rand_state(task_mpo.L, config.dmrg.bond_dims, dtype=dtype)
