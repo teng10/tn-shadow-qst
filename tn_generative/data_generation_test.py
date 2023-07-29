@@ -28,10 +28,10 @@ class RunDataGeneration(absltest.TestCase):
 
   def test_generate_surface_code(self):
     """Tests data generation for surface code."""
-    config = self.config
+    config = self.config  #TODO(YT): move to run_data_generation.py
     dtype = DTYPES_REGISTRY[config.dtype]
     task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
-    task_mpo = task_system.get_ham_mpo()
+    task_mpo = task_system.get_ham()
     # Running DMRG
     qtn.contraction.set_tensor_linop_backend('numpy')
     qtn.contraction.set_contract_backend('numpy')
@@ -62,6 +62,7 @@ class RunDataGeneration(absltest.TestCase):
     ds = runner.run_combos(combos, parallel=False)
     target_mps_ds = mps_utils.mps_to_xarray(mps)
     ds = xr.merge([target_mps_ds, ds])
+
 
   if __name__ == '__main__':
     absltest.main()

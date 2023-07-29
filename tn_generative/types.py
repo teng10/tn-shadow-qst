@@ -1,5 +1,5 @@
 """Typing definitions for the tn_generative package."""
-from typing import Callable, Tuple, Union
+from typing import Callable, Union
 
 import numpy as np
 import jax
@@ -7,7 +7,8 @@ import jax.numpy as jnp
 import quimb.tensor as qtn
 
 Array = Union[np.ndarray, jnp.ndarray]
-MeasurementAndBasis = Tuple[Array, Array]
+MeasurementAndBasis = tuple[Array, Array]
+TermsTuple = list[tuple[float, tuple[str, int]]]
 SamplerFn = Callable[
     [jax.random.PRNGKeyArray, qtn.MatrixProductState], MeasurementAndBasis]
 DTYPES_REGISTRY = {
