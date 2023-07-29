@@ -1,6 +1,5 @@
 """Training and evaluation helper functions."""
-import functools
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import pandas as pd
 import xarray as xr
@@ -18,7 +17,6 @@ def measurement_log_likelihood(
 ) -> float:
   """Evaluates log-likelihood of measurement for MPS described by `mps`.
   """
-  # mps = qtn.MatrixProductState(arrays=mps_arrays)  #TODO: remove this line.
   amplitude = mps_utils.amplitude_via_contraction(mps, measurement, basis)
   sqrt_probability = jnp.abs(amplitude)
   return 2 * (jnp.log(sqrt_probability))
@@ -49,6 +47,7 @@ def evaluate_model(mps, train_ds):
   NOTE: currenty log-likelihood is evaluated in a single pass, which might run
   out of memory if the dataset is very large. This could be fixed by computing
   the mean in a streaming fashion.
+  #TODO(YT): implement streaming mean for log-likelihood computation.
 
   Args:
     mps: trained state to evaluate.
@@ -79,9 +78,8 @@ def run_full_batch_training(
     mps: qtn.MatrixProductState,
     train_ds: xr.Dataset,
     training_config: Dict[str, Any],
-    regularization_fn: Optional[callable]=None,
-    beta: Optional[float]=1.
-):
+    regularization_fn: Optional[callable] = None,
+) -> Tuple[pd.DataFrame, pd.DataFrame, qtn.MatrixProductState]:
   """Runs training with full-batch optimization using LBFGS.
 
   Args:
@@ -93,23 +91,22 @@ def run_full_batch_training(
 
   Returns:
     train_df: pandas dataframe containing training loss and optimization step.
+    eval_df: pandas dataframe containing evaluation metrics.
+    trained_mps: trained MPS state.
   """
   measurements = train_ds.measurement.values
   bases = train_ds.basis.values
 
   if regularization_fn is not None:
-    # TODO(YT): partial PhysicalSystem and estimator_fn, beta?.
-    # Could also pass `beta` through `training_config`.
-    regularization_fn = functools.partial(regularization_fn, train_ds=train_ds)
     loss_fn = lambda psi, m, b: (batched_neg_ll_loss_fn(psi.arrays, m, b)
-    + beta * regularization_fn(psi.arrays))
+    + jax.jit(regularization_fn)(psi.arrays))
   else:
     loss_fn = lambda psi, m, b: batched_neg_ll_loss_fn(psi.arrays, m, b)
   tnopt = qtn.TNOptimizer(
       mps,
-      loss_fn=jax.jit(loss_fn),
+      loss_fn=loss_fn,
       norm_fn=mps_utils.uniform_normalize,  # use normalize that acts on `mps`.
-      loss_constants={"m": measurements, "b": bases},
+      loss_constants={'m': measurements, 'b': bases},
   )
   trained_mps = tnopt.optimize(training_config.num_training_steps)
   train_df = pd.DataFrame({

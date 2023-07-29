@@ -1,23 +1,88 @@
-# #@title || test for mpo/mps contraction (mps_utils_test.py)
+"""Integration tests for data_generation.py."""
+import functools
+from absl.testing import absltest
 
-# def test_mps_mpo_contraction():
-#   mps = qmbt.MPS_rand_state(3, bond_dim=5)
-#   mpo = qmbt.MPO_product_operator([Y_HADAMARD, Y_HADAMARD, EYE])
-#   mpo2 = qmbt.MPO_product_operator([Y_HADAMARD, Y_HADAMARD, EYE], upper_ind_id='b{}', lower_ind_id='k{}') # lower one needs to match the mps index
-#   # Note: if we contract the mps and mpo tensors by hand, need to flip the indices!
-#   # see quimb doc on `tensor_network_apply_op_vec`: 
-#   # "The returned tensor network has the same site indices as ``tn_vec``, and it is the ``lower_ind_id`` of ``tn_op`` that is contracted."
-#   mps1 = mpo.apply(mps) # k
-#   mps2 = (mpo2 | mps) ^ ... # b--> k'
+import numpy as np
+import jax
+import haiku as hk
+import quimb.tensor as qtn
+import xarray as xr
+import xyzpy
+from ml_collections import config_dict
 
-#   basis = np.array([1, 2, 3, 3, 0])
-#   arrays = jax.nn.one_hot(basis[:3] % 2, mps1.phys_dim())
-#   arrays = [x[0] for x in jnp.split(arrays, mps1.L)]
-#   bit_state1 = qmbt.MPS_product_state(arrays, site_ind_id='k{}')  # one-hot `measurement` MPS.
-#   bit_state2 = qmbt.MPS_product_state(arrays, site_ind_id='b{}')  # one-hot `measurement` MPS.
+from tn_generative  import mps_utils
+from tn_generative  import mps_sampling
+from tn_generative  import data_generation
+from tn_generative  import typing
 
-#   # assert (mps2 | bit_state) ^ ... == mps2 @ bit_state
-#   # np.testing.assert_allclose((mps2 | bit_state) ^ ...,  mps1.amplitude(basis[:3] % 2))
-#   np.testing.assert_allclose((mps2 | bit_state2) ^ ...,  (mps1 | bit_state1) ^ ...)
+DTYPES_REGISTRY = typing.DTYPES_REGISTRY
+TASK_REGISTRY = data_generation.TASK_REGISTRY
 
-# test_mps_mpo_contraction()
+
+class RunDataGeneration(absltest.TestCase):
+  """Tests data generation."""
+
+  def setUp(self):
+    """Set up config for data generation using surface code."""
+    def surface_code_config():  #TODO(YT): move to config_data.py
+      config = config_dict.ConfigDict()
+      # Task configuration.
+      config.dtype = 'complex128'
+      config.task = config_dict.ConfigDict()
+      config.task.name = 'surface_code'
+      config.task.kwargs = {'size_x': 3, 'size_y': 3, 'onsite_z_field': 0.1}
+      # DMRG configuration.
+      config.dmrg = config_dict.ConfigDict()
+      config.dmrg.bond_dims = 10
+      config.dmrg.solve_kwargs = {
+          'max_sweeps': 40, 'cutoffs': 1e-6, 'verbosity': 1
+      }
+      # Sampler configuration.
+      config.sampling = config_dict.ConfigDict()
+      config.sampling.sampling_method = 'xz_basis_sampler'
+      config.sampling.init_seed = 42
+      config.sampling.num_samples = 500
+      return config
+
+    self.config = surface_code_config()
+
+  def test_generate_surface_code(self):
+    """Tests data generation for surface code."""
+    config = self.config  #TODO(YT): move to run_data_generation.py
+    dtype = DTYPES_REGISTRY[config.dtype]
+    task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
+    task_mpo = task_system.get_ham()
+    # Running DMRG
+    qtn.contraction.set_tensor_linop_backend('numpy')
+    qtn.contraction.set_contract_backend('numpy')
+    mps = qtn.MPS_rand_state(task_mpo.L, config.dmrg.bond_dims, dtype=dtype)
+    dmrg = qtn.DMRG1(task_mpo, bond_dims=config.dmrg.bond_dims, p0=mps)
+    dmrg.solve(**config.dmrg.solve_kwargs)
+    mps = dmrg.state.copy()
+    mps = mps.canonize(0)  # canonicalize MPS.
+
+    # Running data generation
+    qtn.contraction.set_tensor_linop_backend('jax')
+    qtn.contraction.set_contract_backend('jax')
+    rng_seq = hk.PRNGSequence(config.sampling.init_seed)
+    all_keys = rng_seq.take(config.sampling.num_samples)
+    sample_fn = mps_sampling.SAMPLER_REGISTRY[config.sampling.sampling_method]
+    sample_fn = functools.partial(sample_fn, mps=mps)
+    sample_fn = jax.jit(sample_fn, backend='cpu')
+    generate_fn = lambda sample: sample_fn(all_keys[sample])
+    runner = xyzpy.Runner(
+        generate_fn,
+        var_names=['measurement', 'basis'],
+        var_dims={'measurement': ['site'], 'basis': ['site']},
+        var_coords={'site': np.arange(mps.L)},
+    )
+    combos = {
+        'sample': np.arange(config.sampling.num_samples),
+    }
+    ds = runner.run_combos(combos, parallel=False)
+    target_mps_ds = mps_utils.mps_to_xarray(mps)
+    ds = xr.merge([target_mps_ds, ds])
+
+
+  if __name__ == '__main__':
+    absltest.main()

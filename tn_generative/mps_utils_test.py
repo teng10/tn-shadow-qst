@@ -82,7 +82,7 @@ class MpsUtilsTests(parameterized.TestCase):
     mps = qtn.MPS_rand_state(size, bond_dim=5)  # default is normalized.
     non_normalized_mps = qtn.MatrixProductState(
         arrays=[np.random.randn(*x.shape) for x in mps.arrays])
-    normalized_mps = mps_utils._uniform_normalize(non_normalized_mps)
+    normalized_mps = mps_utils.uniform_normalize(non_normalized_mps)
     np.testing.assert_allclose(
         normalized_mps.H @ normalized_mps, 1.0, atol=1e-6
     )

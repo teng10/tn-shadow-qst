@@ -12,13 +12,12 @@ from tn_generative import typing
 
 Array = typing.Array
 
-
 HADAMARD = qmb.gen.operators.hadamard()
 Y_HADAMARD = np.array([[0.0, -1.0j], [1.0j, 0.0]])
 EYE = qmb.gen.operators.eye(2)
 
 
-def z_to_basis_mpo(basis: typing.Array) -> qtn.MatrixProductOperator:
+def z_to_basis_mpo(basis: Array) -> qtn.MatrixProductOperator:
   """Returns MPO that rotates from `z` to `basis` basis.
 
   Args:
@@ -59,7 +58,7 @@ def amplitude_via_contraction(
   return (mps | bit_state) ^ ...
 
 
-def _uniform_normalize(mps: qtn.MatrixProductState) -> qtn.MatrixProductState:
+def uniform_normalize(mps: qtn.MatrixProductState) -> qtn.MatrixProductState:
   """Normalizes `mps` by uniformly adjusting parameters of all tensors."""
   mps_copy = mps.copy()
   nfact = (mps_copy.H @ mps_copy)**0.5
@@ -67,9 +66,9 @@ def _uniform_normalize(mps: qtn.MatrixProductState) -> qtn.MatrixProductState:
 
 
 def uniform_param_normalize(mps_arrays: Sequence[Array])-> Sequence[Array]:
-  """Normalizes `mps_arrays` by calling `_uniform_normalize` on mps."""
+  """Normalizes `mps_arrays` by calling `uniform_normalize` on mps."""
   mps = qtn.MatrixProductState(arrays=mps_arrays)
-  return _uniform_normalize(mps).arrays
+  return uniform_normalize(mps).arrays
 
 
 def mps_to_xarray(mps: qtn.MatrixProductState) -> xr.Dataset:
@@ -105,3 +104,35 @@ def xarray_to_mps(ds: xr.Dataset) -> qtn.MatrixProductState:
   bulk_arrays = [x[0, ...] for x in bulk_arrays]
   mps_arrays = [ds.left_tensor.values] + bulk_arrays + [ds.right_tensor.values]
   return qtn.MatrixProductState(mps_arrays)
+
+
+def estimate_observable(
+  ds: xr.Dataset,
+  mpo: qtn.MatrixProductOperator,
+  method: str = 'mps',
+) -> float:
+  """Estimates expectation value of `mpo` with `ds` using `method`.
+
+  Args:
+    ds: xarray.Dataset containing MPS parameters.
+    mpo: MPO to estimate expectation value.
+    method: method to use for estimation. Should we either `mps`, `shadow` or
+    `placeholder`. Default is exact computation using 'mps'.
+
+  Return:
+    estimated expectation value.
+  """
+  def is_approximately_real(number, tolerance=1e-6):
+    return abs(number.imag) < tolerance
+  if method == 'placeholder':
+    return 1.
+  elif method == 'mps':
+    mps = xarray_to_mps(ds)
+    expectation_val = (mps.H @ (mpo.apply(mps)))
+    if not is_approximately_real(expectation_val):
+      raise ValueError(f'{expectation_val=} is not real.')
+    return expectation_val.real
+  elif method == 'shadow':
+    raise NotImplementedError(f'{method=} not implemented.')
+  else:
+    raise ValueError(f'Unexpected estimation method {method}.')
