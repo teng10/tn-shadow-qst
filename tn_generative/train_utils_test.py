@@ -4,24 +4,19 @@ from absl.testing import absltest
 from absl.testing import parameterized
 
 import numpy as np
-import jax
 from jax import config as jax_config
-import haiku as hk
 import quimb.tensor as qtn
 import quimb.gen as qugen
-import xarray as xr
 import pandas as pd
-import xyzpy
-from ml_collections import config_dict
 
 from tn_generative.train_configs  import surface_code_training_config
 from tn_generative.data_configs  import surface_code_data_config
 from tn_generative  import mps_utils
-from tn_generative  import mps_sampling
 from tn_generative  import data_generation
 from tn_generative  import train_utils
 from tn_generative import regularizers
 from tn_generative  import types
+from tn_generative import run_data_generation
 
 DTYPES_REGISTRY = types.DTYPES_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
@@ -36,44 +31,7 @@ class RunDataGeneration(parameterized.TestCase):
     jax_config.update('jax_enable_x64', True)
     config = surface_code_data_config.get_config()
     config.output.save_data = False
-
-    dtype = DTYPES_REGISTRY[config.dtype]
-    task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
-    task_mpo = task_system.get_ham()
-    qtn.contraction.set_tensor_linop_backend('numpy')
-    qtn.contraction.set_contract_backend('numpy')
-    mps = qtn.MPS_rand_state(task_mpo.L, config.dmrg.bond_dims, dtype=dtype)
-    dmrg = qtn.DMRG1(task_mpo, bond_dims=config.dmrg.bond_dims, p0=mps)
-    dmrg.solve(**config.dmrg.solve_kwargs)
-    mps = dmrg.state.copy()
-    mps = mps.canonize(0)  # canonicalize MPS.
-
-    # Running data generation
-    qtn.contraction.set_tensor_linop_backend('jax')
-    qtn.contraction.set_contract_backend('jax')
-
-    rng_seq = hk.PRNGSequence(config.sampling.init_seed)
-    all_keys = rng_seq.take(config.sampling.num_samples)
-
-    sample_fn = mps_sampling.SAMPLER_REGISTRY[config.sampling.sampling_method]
-    sample_fn = functools.partial(sample_fn, mps=mps)
-    sample_fn = jax.jit(sample_fn, backend='cpu')
-    generate_fn = lambda sample: sample_fn(all_keys[sample])
-
-    runner = xyzpy.Runner(
-        generate_fn,
-        var_names=['measurement', 'basis'],
-        var_dims={'measurement': ['site'], 'basis': ['site']},
-        var_coords={'site': np.arange(mps.L)},
-    )
-    combos = {
-        'sample': np.arange(config.sampling.num_samples),
-    }
-    ds = runner.run_combos(combos, parallel=False)
-
-    target_mps_ds = mps_utils.mps_to_xarray(mps)
-    self.ds = xr.merge([target_mps_ds, ds])
-
+    self.ds = run_data_generation.generate_data(config)
 
   def run_full_batch_experiment(self, exp_config, ds):
     #TODO(YT): move to run_train.py
