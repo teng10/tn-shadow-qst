@@ -1,9 +1,9 @@
 """config file for data generation"""
-from os.path import expanduser
+from os import path
 
 from ml_collections import config_dict
 
-home = expanduser('~')
+home = path.expanduser('~')
 
 def get_config():
   config = config_dict.ConfigDict()
@@ -30,6 +30,7 @@ def get_config():
   # Save options.
   config.output = config_dict.ConfigDict()
   config.output.save_data = True
-  config.output.data_save_path = f'{home}/tn_shadow_dir/Data/Tests/'
-  config.output.filename = 'data'  
+  config.output.data_save_path = ''.join(
+      [f'{home}/tn_shadow_dir/Data/Tests/', '%date_data']
+  )
   return config

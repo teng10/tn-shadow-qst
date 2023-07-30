@@ -23,7 +23,7 @@ TASK_REGISTRY = data_generation.TASK_REGISTRY
 REGULARIZER_REGISTRY = regularizers.REGULARIZER_REGISTRY
 
 
-class RunDataGeneration(parameterized.TestCase):
+class RunTrainingTests(parameterized.TestCase):
   """Tests data generation."""
 
   def setUp(self):
@@ -63,7 +63,6 @@ class RunDataGeneration(parameterized.TestCase):
         train_df, tiled_config_df,
         left_index=True, right_index=True, how='outer')
     return complete_train_df, complete_eval_df, final_mps
-
 
   def test_full_batch_experiment(self):
     experiment_config = surface_code_training_config.get_config()
