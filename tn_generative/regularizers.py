@@ -8,6 +8,7 @@ import jax
 import jax.numpy as jnp
 import quimb.tensor as qtn
 
+from tn_generative import mps_utils
 from tn_generative import physical_systems
 
 PhysicalSystem = physical_systems.PhysicalSystem
@@ -34,7 +35,7 @@ register_reg_fn = lambda name: functools.partial(
 def get_hamiltonian_reg_fn(
     system: PhysicalSystem,
     train_ds: xr.Dataset,
-    estimator_fn: Callable[[xr.Dataset, qtn.MatrixProductOperator], float],
+    estimator: str = 'mps',
     beta: Optional[Union[np.ndarray, float]] = 1.,
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function for terms in a hamiltonian.
@@ -42,7 +43,7 @@ def get_hamiltonian_reg_fn(
   Args:
     system: physical system where the dataset is generated from.
     ds: dataset containing `measurement`, `basis`.
-    estimator_fn: function that computes expectation value of the regularization
+    estimator: method used to compute expectation value of the regularization
         mpos and dataset `ds`.
     beta: regularization strength. Default is 1.
 
@@ -50,6 +51,9 @@ def get_hamiltonian_reg_fn(
     reg_fn: regularization function takes MPS arrays.
   """
   ham_mpos = system.get_ham_mpos()
+  estimator_fn = functools.partial(
+        mps_utils.estimate_observable, method=estimator
+    )
   stabilizer_estimates = np.array([
       estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_mpos
   ])
@@ -68,7 +72,7 @@ def get_hamiltonian_reg_fn(
 def get_pauli_z_reg_fn(
   system: PhysicalSystem,
   ds: xr.Dataset,
-  estimator_fn: Callable[[xr.Dataset, qtn.MatrixProductOperator], float],
+  estimator: str = 'mps',
   beta: Optional[Union[np.ndarray, float]] = 1.,
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function for pauli z operators.
@@ -76,7 +80,7 @@ def get_pauli_z_reg_fn(
   Args:
     system: physical system where the dataset is generated from.
     ds: dataset containing `measurement`, `basis`.
-    estimator_fn: function that computes expectation value of the regularization
+    estimator: method used to compute expectation value of the regularization
         mpos and dataset `ds`.
     beta: regularization strength. Default is 1.
 
@@ -86,6 +90,9 @@ def get_pauli_z_reg_fn(
   pauli_z_mpos = system.get_obs_mpos(
       [(1., ('z', i)) for i in range(system.n_sites)]
   )
+  estimator_fn = functools.partial(
+        mps_utils.estimate_observable, method=estimator
+    )  
   pauli_z_estimates = np.array(
       [estimator_fn(ds, pauli_z) for pauli_z in pauli_z_mpos]
   )

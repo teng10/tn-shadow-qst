@@ -39,13 +39,8 @@ class RunTrainingTests(parameterized.TestCase):
     model_config = exp_config.model
     train_ds = ds.isel(sample=slice(0, exp_config.data.num_training_samples))
     system = TASK_REGISTRY[exp_config.task_name](**exp_config.task_kwargs)
-    estimator_fn = functools.partial(
-        mps_utils.estimate_observable, method=train_config.estimator
-    )
     reg_fn = REGULARIZER_REGISTRY[train_config.reg_name]
-    reg_fn = reg_fn(system=system,
-        estimator_fn=estimator_fn, train_ds=train_ds, **train_config.reg_kwargs
-    )
+    reg_fn = reg_fn(system=system, train_ds=train_ds, **train_config.reg_kwargs)
     qugen.rand.seed_rand(model_config.init_seed)
     model_mps = qtn.MPS_rand_state(
         train_ds.sizes['site'], model_config.bond_dim, dtype=model_config.dtype)

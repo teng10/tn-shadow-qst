@@ -21,11 +21,11 @@ def get_config():
   config.training.num_training_steps = 10
   config.training.opt_kwargs = {}
   config.training.reg_name = 'hamiltonian'
-  config.training.reg_kwargs = {'beta': 1.}
-  config.training.estimator = 'mps'
+  config.training.reg_kwargs = {'beta': 1., 'estimator': 'mps'}
   # physical system.
-  config.task_name = 'surface_code'
+  config.task_name = 'surface_code'  #TODO(YT): consider loading from dataset. 
   # use zero field surface code to get only stabilizer MPOs.
+  #TODO(YT): consider resetting onsite_z_field from dataset. 
   config.task_kwargs = {'size_x': 3, 'size_y': 3, 'onsite_z_field': 0.}
   # Save options.
   config.output = config_dict.ConfigDict()
