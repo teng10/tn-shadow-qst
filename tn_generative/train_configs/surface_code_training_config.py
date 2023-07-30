@@ -31,7 +31,8 @@ def get_config():
   # Save options.
   config.output = config_dict.ConfigDict()
   config.output.save_data = True
+  config.output.filepath = f'{home}/tn_shadow_dir/Outputs/Tests/'
   config.output.data_save_path = ''.join(
-      [f'{home}/tn_shadow_dir/Outputs/Tests/', '%date_data']
+      [config.output.filepath, '%date_data']  #TODO(YT): move this to main_file.
   )
   return config
