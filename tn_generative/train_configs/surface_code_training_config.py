@@ -14,8 +14,9 @@ def get_config():
   # data.
   config.data = config_dict.ConfigDict()
   config.data.num_training_samples = 1000
-  config.data.name = '0727_data.nc'
-  config.data.path = f'{home}/tn_shadow_dir/Data/Tests/'
+  config.data.path = ''.join(
+      [f'{home}/tn_shadow_dir/Data/Tests/', '0730_data.nc']
+  )
   # training.
   config.training = config_dict.ConfigDict()
   config.training.num_training_steps = 10
@@ -31,6 +32,6 @@ def get_config():
   config.output = config_dict.ConfigDict()
   config.output.save_data = True
   config.output.data_save_path = ''.join(
-      [f'{home}/tn_shadow_dir/Data/Tests/', '%date_data']
+      [f'{home}/tn_shadow_dir/Outputs/Tests/', '%date_data']
   )
   return config
