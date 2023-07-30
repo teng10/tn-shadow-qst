@@ -24,12 +24,11 @@ DTYPES_REGISTRY = types.DTYPES_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
 
 
-def main(argv):
+def generate_data(config):
   current_date = datetime.now().strftime('%m%d')
-  config = FLAGS.config
   dtype = DTYPES_REGISTRY[config.dtype]
   task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
-  task_mpo = task_system.get_ham_mpo()
+  task_mpo = task_system.get_ham()
   # Running DMRG
   qtn.contraction.set_tensor_linop_backend('numpy')
   qtn.contraction.set_contract_backend('numpy')
@@ -61,9 +60,17 @@ def main(argv):
   target_mps_ds = mps_utils.mps_to_xarray(mps)
   ds = xr.merge([target_mps_ds, ds])
   # Saving data  #TODO(YT): add utils for saving `complex` type data
+  # if config.output.save_data:
+  #   pass
   # ds.to_netcdf(config.output.data_save_path + 
   #     f'{current_date}_{config.output.filename}' + '.nc'
   # )
+  return ds
+
+
+def main(argv):
+  config = FLAGS.config
+  return generate_data(config)
 
 
 if __name__ == '__main__':
