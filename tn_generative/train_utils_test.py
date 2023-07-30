@@ -15,7 +15,7 @@ import xyzpy
 from ml_collections import config_dict
 
 from tn_generative.train_configs  import surface_code_training_config
-from tn_generative.configs_data  import config_get_data_surface_code
+from tn_generative.data_configs  import surface_code_data_config
 from tn_generative  import mps_utils
 from tn_generative  import mps_sampling
 from tn_generative  import data_generation
@@ -34,7 +34,7 @@ class RunDataGeneration(parameterized.TestCase):
   def setUp(self):
     # Generate data for training.  #TODO(YT): use config file.
     jax_config.update('jax_enable_x64', True)
-    config = config_get_data_surface_code.get_config()
+    config = surface_code_data_config.get_config()
     config.output.save_data = False
 
     dtype = DTYPES_REGISTRY[config.dtype]
