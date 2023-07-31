@@ -3,6 +3,7 @@ from absl import app
 from absl import flags
 import functools
 from datetime import datetime
+import os
 
 from ml_collections import config_flags
 import numpy as np
@@ -26,6 +27,7 @@ TASK_REGISTRY = data_generation.TASK_REGISTRY
 
 
 def generate_data(config):
+  config.update_from_flattened_dict(config.sweep_param[config.task_id])
   current_date = datetime.now().strftime('%m%d')
   dtype = DTYPES_REGISTRY[config.dtype]
   task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
@@ -60,12 +62,22 @@ def generate_data(config):
   ds = runner.run_combos(combos, parallel=False)
   target_mps_ds = mps_utils.mps_to_xarray(mps)
   ds = xr.merge([target_mps_ds, ds])
-  # Saving data  #TODO(YT): add utils for saving `complex` type data
+  # ds = ds.assign_attrs(**config)  #Can't save nested dictionary to netcdf.
+  ds = ds.assign_attrs(**config.task.kwargs)
+  ds.attrs['name'] = config.task.name
+  # Saving data  
   if config.output.save_data:
-    ds = data_utils.split_complex_ds(ds)
-    ds.to_netcdf(config.output.data_save_path + 
-        f'{current_date}_{config.output.filename}' + '.nc'
+    config.output.data_dir = os.path.join(
+        config.output.data_dir, str(config.job_id)
     )
+    if not os.path.exists(config.output.data_dir):
+      os.makedirs(config.output.data_dir)    
+    ds = data_utils.split_complex_ds(ds)
+    filename = os.path.join(
+        config.output.data_dir,
+        config.output.filename % config.task_id + '.nc'
+    )
+    ds.to_netcdf(filename)
   return ds
 
 
