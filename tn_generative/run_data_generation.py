@@ -13,11 +13,12 @@ import xarray as xr
 import xyzpy
 
 from tn_generative import data_generation
+from tn_generative import data_utils
 from tn_generative import mps_sampling
 from tn_generative import mps_utils
 from tn_generative import types
 
-config_flags.DEFINE_config_file('config')
+config_flags.DEFINE_config_file('data_config')
 FLAGS = flags.FLAGS
 
 DTYPES_REGISTRY = types.DTYPES_REGISTRY
@@ -60,16 +61,16 @@ def generate_data(config):
   target_mps_ds = mps_utils.mps_to_xarray(mps)
   ds = xr.merge([target_mps_ds, ds])
   # Saving data  #TODO(YT): add utils for saving `complex` type data
-  # if config.output.save_data:
-  #   pass
-  # ds.to_netcdf(config.output.data_save_path + 
-  #     f'{current_date}_{config.output.filename}' + '.nc'
-  # )
+  if config.output.save_data:
+    ds = data_utils.split_complex_ds(ds)
+    ds.to_netcdf(config.output.data_save_path + 
+        f'{current_date}_{config.output.filename}' + '.nc'
+    )
   return ds
 
 
 def main(argv):
-  config = FLAGS.config
+  config = FLAGS.data_config
   return generate_data(config)
 
 
