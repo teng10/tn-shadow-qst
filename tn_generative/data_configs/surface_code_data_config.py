@@ -7,27 +7,53 @@ from ml_collections import config_dict
 home = os.path.expanduser('~')
 
 
-def sweep_sc_fn(size_x, size_y):
+def sweep_sc_7x7_fn():
   """Helper function for sweeping over surface code configs."""
-  #TODO(YT): separate these to two functions?
+  # 7x7 sites surface code sweep
+  for system_size in [5]:
+    for d in [10, 20, 40]:
+      for onsite_z_field in np.linspace(0., 0.5, 11):
+        yield {
+            'task.kwargs.size_x': system_size,
+            'task.kwargs.size_y': system_size,
+            'dmrg.bond_dims': d,
+            'task.kwargs.onsite_z_field': onsite_z_field,
+            'output.filename': ('%JOB_ID' + 
+                f'_surface_code_{system_size=}_{d=}_{onsite_z_field=:.3f}'
+            ),            
+        }
+
+
+def sweep_sc_5x5_fn():
+  """Helper function for sweeping over surface code configs."""
   # 5x5 sites surface code sweep
-  if size_x == 5 and size_y == 5:
+  for system_size in [5]:
     for d in [5, 10, 20]:
       for onsite_z_field in np.linspace(0., 0.5, 11):
-          yield {'dmrg.bond_dims': d,
-                 'task.kwargs.onsite_z_field': onsite_z_field,
-                 }
+        yield {
+            'task.kwargs.size_x': system_size,
+            'task.kwargs.size_y': system_size,
+            'dmrg.bond_dims': d,
+            'task.kwargs.onsite_z_field': onsite_z_field,
+            'output.filename': ('%JOB_ID' + 
+                f'_surface_code_{system_size=}_{d=}_{onsite_z_field=:.3f}'
+            ),            
+        }
 
+def sweep_sc_3x3_fn():
   # 3x3 sites surface code sweep
-  if size_x == 3 and size_y == 3:
+  for system_size in [3]:
     for d in [5, 10]:
       for onsite_z_field in np.linspace(0., 0.2, 4):
-          yield {'dmrg.bond_dims': d,
-                 'task.kwargs.onsite_z_field': onsite_z_field,
-                 'output.filename': ('%JOB_ID' + 
-                    f'_surface_code_3x3_{d=}_{onsite_z_field=:.3f}'
-                 ),
-                 }          
+        yield {
+            'task.kwargs.size_x': system_size,
+            'task.kwargs.size_y': system_size,
+            'dmrg.bond_dims': d,
+            'task.kwargs.onsite_z_field': onsite_z_field,
+            'output.filename': ('%JOB_ID' + 
+                f'_surface_code_{system_size=}_{d=}_{onsite_z_field=:.3f}'
+            ),
+        }          
       
 
 def get_config():
@@ -42,10 +68,7 @@ def get_config():
   config.task.name = 'surface_code'
   config.task.kwargs = {'size_x': 5, 'size_y': 5, 'onsite_z_field': 0.1}
   # sweep parameters.
-  config.sweep_param = list(
-      sweep_sc_fn(config.task.kwargs.size_x, config.task.kwargs.size_y)
-  )  #TODO(YT): change `sweep_sc_fn` for each system size?
-  # e.g. sweep_sc_fn_3x3(), sweep_sc_fn_5x5()
+  config.sweep_param = list(sweep_sc_3x3_fn())
   # DMRG configuration.
   config.dmrg = config_dict.ConfigDict()
   config.dmrg.bond_dims = 5
@@ -61,8 +84,7 @@ def get_config():
   config.output = config_dict.ConfigDict()
   config.output.save_data = True
   config.output.data_dir = f'{home}/tn_shadow_dir/Data/Tests/%CURRENT_DATE/'
-  # config.output.filename = 'data_task%d'  #TODO: remove
-  # by default we use date + job-id for file name.
+  # by default we use date/job-id for file name.
   # need to keep this line for default value and jobs not on cluster.
   config.output.filename = '%JOB_ID'
   return config

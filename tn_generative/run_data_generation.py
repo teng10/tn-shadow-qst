@@ -63,22 +63,19 @@ def generate_data(config):
   target_mps_ds = mps_utils.mps_to_xarray(mps)
   ds = xr.merge([target_mps_ds, ds])
   # ds = ds.assign_attrs(**config)  #Can't save nested dictionary to netcdf.
-  # TODO(YT): figure out how to unflatten config using pd.json.normalize.
+  # TODO(YT): figure out how to flatten_json config using pd.json.normalize.
   ds = ds.assign_attrs(**config.task.kwargs)
   ds.attrs['name'] = config.task.name
   # Saving data  
   if config.output.save_data:
     data_dir = config.output.data_dir.replace('%CURRENT_DATE', current_date)
+    filename = config.output.filename.replace('%JOB_ID', str(config.job_id))
     if not os.path.exists(data_dir):
       os.makedirs(data_dir)    
     ds = data_utils.split_complex_ds(ds)
-    # filename = os.path.join(
-    #     config.output.data_dir,
-    #     config.output.filename % config.task_id + '.nc'
-    # )  #TODO: remove
-    filename = os.path.join(data_dir, config.output.filename)
-    filename = filename.replace('%JOB_ID', str(config.job_id))
-    ds.to_netcdf(filename + '.nc')
+    filepath = os.path.join(data_dir, filename)  
+    #TODO(YT): remove/add extension e.g. os.path.splitext(name)[0] + '.nc'
+    ds.to_netcdf(filepath + '.nc')
   return ds
 
 
