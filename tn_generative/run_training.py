@@ -57,13 +57,15 @@ def run_full_batch_experiment(exp_config):
   complete_train_df = pd.merge(
       train_df, tiled_config_df,
       left_index=True, right_index=True, how='outer')
-  if exp_config.output.save_data:
-    if not os.path.exists(exp_config.output.filepath):
-      os.makedirs(exp_config.output.filepath)
-    save_path = exp_config.output.data_save_path.replace('%date', current_date)
-    complete_train_df.to_pickle(save_path + '_train.p')
-    complete_eval_df.to_pickle(save_path + '_eval.p')
-    pickle.dump(final_mps, open(save_path + '_mps.p', 'wb'))
+  if exp_config.output.save_results:
+    if not os.path.exists(exp_config.output.experiment_dir):
+      os.makedirs(exp_config.output.experiment_dir)
+    save_path = exp_config.output.results_save_path.replace(
+        '%date', current_date
+    )
+    complete_train_df.to_pickle(save_path + '_train.pkl')
+    complete_eval_df.to_pickle(save_path + '_eval.pkl')
+    pickle.dump(final_mps, open(save_path + '_mps.pkl', 'wb'))
   return complete_train_df, complete_eval_df, final_mps
 
 

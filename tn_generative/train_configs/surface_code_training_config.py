@@ -1,9 +1,9 @@
 """config file for data generation"""
-from os import path
+import os
 
 from ml_collections import config_dict
 
-home = path.expanduser('~')
+home = os.path.expanduser('~')
 
 def get_config():
   config = config_dict.ConfigDict()
@@ -30,9 +30,9 @@ def get_config():
   config.task_kwargs = {'size_x': 3, 'size_y': 3, 'onsite_z_field': 0.}
   # Save options.
   config.output = config_dict.ConfigDict()
-  config.output.save_data = True
-  config.output.filepath = f'{home}/tn_shadow_dir/Outputs/Tests/'
-  config.output.data_save_path = ''.join(
-      [config.output.filepath, '%date_data']  #TODO(YT): move this to main_file.
+  config.output.save_results = True
+  config.output.experiment_dir = f'{home}/tn_shadow_dir/Outputs/Tests/'
+  config.output.results_save_path = os.path.join(
+      [config.output.experiment_dir, '%date_data']  #TODO(YT): move this to main_file.
   )
   return config
