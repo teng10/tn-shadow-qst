@@ -1,7 +1,11 @@
 """Main file for running training."""
 from absl import app
 from absl import flags
+from datetime import datetime
+import os
+import pickle
 
+from jax import config as jax_config
 from ml_collections import config_flags
 import numpy as np
 import quimb.tensor as qtn
@@ -15,7 +19,7 @@ from tn_generative import train_utils
 from tn_generative import regularizers
 from tn_generative import types
 
-config_flags.DEFINE_config_file('config')
+config_flags.DEFINE_config_file('train_config')
 FLAGS = flags.FLAGS
 
 #TODO(YT): check whether can pass string detype and remove DTYPE_REGISTRY.
@@ -25,6 +29,9 @@ regularization = regularizers.REGULARIZER_REGISTRY
 
 
 def run_full_batch_experiment(exp_config):
+  current_date = datetime.now().strftime('%m%d')
+  jax_config.update('jax_enable_x64', True)
+  qtn.contraction.set_contract_backend('jax')
   train_config = exp_config.training
   model_config = exp_config.model
   ds = xr.open_dataset(exp_config.data.path)
@@ -50,11 +57,20 @@ def run_full_batch_experiment(exp_config):
   complete_train_df = pd.merge(
       train_df, tiled_config_df,
       left_index=True, right_index=True, how='outer')
+  if exp_config.output.save_results:
+    if not os.path.exists(exp_config.output.experiment_dir):
+      os.makedirs(exp_config.output.experiment_dir)
+    save_path = exp_config.output.results_save_path.replace(
+        '%date', current_date
+    )
+    complete_train_df.to_pickle(save_path + '_train.pkl')
+    complete_eval_df.to_pickle(save_path + '_eval.pkl')
+    pickle.dump(final_mps, open(save_path + '_mps.pkl', 'wb'))
   return complete_train_df, complete_eval_df, final_mps
 
 
 def main(argv):
-  config = FLAGS.config
+  config = FLAGS.train_config
   return run_full_batch_experiment(config)
 
 
