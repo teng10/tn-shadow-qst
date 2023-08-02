@@ -114,9 +114,20 @@ def tile_on_lattice(base_loop, a1, a2, n_steps):
 
 def get_nearest_neighbors(
     lattice: Lattice,
-    nb_radius: float,
+    nb_outer_radius: float,
+    nb_inner_radius: float = 0.,
 ) -> NodesCollection:
-  """Returns neighbors of `lattice` nodes within distance `nb_radius`."""
+  """Returns neighbors of `lattice` nodes within a distance of `nb_outer_radius`
+  outside a distance of `nb_inner radius`.
+
+  Args:
+    lattice: lattice on which to get neighbors for.
+    nb_outer_radius: outer radius of the neighborhood.
+    nb_inner_radius: inner radius of the neighborhood.
+
+  Returns:
+    NodesCollection of neighbors within the radius contraint.
+  """
 
   all_indices = np.arange(lattice.n_sites)
   all_pairs = np.array(
@@ -124,9 +135,11 @@ def get_nearest_neighbors(
   )
 
   def _close_pairs_indices(points: np.ndarray) -> np.ndarray:
-    """Returns indices of pairs of points within distance `nb_radius`."""
+    """Returns indices of pairs of points within the radius constraint."""
     d = sp_spatial.distance.pdist(points)
-    close_pairs_indices = (d <= nb_radius).nonzero()[0]
+    close_pairs_indices = (
+        (nb_inner_radius <= d) * (d <= nb_outer_radius)
+    ).nonzero()[0]
     return all_pairs[close_pairs_indices]
 
   pairwise_indices = _close_pairs_indices(lattice.points)
