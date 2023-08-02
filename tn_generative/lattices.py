@@ -113,3 +113,25 @@ def generate_shapely_hexagon(length:float, x: float, y: float,
        for angle in range(0, 360, 60)
   ]
   return shapely.geometry.Polygon(vertices)
+
+
+def generate_shapely_rectangle(width:float, height:float, x: float, y: float,
+) -> shapely.geometry.Polygon:
+  """Generates hexagon centered on (x, y) using shapely.
+
+  Args:
+    width: width of the rectangle's edge.
+    height: height of the rectangle's edge.
+    x: x-coordinate of the rectangle's center.
+    y: y-coordinate of the rectangle's center.
+  
+  Returns:
+    The polygon containing the rectangle's coordinates.
+  """
+  vertices = [
+      [x + width / 2., y + height / 2.],
+      [x + width / 2., y - height / 2.],
+      [x - width / 2., y - height / 2.],
+      [x - width / 2., y + height / 2.], 
+  ]
+  return shapely.geometry.Polygon(vertices)
