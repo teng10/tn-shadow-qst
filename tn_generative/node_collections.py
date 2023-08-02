@@ -117,8 +117,17 @@ def get_nearest_neighbors(
     nb_outer_radius: float,
     nb_inner_radius: float = 0.,
 ) -> NodesCollection:
-  """Returns neighbors of `lattice` nodes within distance `nb_outer_radius`
-  outside `nb_inner radius`."""
+  """Returns neighbors of `lattice` nodes within a distance of `nb_outer_radius`
+  outside a distance of `nb_inner radius`.
+
+  Args:
+    lattice: lattice on which to get neighbors for.
+    nb_outer_radius: outer radius of the neighborhood.
+    nb_inner_radius: inner radius of the neighborhood.
+
+  Returns:
+    NodesCollection of neighbors within the radius contraint.
+  """
 
   all_indices = np.arange(lattice.n_sites)
   all_pairs = np.array(
