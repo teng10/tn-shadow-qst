@@ -2,7 +2,6 @@
 import abc
 from abc import abstractmethod
 import itertools
-from typing import Optional
 
 import numpy as np
 import einops
@@ -17,6 +16,11 @@ from tn_generative import types
 class PhysicalSystem(abc.ABC):
   """Abstract class for defining physical systems."""
 
+  @property
+  def hilbert_space(self) -> types.HilbertSpace:
+    """Returns hilbert space of the physical system."""
+    return None
+
   @abstractmethod
   def get_terms(self) -> types.TermsTuple:
     """Returns list of terms in the hamiltonian."""
@@ -27,7 +31,7 @@ class PhysicalSystem(abc.ABC):
     """Returns a hamiltonian MPO."""
 
   def get_ham_mpos(self,
-  ) ->  list[qtn.MatrixProductOperator]:
+  ) -> list[qtn.MatrixProductOperator]:
     """Returns MPOs for list of terms in the hamiltonian.
 
     Note: this method returns terms in `get_terms` method with +1 coupling.
@@ -38,23 +42,23 @@ class PhysicalSystem(abc.ABC):
     if self.get_terms() is None:
       raise ValueError(
           f'subclass {self.__name__} did not implement custom `get_terms`'
-      )    
-    hilbert_space = self.hilbert_space  
-    #TODO(YT): this is a hack to get hilbert_space from instances. 
-    # Could require `hilbert_space` in the abstract class? 
-    # Alternatively can raise an error if this is not defined.  
+      )
+    if self.hilbert_space is None:
+      raise ValueError(
+          f'subclass {self.__name__} did not implement custom `hilbert_space`'
+      )
     mpos = []
     terms = [(1., *term[1:]) for term in self.get_terms()]
     for term in terms:
       mpos.append(
           quimb_exp_op.SparseOperatorBuilder(
-              [term], hilbert_space=hilbert_space).build_mpo()
+              [term], hilbert_space=self.hilbert_space).build_mpo()
       )
     return mpos
 
   def get_obs_mpos(self,
       terms: types.TermsTuple,
-  ) ->  list[qtn.MatrixProductOperator]:
+  ) -> list[qtn.MatrixProductOperator]:
     """Get observables `terms` as MPOs.
 
     Args:
@@ -63,12 +67,15 @@ class PhysicalSystem(abc.ABC):
     Returns:
       List of MPOs.
     """
-    hilbert_space = self.hilbert_space  #TODO(YT): see above comment.
+    if self.hilbert_space is None:
+      raise ValueError(
+          f'subclass {self.__name__} did not implement custom `hilbert_space`'
+      )
     mpos = []
     for term in terms:
       mpos.append(
           quimb_exp_op.SparseOperatorBuilder(
-              [term], hilbert_space=hilbert_space).build_mpo()
+              [term], hilbert_space=self.hilbert_space).build_mpo()
       )
     return mpos
 
@@ -91,10 +98,13 @@ class SurfaceCode(PhysicalSystem):
     self.Ly = Ly
     self.coupling_value = coupling_value
     self.onsite_z_field = onsite_z_field
-    self.hilbert_space = quimb_exp_op.HilbertSpace(self.n_sites)
+
+  @property
+  def hilbert_space(self) -> types.HilbertSpace:
+    return quimb_exp_op.HilbertSpace(self.n_sites)
 
   def _get_surface_code_collections(self,
-      ) -> tuple[node_collections.NodesCollection, ...]:
+  ) -> tuple[node_collections.NodesCollection, ...]:
     """Constructs `NodeCollection`s for all terms in surface code Hamiltonian.
     """
     if self.Lx % 2 != 1 or self.Ly % 2 !=1:
