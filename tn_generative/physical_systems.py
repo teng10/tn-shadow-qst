@@ -26,33 +26,52 @@ class PhysicalSystem(abc.ABC):
   def get_ham(self) -> qtn.MatrixProductOperator:
     """Returns a hamiltonian MPO."""
 
-  @abstractmethod
   def get_ham_mpos(self,
-  ) -> list[qtn.MatrixProductOperator]:
+  ) ->  list[qtn.MatrixProductOperator]:
     """Returns MPOs for list of terms in the hamiltonian.
 
     Note: this method returns terms in `get_terms` method with +1 coupling.
 
-    Return:
+    Returns:
       List of MPOs in the hamiltonian.
     """
     if self.get_terms() is None:
       raise ValueError(
           f'subclass {self.__name__} did not implement custom `get_terms`'
+      )    
+    hilbert_space = self.hilbert_space  
+    #TODO(YT): this is a hack to get hilbert_space from instances. 
+    # Could require `hilbert_space` in the abstract class? 
+    # Alternatively can raise an error if this is not defined.  
+    mpos = []
+    terms = [(1., *term[1:]) for term in self.get_terms()]
+    for term in terms:
+      mpos.append(
+          quimb_exp_op.SparseOperatorBuilder(
+              [term], hilbert_space=hilbert_space).build_mpo()
       )
+    return mpos
 
-  @abstractmethod
   def get_obs_mpos(self,
-      terms: Optional[types.TermsTuple],
-  ) -> list[qtn.MatrixProductOperator]:
-    """Returns MPOs for observables.
+      terms: types.TermsTuple,
+  ) ->  list[qtn.MatrixProductOperator]:
+    """Get observables `terms` as MPOs.
 
     Args:
       terms: list of terms to include in the MPOs.
 
-    Return:
+    Returns:
       List of MPOs.
     """
+    hilbert_space = self.hilbert_space  #TODO(YT): see above comment.
+    mpos = []
+    for term in terms:
+      mpos.append(
+          quimb_exp_op.SparseOperatorBuilder(
+              [term], hilbert_space=hilbert_space).build_mpo()
+      )
+    return mpos
+
 
 class SurfaceCode(PhysicalSystem):
   """Implementation for surface code.
@@ -213,41 +232,3 @@ class SurfaceCode(PhysicalSystem):
     """Get surface code hamiltonian as MPO."""
     surface_code_ham = self._get_surface_code_hamiltonian_builder()
     return surface_code_ham.build_mpo()
-
-  def get_ham_mpos(self,
-  ) ->  list[qtn.MatrixProductOperator]:
-    """Get observables in `get_terms` as MPOs.
-
-    Returns:
-      List of MPOs in the hamiltonian.
-    """
-    hilbert_space = self.hilbert_space
-    mpos = []
-    terms = [(1., *term[1:]) for term in self.get_terms()]
-    for term in terms:
-      mpos.append(
-          quimb_exp_op.SparseOperatorBuilder(
-              [term], hilbert_space=hilbert_space).build_mpo()
-      )
-    return mpos
-
-  def get_obs_mpos(self,
-      terms: Optional[types.TermsTuple] = None,
-  ) ->  list[qtn.MatrixProductOperator]:
-    """Get observables `terms` as MPOs.
-
-    Args:
-      terms: list of terms to include in the MPOs. Default (None) is to include
-        all terms in the surface code hamiltonian.
-
-    Returns:
-      List of MPOs.
-    """
-    hilbert_space = self.hilbert_space
-    mpos = []
-    for term in terms:
-      mpos.append(
-          quimb_exp_op.SparseOperatorBuilder(
-              [term], hilbert_space=hilbert_space).build_mpo()
-      )
-    return mpos
