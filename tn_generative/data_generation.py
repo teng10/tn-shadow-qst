@@ -34,3 +34,13 @@ def get_surface_code(
   return physical_systems.SurfaceCode(
       size_x, size_y, coupling_value, onsite_z_field
   )
+
+@register_task('ruby_PXP')
+def get_ruby_PXP(
+    size_x: int,
+    size_y: int,
+    delta: float = 5.,
+    v: float = 50., 
+):
+  """Generates surface code MPO for `[size_x, size_y]` domain."""
+  return physical_systems.RubyRydbergArraysPXP(size_x, size_y, delta, v)

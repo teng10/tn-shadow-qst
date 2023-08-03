@@ -2,6 +2,7 @@
 import abc
 from abc import abstractmethod
 import itertools
+import functools
 from typing import Optional
 
 import numpy as np
@@ -239,6 +240,182 @@ class SurfaceCode(PhysicalSystem):
     Args:
       terms: list of terms to include in the MPOs. Default (None) is to include
         all terms in the surface code hamiltonian.
+
+    Returns:
+      List of MPOs.
+    """
+    hilbert_space = self.hilbert_space
+    mpos = []
+    for term in terms:
+      mpos.append(
+          quimb_exp_op.SparseOperatorBuilder(
+              [term], hilbert_space=hilbert_space).build_mpo()
+      )
+    return mpos
+
+
+class RubyRydbergArraysPXP(PhysicalSystem):
+  """Implementation for ruby Rydberg hamiltonian.
+    Note: this constructor assumes PXP model uniform coupling `v` among three 
+    nearest neibours. The range of neibours are determined by `nb_radii`, 
+    specified in ascending order.
+
+  """
+
+  def __init__(self,
+      Lx: int,
+      Ly: int,
+      delta: float = 5.0,
+      v: float = 50.,
+      omega: float = 1.,
+      nb_radii: tuple[float] = (0.25, 2. * np.sqrt(3) / 8. , 0.5),
+  ):
+    self.n_sites = int(Lx * Ly * 6)
+    self.Lx = Lx
+    self.Ly = Ly
+    self.delta = delta
+    self.v = v
+    self.omega = omega
+    self.epsilon = 1e-3
+    self.nb_radii = tuple(r + self.epsilon for r in nb_radii)
+    self.hilbert_space = quimb_exp_op.HilbertSpace(self.n_sites)
+
+  def _get_annulus_bonds(self,
+      nb_outer: float,
+      nb_inner: float = 0.,
+  ) -> node_collections.NodesCollection:
+    """Constructs `NodeCollection`s for bonds between an annulus of radius 
+     `nb_outer` and `nb_inner` nearest neighbour in the PXP rydberg Hamiltonian.
+    
+    Args:
+      nb_outer: radius of outer annulus.
+      nb_inner: radius of inner annulus.
+    
+    Returns:
+      Bonds within an annulus of radius `nb_outer` and `nb_inner`. 
+    """
+    unit_cell_points = np.array(
+        [[1. / 4., 0.], [1./ 8., np.sqrt(3) / 8.], 
+        [3. / 8., np.sqrt(3) / 8.], [1. / 8., 3. * np.sqrt(3) / 8.],
+        [3. / 8., 3. * np.sqrt(3) / 8.], [1. / 4., np.sqrt(3) / 2.]]
+    )
+    unit_cell = lattices.Lattice(unit_cell_points)
+
+    a1 = np.array([1.0, 0.0])  # unit vectors for square lattice.
+    a2 = np.array([0.5, np.sqrt(3.0)/2])
+    expanded_lattice = sum(
+        unit_cell.shift(a1 * i + a2 * j)
+        for i, j in itertools.product(range(self.Lx), range(self.Ly))
+    )
+
+    nn_bonds = node_collections.get_nearest_neighbors(
+        expanded_lattice, nb_outer, nb_inner
+    )
+    return nn_bonds
+  
+  def _get_nearest_neighbour_bonds(self,
+  ) -> list[node_collections.NodesCollection]:
+    """Constuct list of bonds for nearest neighbours between each annulus."""
+    all_nn_bonds = []  # list of bonds between each annulus.
+    for i in range(len(self.nb_radii)):
+      if i == 0:  # first circle.
+        nn_bonds = self._get_annulus_bonds(self.nb_radii[i])
+      else:  # subsequent annulus.
+        if self.nb_radii[i - 1] > self.nb_radii[i]:
+          raise ValueError(
+              f'`nb_radii` must be in ascending order. '
+              f'{self.nb_radii[i - 1]=}` is greater than {self.nb_radii[i]=}`.'
+          )        
+        nn_bonds = self._get_annulus_bonds(
+            self.nb_radii[i], self.nb_radii[i - 1]
+        )
+      all_nn_bonds.append(nn_bonds)
+    return all_nn_bonds
+  
+  def _get_nearest_neighbour_groups(self,
+  ) -> list[types.TermsTuple]:
+    """Constuct terms for nearest neighbour bonds between each annulus."""
+    all_nn_bonds = self._get_nearest_neighbour_bonds()
+    all_nn_groups = []
+    for bonds in all_nn_bonds:
+      terms = []
+      for node in bonds.nodes:
+        terms.append((self.v, ('z', node[0]), ('z', node[1])))
+      all_nn_groups.append(terms)
+    return all_nn_groups
+
+  def _get_onsite_groups(self,
+  ) -> list[types.TermsTuple]:
+    onsite_terms_z = []
+    onsite_terms_x = []
+    for i in range(self.n_sites):
+      onsite_terms_z.append((-self.delta, ('z', i)))
+    for i in range(self.n_sites):
+      onsite_terms_x.append((self.omega / 2., ('x', i)))
+    return [onsite_terms_z, onsite_terms_x]
+
+  def _get_all_terms_groups(self,
+  ) -> list[types.TermsTuple]:
+    """Get all terms in hamiltonian as list of groups."""
+    return self._get_nearest_neighbour_groups() + self._get_onsite_groups()
+  
+  def get_terms(self
+  ) -> types.TermsTuple:
+    """Merge all terms from all groups into one tuple."""
+    all_terms_groups = self._get_all_terms_groups()
+    all_terms = []
+    for group in all_terms_groups:
+      all_terms += group
+    return all_terms
+
+  def _get_hamiltonian_builder(self, 
+  terms: types.TermsTuple,
+  ) -> quimb_exp_op.SparseOperatorBuilder:
+    """Generates hamiltonian including `terms` using sparse operator builder."""
+    sparse_hamiltonian = quimb_exp_op.SparseOperatorBuilder(
+        hilbert_space=self.hilbert_space
+    )
+    for term in terms:  # add all terms to the hamiltonian.
+      sparse_hamiltonian += term
+    return sparse_hamiltonian
+
+  def get_ham(self,
+  ) -> qtn.MatrixProductOperator:
+    """Get hamiltonian as MPO."""
+    hamiltonian_mpo_groups = []
+    for terms in self._get_all_terms_groups():
+      hamiltonian_mpo_groups.append(
+          self._get_hamiltonian_builder(terms).build_mpo()
+      )
+    ham = hamiltonian_mpo_groups[0]
+    # Question: sum(hamiltonian_mpo_groups) does not work?
+    return functools.reduce(lambda x, y: x + y, hamiltonian_mpo_groups[1:], ham)
+
+  def get_ham_mpos(self,
+  ) ->  list[qtn.MatrixProductOperator]:
+    """Get observables in `get_terms` as MPOs.
+
+    Returns:
+      List of MPOs in the hamiltonian.
+    """
+    hilbert_space = self.hilbert_space
+    mpos = []
+    terms = [(1., *term[1:]) for term in self.get_terms()]
+    for term in terms:
+      mpos.append(
+          quimb_exp_op.SparseOperatorBuilder(
+              [term], hilbert_space=hilbert_space).build_mpo()
+      )
+    return mpos
+
+  def get_obs_mpos(self,
+      terms: Optional[types.TermsTuple] = None,
+  ) ->  list[qtn.MatrixProductOperator]:
+    """Get observables `terms` as MPOs.
+
+    Args:
+      terms: list of terms to include in the MPOs. Default (None) is to include
+        all terms in the hamiltonian.
 
     Returns:
       List of MPOs.
