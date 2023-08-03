@@ -17,12 +17,12 @@ class PhysicalSystem(abc.ABC):
   """Abstract class for defining physical systems."""
 
   @property
-  def hilbert_space(self) -> types.HilbertSpace:
+  def hilbert_space(self) -> types.HilbertSpace | None:
     """Returns hilbert space of the physical system."""
     return None
 
   @abstractmethod
-  def get_terms(self) -> types.TermsTuple:
+  def get_terms(self) -> types.TermsTuple | None:
     """Returns list of terms in the hamiltonian."""
     return None
 
@@ -41,11 +41,13 @@ class PhysicalSystem(abc.ABC):
     """
     if self.get_terms() is None:
       raise ValueError(
-          f'subclass {self.__name__} did not implement custom `get_terms`'
+          f'subclass {self.__name__} did not implement custom `get_terms`.'
+          f'subclass {self.__name__} should either implement custom' 
+          '`get_ham_mpos` or provide `hilbert_space` and implement `get_terms`.'          
       )
     if self.hilbert_space is None:
       raise ValueError(
-          f'subclass {self.__name__} did not implement custom `hilbert_space`'
+          f'subclass {self.__name__} did not implement custom `hilbert_space`.'
       )
     mpos = []
     terms = [(1., *term[1:]) for term in self.get_terms()]
