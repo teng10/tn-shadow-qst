@@ -35,12 +35,13 @@ def get_surface_code(
       size_x, size_y, coupling_value, onsite_z_field
   )
 
-@register_task('ruby_PXP')
-def get_ruby_PXP(
+
+@register_task('ruby_Vanderwaals')
+def get_ruby_Vanderwaals(
     size_x: int,
     size_y: int,
     delta: float = 5.,
-    v: float = 50., 
 ):
-  """Generates surface code MPO for `[size_x, size_y]` domain."""
-  return physical_systems.RubyRydbergArraysPXP(size_x, size_y, delta, v)
+  """Generates ruby rydberg physical system for `[size_x, size_y]` domain
+  with specification of detuning `delta` parameter."""
+  return physical_systems.RubyRydbergVanderwaals(size_x, size_y, delta)

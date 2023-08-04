@@ -3,7 +3,7 @@ import abc
 from abc import abstractmethod
 import itertools
 import functools
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import einops
@@ -254,32 +254,78 @@ class SurfaceCode(PhysicalSystem):
     return mpos
 
 
-class RubyRydbergArraysPXP(PhysicalSystem):
+class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
   """Implementation for ruby Rydberg hamiltonian.
-    Note: this constructor assumes PXP model uniform coupling `v` among three 
-    nearest neibours. The range of neibours are determined by `nb_radii`, 
-    specified in ascending order.
 
+    Note: this constructor assumes Van der Waals interactions among neibours. 
+    The range of neibours are determined by Callable `nb_ratio`, depending on 
+    ruby lattice aspect ratio, `rho`specified in ascending order.
+
+    Args:
+      Lx: number of unit cells in x direction.
+      Ly: number of unit cells in y direction.
+      delta: detuning of the laser from the atomic transition, `z` field.
+      rho: aspect ratio of the ruby lattice.
+      rb: Rydberg blockade radius, in units of lattice spacing.
+      omega: laser Rabi frequency, `x` field.
+      nb_ratio: Callable that returns a tuple of ascending neibour radii.  
+
+    Returns:
+      Ruby Rydberg hamiltonian Physical system.
   """
 
   def __init__(self,
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      v: float = 50.,
+      rho: float = 3.,  
+      rb: float = 3.8,  
       omega: float = 1.,
-      nb_radii: tuple[float] = (0.25, 2. * np.sqrt(3) / 8. , 0.5),
+      nb_ratio: Callable[[float], tuple[float, ...]] = lambda rho: (
+          1., rho, np.sqrt(1. + rho**2)
+      ), 
   ):
     self.n_sites = int(Lx * Ly * 6)
     self.Lx = Lx
     self.Ly = Ly
     self.delta = delta
-    self.v = v
+    self.a = 1. / 4.  # lattice spacing.
     self.omega = omega
+    self.rho = rho  
     self.epsilon = 1e-3
-    self.nb_radii = tuple(r + self.epsilon for r in nb_radii)
-    self.hilbert_space = quimb_exp_op.HilbertSpace(self.n_sites)
+    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio(self.rho))
+    self.vs = np.array([(rb / r)**6 for r in nb_ratio(self.rho)])
 
+  @property
+  def hilbert_space(self) -> types.HilbertSpace:
+    return quimb_exp_op.HilbertSpace(self.n_sites)
+  
+  def _get_expanded_lattice(self,
+  ) -> lattices.Lattice:
+    """Constructs lattice for rydberg Hamiltonian.
+    
+    Returns:
+      Expanded lattice. 
+    """
+    a = self.a
+    unit_cell_points = np.array(
+        [[1. / 4., 0.], [1./ 8., np.sqrt(3) / 8.], 
+        [3. / 8., np.sqrt(3) / 8.], [1. / 8., np.sqrt(3) / 8. + a * self.rho],
+        [3. / 8., np.sqrt(3) / 8. + a * self.rho], 
+        [1. / 4., np.sqrt(3) / 4. + a * self.rho]]
+    )    
+    unit_cell = lattices.Lattice(unit_cell_points)
+    a1 = np.array([2 * a * self.rho * np.sqrt(3) / 2. + a, 0.0])
+    a2 = np.array([
+        a * self.rho * np.sqrt(3) / 2. + a / 2., 
+        a * self.rho * 1. / 2. + a * np.sqrt(3) / 2 + a * self.rho
+    ])
+    expanded_lattice = sum(
+        unit_cell.shift(a1 * i + a2 * j)
+        for i, j in itertools.product(range(self.Lx), range(self.Ly))
+    )
+    return expanded_lattice
+  
   def _get_annulus_bonds(self,
       nb_outer: float,
       nb_inner: float = 0.,
@@ -294,20 +340,7 @@ class RubyRydbergArraysPXP(PhysicalSystem):
     Returns:
       Bonds within an annulus of radius `nb_outer` and `nb_inner`. 
     """
-    unit_cell_points = np.array(
-        [[1. / 4., 0.], [1./ 8., np.sqrt(3) / 8.], 
-        [3. / 8., np.sqrt(3) / 8.], [1. / 8., 3. * np.sqrt(3) / 8.],
-        [3. / 8., 3. * np.sqrt(3) / 8.], [1. / 4., np.sqrt(3) / 2.]]
-    )
-    unit_cell = lattices.Lattice(unit_cell_points)
-
-    a1 = np.array([1.0, 0.0])  # unit vectors for square lattice.
-    a2 = np.array([0.5, np.sqrt(3.0)/2])
-    expanded_lattice = sum(
-        unit_cell.shift(a1 * i + a2 * j)
-        for i, j in itertools.product(range(self.Lx), range(self.Ly))
-    )
-
+    expanded_lattice = self._get_expanded_lattice()
     nn_bonds = node_collections.get_nearest_neighbors(
         expanded_lattice, nb_outer, nb_inner
     )
@@ -337,10 +370,12 @@ class RubyRydbergArraysPXP(PhysicalSystem):
     """Constuct terms for nearest neighbour bonds between each annulus."""
     all_nn_bonds = self._get_nearest_neighbour_bonds()
     all_nn_groups = []
-    for bonds in all_nn_bonds:
+    for i, bonds in enumerate(all_nn_bonds):
       terms = []
       for node in bonds.nodes:
-        terms.append((self.v, ('z', node[0]), ('z', node[1])))
+        terms.append((self.vs[i] / 4., ('z', node[0]), ('z', node[1])))
+        terms.append((-self.vs[i] / 2., ('z', node[0])))
+        terms.append((-self.vs[i] / 2., ('z', node[1])))
       all_nn_groups.append(terms)
     return all_nn_groups
 
@@ -349,7 +384,7 @@ class RubyRydbergArraysPXP(PhysicalSystem):
     onsite_terms_z = []
     onsite_terms_x = []
     for i in range(self.n_sites):
-      onsite_terms_z.append((-self.delta, ('z', i)))
+      onsite_terms_z.append((self.delta / 2., ('z', i)))
     for i in range(self.n_sites):
       onsite_terms_x.append((self.omega / 2., ('x', i)))
     return [onsite_terms_z, onsite_terms_x]
@@ -390,41 +425,3 @@ class RubyRydbergArraysPXP(PhysicalSystem):
     ham = hamiltonian_mpo_groups[0]
     # Question: sum(hamiltonian_mpo_groups) does not work?
     return functools.reduce(lambda x, y: x + y, hamiltonian_mpo_groups[1:], ham)
-
-  def get_ham_mpos(self,
-  ) ->  list[qtn.MatrixProductOperator]:
-    """Get observables in `get_terms` as MPOs.
-
-    Returns:
-      List of MPOs in the hamiltonian.
-    """
-    hilbert_space = self.hilbert_space
-    mpos = []
-    terms = [(1., *term[1:]) for term in self.get_terms()]
-    for term in terms:
-      mpos.append(
-          quimb_exp_op.SparseOperatorBuilder(
-              [term], hilbert_space=hilbert_space).build_mpo()
-      )
-    return mpos
-
-  def get_obs_mpos(self,
-      terms: Optional[types.TermsTuple] = None,
-  ) ->  list[qtn.MatrixProductOperator]:
-    """Get observables `terms` as MPOs.
-
-    Args:
-      terms: list of terms to include in the MPOs. Default (None) is to include
-        all terms in the hamiltonian.
-
-    Returns:
-      List of MPOs.
-    """
-    hilbert_space = self.hilbert_space
-    mpos = []
-    for term in terms:
-      mpos.append(
-          quimb_exp_op.SparseOperatorBuilder(
-              [term], hilbert_space=hilbert_space).build_mpo()
-      )
-    return mpos
