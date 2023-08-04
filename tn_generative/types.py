@@ -5,10 +5,12 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 import quimb.tensor as qtn
+import quimb.experimental.operatorbuilder as quimb_exp_op
 
 Array = Union[np.ndarray, jnp.ndarray]
 MeasurementAndBasis = tuple[Array, Array]
 TermsTuple = list[tuple[float, tuple[str, int]]]
+HilbertSpace = quimb_exp_op.HilbertSpace
 SamplerFn = Callable[
     [jax.random.PRNGKeyArray, qtn.MatrixProductState], MeasurementAndBasis]
 DTYPES_REGISTRY = {
