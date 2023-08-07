@@ -32,6 +32,21 @@ class PhysicalSystem(abc.ABC):
   def get_ham(self) -> qtn.MatrixProductOperator:
     """Returns a hamiltonian MPO."""
 
+  def get_sparse_operator(self, 
+  terms: types.TermsTuple,
+  ) -> quimb_exp_op.SparseOperatorBuilder:
+    """Generates operator including `terms` using sparse operator builder."""
+    if self.hilbert_space is None:
+      raise ValueError(
+          f'subclass {self.__name__} did not implement custom `hilbert_space`.'
+      )    
+    sparse_operator = quimb_exp_op.SparseOperatorBuilder(
+        hilbert_space=self.hilbert_space
+    )    
+    for term in terms:  # add all terms to the operator.
+      sparse_operator += term
+    return sparse_operator
+  
   def get_ham_mpos(self,
   ) -> list[qtn.MatrixProductOperator]:
     """Returns MPOs for list of terms in the hamiltonian.
@@ -47,16 +62,11 @@ class PhysicalSystem(abc.ABC):
           f'subclass {self.__name__} should either implement custom' 
           '`get_ham_mpos` or provide `hilbert_space` and implement `get_terms`.'          
       )
-    if self.hilbert_space is None:
-      raise ValueError(
-          f'subclass {self.__name__} did not implement custom `hilbert_space`.'
-      )
     mpos = []
     terms = [(1., *term[1:]) for term in self.get_terms()]
     for term in terms:
       mpos.append(
-          quimb_exp_op.SparseOperatorBuilder(
-              [term], hilbert_space=self.hilbert_space).build_mpo()
+          self.get_sparse_operator([term]).build_mpo()
       )
     return mpos
 
@@ -71,15 +81,10 @@ class PhysicalSystem(abc.ABC):
     Returns:
       List of MPOs.
     """
-    if self.hilbert_space is None:
-      raise ValueError(
-          f'subclass {self.__name__} did not implement custom `hilbert_space`'
-      )
     mpos = []
     for term in terms:
       mpos.append(
-          quimb_exp_op.SparseOperatorBuilder(
-              [term], hilbert_space=self.hilbert_space).build_mpo()
+          self.get_sparse_operator([term]).build_mpo()
       )
     return mpos
 
@@ -231,20 +236,10 @@ class SurfaceCode(PhysicalSystem):
         all_terms.append((-self.onsite_z_field, ('z', site)))
     return all_terms
 
-  def _get_surface_code_hamiltonian_builder(self
-  ) -> quimb_exp_op.SparseOperatorBuilder:
-    """Generates surface code hamiltonian operator builder."""
-    surface_code_ham = quimb_exp_op.SparseOperatorBuilder(
-        hilbert_space=self.hilbert_space
-    )
-    for term in self.get_terms():  # add all stabilizers to the hamiltonian.
-      surface_code_ham += term
-    return surface_code_ham
-
   def get_ham(self,
   ) -> qtn.MatrixProductOperator:
     """Get surface code hamiltonian as MPO."""
-    surface_code_ham = self._get_surface_code_hamiltonian_builder()
+    surface_code_ham = self.get_sparse_operator(self.get_terms())
     return surface_code_ham.build_mpo()
 
 
@@ -252,7 +247,7 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
   """Implementation for ruby Rydberg hamiltonian.
 
     Note: this constructor assumes Van der Waals interactions among neibours. 
-    The range of neibours are determined by Callable `nb_ratio`, depending on 
+    The range of neibours are determined by Callable `nb_ratio_fn`, depending on 
     ruby lattice aspect ratio, `rho`specified in ascending order.
 
     Args:
@@ -262,7 +257,7 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       rho: aspect ratio of the ruby lattice.
       rb: Rydberg blockade radius, in units of lattice spacing.
       omega: laser Rabi frequency, `x` field.
-      nb_ratio: Callable that returns a tuple of ascending neibour radii.  
+      nb_ratio_fn: Callable that returns a tuple of ascending neibour radii.  
 
     Returns:
       Ruby Rydberg hamiltonian Physical system.
@@ -275,7 +270,7 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       rho: float = 3.,  
       rb: float = 3.8,  
       omega: float = 1.,
-      nb_ratio: Callable[[float], tuple[float, ...]] = lambda rho: (
+      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
           1., rho, np.sqrt(1. + rho**2)
       ), 
   ):
@@ -287,36 +282,47 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
     self.omega = omega
     self.rho = rho  
     self.epsilon = 1e-3
-    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio(self.rho))
-    self.vs = np.array([(rb / r)**6 for r in nb_ratio(self.rho)])
+    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio_fn(self.rho))
+    self.vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
+  
+    self._lattice = self._get_expanded_lattice(
+        self.rho, self.Lx, self.Ly, self.a
+    )  # COMMENT: I don't seem to need __post_init__ here.
 
   @property
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
   
   def _get_expanded_lattice(self,
+    rho: float, 
+    Lx: int, 
+    Ly: int,
+    a: float,    
   ) -> lattices.Lattice:
     """Constructs lattice for rydberg Hamiltonian.
+    Args:
+      rho: aspect ratio of the ruby lattice.
+      Lx: number of unit cells in x direction.
+      Ly: number of unit cells in y direction.
+      a: lattice spacing.
     
-    Returns:
-      Expanded lattice. 
+    Returns: Expanded lattice. 
     """
-    a = self.a
     unit_cell_points = np.array(
         [[1. / 4., 0.], [1./ 8., np.sqrt(3) / 8.], 
-        [3. / 8., np.sqrt(3) / 8.], [1. / 8., np.sqrt(3) / 8. + a * self.rho],
-        [3. / 8., np.sqrt(3) / 8. + a * self.rho], 
-        [1. / 4., np.sqrt(3) / 4. + a * self.rho]]
+        [3. / 8., np.sqrt(3) / 8.], [1. / 8., np.sqrt(3) / 8. + a * rho],
+        [3. / 8., np.sqrt(3) / 8. + a * rho], 
+        [1. / 4., np.sqrt(3) / 4. + a * rho]]
     )    
     unit_cell = lattices.Lattice(unit_cell_points)
     a1 = np.array([2 * a * self.rho * np.sqrt(3) / 2. + a, 0.0])
     a2 = np.array([
-        a * self.rho * np.sqrt(3) / 2. + a / 2., 
-        a * self.rho * 1. / 2. + a * np.sqrt(3) / 2 + a * self.rho
+        a * rho * np.sqrt(3) / 2. + a / 2., 
+        a * rho * 1. / 2. + a * np.sqrt(3) / 2 + a * rho
     ])
     expanded_lattice = sum(
         unit_cell.shift(a1 * i + a2 * j)
-        for i, j in itertools.product(range(self.Lx), range(self.Ly))
+        for i, j in itertools.product(range(Lx), range(Ly))
     )
     return expanded_lattice
   
@@ -334,9 +340,8 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
     Returns:
       Bonds within an annulus of radius `nb_outer` and `nb_inner`. 
     """
-    expanded_lattice = self._get_expanded_lattice()
     nn_bonds = node_collections.get_nearest_neighbors(
-        expanded_lattice, nb_outer, nb_inner
+        self._lattice, nb_outer, nb_inner
     )
     return nn_bonds
   
@@ -397,25 +402,12 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       all_terms += group
     return all_terms
 
-  def _get_hamiltonian_builder(self, 
-  terms: types.TermsTuple,
-  ) -> quimb_exp_op.SparseOperatorBuilder:
-    """Generates hamiltonian including `terms` using sparse operator builder."""
-    sparse_hamiltonian = quimb_exp_op.SparseOperatorBuilder(
-        hilbert_space=self.hilbert_space
-    )
-    for term in terms:  # add all terms to the hamiltonian.
-      sparse_hamiltonian += term
-    return sparse_hamiltonian
-
   def get_ham(self,
   ) -> qtn.MatrixProductOperator:
     """Get hamiltonian as MPO."""
     hamiltonian_mpo_groups = []
     for terms in self._get_all_terms_groups():
       hamiltonian_mpo_groups.append(
-          self._get_hamiltonian_builder(terms).build_mpo()
+          self.get_sparse_operator(terms).build_mpo()
       )
-    ham = hamiltonian_mpo_groups[0]
-    # Question: sum(hamiltonian_mpo_groups) does not work?
-    return functools.reduce(lambda x, y: x + y, hamiltonian_mpo_groups[1:], ham)
+    return sum(hamiltonian_mpo_groups[1:], start=hamiltonian_mpo_groups[0])

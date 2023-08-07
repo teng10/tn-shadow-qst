@@ -36,8 +36,8 @@ def get_surface_code(
   )
 
 
-@register_task('ruby_Vanderwaals')
-def get_ruby_Vanderwaals(
+@register_task('ruby_vanderwaals')
+def get_ruby_vanderwaals(
     size_x: int,
     size_y: int,
     delta: float = 5.,
