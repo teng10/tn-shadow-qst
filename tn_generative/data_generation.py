@@ -34,3 +34,15 @@ def get_surface_code(
   return physical_systems.SurfaceCode(
       size_x, size_y, coupling_value, onsite_z_field
   )
+
+
+@register_task('cluster_state')
+def get_cluster_state(
+    size_x: int,
+    size_y: int,
+    onsite_z_field: float = 0.0,
+) -> PhysicalSystem:
+  """Generates cluster state for `[size_x, size_y]` domain with specification
+  of stabilizer coupling `coupling_value`.
+  """
+  return physical_systems.ClusterState(size_x, size_y, onsite_z_field)

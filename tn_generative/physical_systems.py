@@ -244,3 +244,127 @@ class SurfaceCode(PhysicalSystem):
     """Get surface code hamiltonian as MPO."""
     surface_code_ham = self._get_surface_code_hamiltonian_builder()
     return surface_code_ham.build_mpo()
+
+
+class ClusterState(PhysicalSystem):
+  """Implementation for ruby Rydberg hamiltonian.
+    Note: this constructor assumes antiferromagnetic coupling.
+    `coupling_value == 1` corresponds to `H = -1 * (Σ A) ...`.
+  """
+
+  def __init__(self,
+      Lx: int,
+      Ly: int,
+      onsite_z_field: float = 0.,
+      coupling: float = 1.0,
+  ):
+    self.n_sites = int(Lx * Ly)
+    self.Lx = Lx
+    self.Ly = Ly
+    self.coupling = coupling
+    self.onsite_z_field = onsite_z_field
+  
+  @property
+  def hilbert_space(self) -> types.HilbertSpace:
+    return quimb_exp_op.HilbertSpace(self.n_sites)
+
+  def _get_expanded_lattice(self,
+  ) -> lattices.Lattice:
+    """Constructs lattice for cluster state.
+    
+    Returns:
+      Expanded lattice. 
+    """
+    unit_cell_points = np.stack([np.array([0, 0])])
+    unit_cell = lattices.Lattice(unit_cell_points)
+    a1 = np.array([1.0, 0.0])  # unit vectors for square lattice.
+    a2 = np.array([0.0, 1.0])
+    expanded_lattice = sum(
+        unit_cell.shift(a1 * i + a2 * j)
+        for i, j in itertools.product(range(self.Lx), range(self.Ly))
+    )
+    return expanded_lattice
+
+  def _get_stabilizer_groups(self,
+  ) -> list[node_collections.NodesCollection]:
+    """Constructs `NodeCollection`s for all groups in cluster state Hamiltonian.
+    """
+    expanded_lattice = self._get_expanded_lattice()
+    nn_bonds = node_collections.get_nearest_neighbors(
+        expanded_lattice, 1. + 1e-3
+    )    
+    stabilizer_bonds = []
+    for i in range(self.n_sites):
+      stabilizer_bond = []
+      for bond in nn_bonds.nodes:
+          if i in bond:
+            stabilizer_bond.append(bond)
+      stabilizer_bonds.append(np.concatenate(stabilizer_bond))
+
+      lengths = set(
+          [len(stabilizer_bond) for stabilizer_bond in stabilizer_bonds]
+      )
+      stabilizer_bonds_groups = []
+      for length in sorted(lengths):
+        stabilizer_bonds_groups.append(
+            np.stack(
+                [b for b in stabilizer_bonds if len(b) == length]
+            )
+        )
+    stabilizer_nodes_groups = []
+    for stabilizer_bond_group in stabilizer_bonds_groups:
+      stabilizer_nodes = node_collections.NodesCollection(
+          stabilizer_bond_group, expanded_lattice
+      )
+      stabilizer_nodes_groups.append(stabilizer_nodes)   
+    return stabilizer_nodes_groups
+
+  def _get_all_terms_groups(self,
+  ) -> list[types.TermsTuple]:
+    """Constructs all terms for all groups in cluster state Hamiltonian."""
+    def _sort_by_counts(nodes: np.ndarray) -> np.ndarray:
+      """Helper function for sorting sites by their counts."""
+      my_counts = np.apply_along_axis(
+          np.unique, axis=1, arr=nodes, return_counts=True
+      )
+      arg = np.argsort(my_counts[:, 1, :])
+      return np.take_along_axis(my_counts[:, 0, :], arg, axis=1)
+
+    stabilizer_nodes_groups = self._get_stabilizer_groups()
+    stabilizer_terms_groups = []
+    for stabilizer_nodes in stabilizer_nodes_groups:
+      sorted_nodes = _sort_by_counts(stabilizer_nodes.nodes)
+      stabilizer_terms = []
+      for node in sorted_nodes:
+        term = (-self.coupling, ('x', node[-1]))
+        term += tuple([('z', i) for i in node[:-1]])
+        stabilizer_terms.append(term)
+      stabilizer_terms_groups.append(stabilizer_terms)  
+    return stabilizer_terms_groups
+  
+  def get_terms(self
+  ) -> types.TermsTuple:
+    """Merge all terms from all groups into one list."""
+    all_terms_groups = self._get_all_terms_groups()
+    all_terms = []
+    for group in all_terms_groups:
+      all_terms += group
+    return all_terms
+
+  def _get_hamiltonian_builder(self, 
+  terms: types.TermsTuple,
+  ) -> quimb_exp_op.SparseOperatorBuilder:
+    """Generates hamiltonian including `terms` using sparse operator builder."""
+    sparse_hamiltonian = quimb_exp_op.SparseOperatorBuilder(
+        hilbert_space=self.hilbert_space
+    )
+    for term in terms:  # add all terms to the hamiltonian.
+      sparse_hamiltonian += term
+    return sparse_hamiltonian
+
+  def get_ham(self,
+  ) -> qtn.MatrixProductOperator:
+    """Get hamiltonian as MPO."""
+    ham_builder = self._get_hamiltonian_builder(self.get_terms())
+    return ham_builder.build_mpo()
+  
