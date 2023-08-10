@@ -9,7 +9,7 @@ import quimb.experimental.operatorbuilder as quimb_exp_op
 
 Array = Union[np.ndarray, jnp.ndarray]
 MeasurementAndBasis = tuple[Array, Array]
-TermsTuple = list[tuple[float, tuple[str, int]]]
+TermsTuple = list[tuple[float, tuple[str, int]]]  #TODO(YT): define TermTuple.
 HilbertSpace = quimb_exp_op.HilbertSpace
 SamplerFn = Callable[
     [jax.random.PRNGKeyArray, qtn.MatrixProductState], MeasurementAndBasis]

@@ -32,8 +32,9 @@ class PhysicalSystem(abc.ABC):
   def get_ham(self) -> qtn.MatrixProductOperator:
     """Returns a hamiltonian MPO."""
 
-  def get_sparse_operator(self, 
-  terms: types.TermsTuple,
+  def get_sparse_operator(
+      self, 
+      terms: types.TermsTuple,
   ) -> quimb_exp_op.SparseOperatorBuilder:
     """Generates operator including `terms` using sparse operator builder."""
     if self.hilbert_space is None:
@@ -47,8 +48,7 @@ class PhysicalSystem(abc.ABC):
       sparse_operator += term
     return sparse_operator
   
-  def get_ham_mpos(self,
-  ) -> list[qtn.MatrixProductOperator]:
+  def get_ham_mpos(self) -> list[qtn.MatrixProductOperator]:
     """Returns MPOs for list of terms in the hamiltonian.
 
     Note: this method returns terms in `get_terms` method with +1 coupling.
@@ -70,7 +70,8 @@ class PhysicalSystem(abc.ABC):
       )
     return mpos
 
-  def get_obs_mpos(self,
+  def get_obs_mpos(
+      self,
       terms: types.TermsTuple,
   ) -> list[qtn.MatrixProductOperator]:
     """Get observables `terms` as MPOs.
@@ -96,7 +97,8 @@ class SurfaceCode(PhysicalSystem):
     Note: `get_terms` method in this constructor assumes +1 coupling.
   """
 
-  def __init__(self,
+  def __init__(
+      self,
       Lx: int,
       Ly: int,
       coupling_value: float = 1.0,
@@ -112,7 +114,8 @@ class SurfaceCode(PhysicalSystem):
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
 
-  def _get_surface_code_collections(self,
+  def _get_surface_code_collections(
+      self,
   ) -> tuple[node_collections.NodesCollection, ...]:
     """Constructs `NodeCollection`s for all terms in surface code Hamiltonian.
     """
@@ -182,8 +185,7 @@ class SurfaceCode(PhysicalSystem):
     )
     return z_plaquettes, x_plaquettes, z_boundaries, x_boundaries
 
-  def get_terms(self,
-  ) -> types.TermsTuple:
+  def get_terms(self) -> types.TermsTuple:
     """Generates all stabilizer terms in the surface code
     from 4-plaquettes and 2-site boundaries.
 
@@ -236,8 +238,7 @@ class SurfaceCode(PhysicalSystem):
         all_terms.append((-self.onsite_z_field, ('z', site)))
     return all_terms
 
-  def get_ham(self,
-  ) -> qtn.MatrixProductOperator:
+  def get_ham(self) -> qtn.MatrixProductOperator:
     """Get surface code hamiltonian as MPO."""
     surface_code_ham = self.get_sparse_operator(self.get_terms())
     return surface_code_ham.build_mpo()
@@ -263,7 +264,8 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       Ruby Rydberg hamiltonian Physical system.
   """
 
-  def __init__(self,
+  def __init__(
+      self,
       Lx: int,
       Ly: int,
       delta: float = 5.0,
@@ -293,11 +295,12 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
   
-  def _get_expanded_lattice(self,
-    rho: float, 
-    Lx: int, 
-    Ly: int,
-    a: float,    
+  def _get_expanded_lattice(
+      self,
+      rho: float, 
+      Lx: int, 
+      Ly: int,
+      a: float,    
   ) -> lattices.Lattice:
     """Constructs lattice for rydberg Hamiltonian.
     Args:
@@ -325,8 +328,9 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
         for i, j in itertools.product(range(Lx), range(Ly))
     )
     return expanded_lattice
-  
-  def _get_annulus_bonds(self,
+
+  def _get_annulus_bonds(
+      self,
       nb_outer: float,
       nb_inner: float = 0.,
   ) -> node_collections.NodesCollection:
@@ -345,7 +349,8 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
     )
     return nn_bonds
   
-  def _get_nearest_neighbour_bonds(self,
+  def _get_nearest_neighbour_bonds(
+      self,
   ) -> list[node_collections.NodesCollection]:
     """Constuct list of bonds for nearest neighbours between each annulus."""
     all_nn_bonds = []  # list of bonds between each annulus.
@@ -364,8 +369,7 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       all_nn_bonds.append(nn_bonds)
     return all_nn_bonds
   
-  def _get_nearest_neighbour_groups(self,
-  ) -> list[types.TermsTuple]:
+  def _get_nearest_neighbour_groups(self) -> list[types.TermsTuple]:
     """Constuct terms for nearest neighbour bonds between each annulus."""
     all_nn_bonds = self._get_nearest_neighbour_bonds()
     all_nn_groups = []
@@ -378,8 +382,7 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       all_nn_groups.append(terms)
     return all_nn_groups
 
-  def _get_onsite_groups(self,
-  ) -> list[types.TermsTuple]:
+  def _get_onsite_groups(self) -> list[types.TermsTuple]:
     onsite_terms_z = []
     onsite_terms_x = []
     for i in range(self.n_sites):
@@ -388,13 +391,11 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       onsite_terms_x.append((self.omega / 2., ('x', i)))
     return [onsite_terms_z, onsite_terms_x]
 
-  def _get_all_terms_groups(self,
-  ) -> list[types.TermsTuple]:
+  def _get_all_terms_groups(self) -> list[types.TermsTuple]:
     """Get all terms in hamiltonian as list of groups."""
     return self._get_nearest_neighbour_groups() + self._get_onsite_groups()
   
-  def get_terms(self
-  ) -> types.TermsTuple:
+  def get_terms(self) -> types.TermsTuple:
     """Merge all terms from all groups into one tuple."""
     all_terms_groups = self._get_all_terms_groups()
     all_terms = []
@@ -402,8 +403,7 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       all_terms += group
     return all_terms
 
-  def get_ham(self,
-  ) -> qtn.MatrixProductOperator:
+  def get_ham(self) -> qtn.MatrixProductOperator:
     """Get hamiltonian as MPO."""
     hamiltonian_mpo_groups = []
     for terms in self._get_all_terms_groups():
