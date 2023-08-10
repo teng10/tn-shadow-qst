@@ -34,3 +34,14 @@ def get_surface_code(
   return physical_systems.SurfaceCode(
       size_x, size_y, coupling_value, onsite_z_field
   )
+
+
+@register_task('ruby_vanderwaals')
+def get_ruby_vanderwaals(
+    size_x: int,
+    size_y: int,
+    delta: float = 5.,
+):
+  """Generates ruby rydberg physical system for `[size_x, size_y]` domain
+  with specification of detuning `delta` parameter."""
+  return physical_systems.RubyRydbergVanderwaals(size_x, size_y, delta)
