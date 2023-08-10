@@ -26,7 +26,7 @@ class RunDataGeneration(absltest.TestCase):
 
   def test_generate_surface_code(self):
     """Tests data generation for surface code."""
-    config = self.config  #TODO(YT): move to run_data_generation.py
+    config = self.config
     run_data_generation.generate_data(config)
 
 
