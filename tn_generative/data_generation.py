@@ -36,6 +36,17 @@ def get_surface_code(
   )
 
 
+@register_task('ruby_vanderwaals')
+def get_ruby_vanderwaals(
+    size_x: int,
+    size_y: int,
+    delta: float = 5.,
+):
+  """Generates ruby rydberg physical system for `[size_x, size_y]` domain
+  with specification of detuning `delta` parameter."""
+  return physical_systems.RubyRydbergVanderwaals(size_x, size_y, delta)
+
+
 @register_task('cluster_state')
 def get_cluster_state(
     size_x: int,
@@ -43,6 +54,6 @@ def get_cluster_state(
     onsite_z_field: float = 0.0,
 ) -> PhysicalSystem:
   """Generates cluster state for `[size_x, size_y]` domain with specification
-  of stabilizer coupling `coupling_value`.
+  of onsite z field coupling `onsite_z_field`.
   """
   return physical_systems.ClusterState(size_x, size_y, onsite_z_field)
