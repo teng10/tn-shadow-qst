@@ -2,7 +2,6 @@
 import abc
 from abc import abstractmethod
 import itertools
-import functools
 from typing import Callable
 
 import numpy as np
@@ -33,21 +32,21 @@ class PhysicalSystem(abc.ABC):
     """Returns a hamiltonian MPO."""
 
   def get_sparse_operator(
-      self, 
+      self,
       terms: types.TermsTuple,
   ) -> quimb_exp_op.SparseOperatorBuilder:
     """Generates operator including `terms` using sparse operator builder."""
     if self.hilbert_space is None:
       raise ValueError(
           f'subclass {self.__name__} did not implement custom `hilbert_space`.'
-      )    
+      )
     sparse_operator = quimb_exp_op.SparseOperatorBuilder(
         hilbert_space=self.hilbert_space
-    )    
+    )
     for term in terms:  # add all terms to the operator.
       sparse_operator += term
     return sparse_operator
-  
+
   def get_ham_mpos(self) -> list[qtn.MatrixProductOperator]:
     """Returns MPOs for list of terms in the hamiltonian.
 
@@ -59,8 +58,8 @@ class PhysicalSystem(abc.ABC):
     if self.get_terms() is None:
       raise ValueError(
           f'subclass {self.__name__} did not implement custom `get_terms`.'
-          f'subclass {self.__name__} should either implement custom' 
-          '`get_ham_mpos` or provide `hilbert_space` and implement `get_terms`.'          
+          f'subclass {self.__name__} should either implement custom'
+          '`get_ham_mpos` or provide `hilbert_space` and implement `get_terms`.'
       )
     mpos = []
     terms = [(1., *term[1:]) for term in self.get_terms()]
@@ -247,8 +246,8 @@ class SurfaceCode(PhysicalSystem):
 class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
   """Implementation for ruby Rydberg hamiltonian.
 
-    Note: this constructor assumes Van der Waals interactions among neibours. 
-    The range of neibours are determined by Callable `nb_ratio_fn`, depending on 
+    Note: this constructor assumes Van der Waals interactions among neibours.
+    The range of neibours are determined by Callable `nb_ratio_fn`, depending on
     ruby lattice aspect ratio, `rho`specified in ascending order.
 
     Args:
@@ -258,7 +257,7 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       rho: aspect ratio of the ruby lattice.
       rb: Rydberg blockade radius, in units of lattice spacing.
       omega: laser Rabi frequency, `x` field.
-      nb_ratio_fn: Callable that returns a tuple of ascending neibour radii.  
+      nb_ratio_fn: Callable that returns a tuple of ascending neibour radii.
 
     Returns:
       Ruby Rydberg hamiltonian Physical system.
@@ -269,12 +268,12 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      rho: float = 3.,  
-      rb: float = 3.8,  
+      rho: float = 3.,
+      rb: float = 3.8,
       omega: float = 1.,
       nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
           1., rho, np.sqrt(1. + rho**2)
-      ), 
+      ),
   ):
     self.n_sites = int(Lx * Ly * 6)
     self.Lx = Lx
@@ -282,11 +281,13 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
     self.delta = delta
     self.a = 1. / 4.  # lattice spacing.
     self.omega = omega
-    self.rho = rho  
+    self.rho = rho
     self.epsilon = 1e-3
-    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio_fn(self.rho))
+    self.nb_radii = tuple(
+        r * self.a + self.epsilon for r in nb_ratio_fn(self.rho)
+    )
     self.vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
-  
+
     self._lattice = self._get_expanded_lattice(
         self.rho, self.Lx, self.Ly, self.a
     )  # COMMENT: I don't seem to need __post_init__ here.
@@ -294,13 +295,13 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
   @property
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
-  
+
   def _get_expanded_lattice(
       self,
-      rho: float, 
-      Lx: int, 
+      rho: float,
+      Lx: int,
       Ly: int,
-      a: float,    
+      a: float,
   ) -> lattices.Lattice:
     """Constructs lattice for rydberg Hamiltonian.
     Args:
@@ -308,19 +309,19 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       Lx: number of unit cells in x direction.
       Ly: number of unit cells in y direction.
       a: lattice spacing.
-    
-    Returns: Expanded lattice. 
+
+    Returns: Expanded lattice.
     """
     unit_cell_points = np.array(
-        [[1. / 4., 0.], [1./ 8., np.sqrt(3) / 8.], 
+        [[1. / 4., 0.], [1./ 8., np.sqrt(3) / 8.],
         [3. / 8., np.sqrt(3) / 8.], [1. / 8., np.sqrt(3) / 8. + a * rho],
-        [3. / 8., np.sqrt(3) / 8. + a * rho], 
+        [3. / 8., np.sqrt(3) / 8. + a * rho],
         [1. / 4., np.sqrt(3) / 4. + a * rho]]
-    )    
+    )
     unit_cell = lattices.Lattice(unit_cell_points)
     a1 = np.array([2 * a * self.rho * np.sqrt(3) / 2. + a, 0.0])
     a2 = np.array([
-        a * rho * np.sqrt(3) / 2. + a / 2., 
+        a * rho * np.sqrt(3) / 2. + a / 2.,
         a * rho * 1. / 2. + a * np.sqrt(3) / 2 + a * rho
     ])
     expanded_lattice = sum(
@@ -334,21 +335,21 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       nb_outer: float,
       nb_inner: float = 0.,
   ) -> node_collections.NodesCollection:
-    """Constructs `NodeCollection`s for bonds between an annulus of radius 
+    """Constructs `NodeCollection`s for bonds between an annulus of radius
      `nb_outer` and `nb_inner` nearest neighbour in the PXP rydberg Hamiltonian.
-    
+
     Args:
       nb_outer: radius of outer annulus.
       nb_inner: radius of inner annulus.
-    
+
     Returns:
-      Bonds within an annulus of radius `nb_outer` and `nb_inner`. 
+      Bonds within an annulus of radius `nb_outer` and `nb_inner`.
     """
     nn_bonds = node_collections.get_nearest_neighbors(
         self._lattice, nb_outer, nb_inner
     )
     return nn_bonds
-  
+
   def _get_nearest_neighbour_bonds(
       self,
   ) -> list[node_collections.NodesCollection]:
@@ -362,13 +363,13 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
           raise ValueError(
               f'`nb_radii` must be in ascending order. '
               f'{self.nb_radii[i - 1]=}` is greater than {self.nb_radii[i]=}`.'
-          )        
+          )
         nn_bonds = self._get_annulus_bonds(
             self.nb_radii[i], self.nb_radii[i - 1]
         )
       all_nn_bonds.append(nn_bonds)
     return all_nn_bonds
-  
+
   def _get_nearest_neighbour_groups(self) -> list[types.TermsTuple]:
     """Constuct terms for nearest neighbour bonds between each annulus."""
     all_nn_bonds = self._get_nearest_neighbour_bonds()
@@ -394,7 +395,7 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
   def _get_all_terms_groups(self) -> list[types.TermsTuple]:
     """Get all terms in hamiltonian as list of groups."""
     return self._get_nearest_neighbour_groups() + self._get_onsite_groups()
-  
+
   def get_terms(self) -> types.TermsTuple:
     """Merge all terms from all groups into one tuple."""
     all_terms_groups = self._get_all_terms_groups()
@@ -414,295 +415,15 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
 
 
 class ClusterState(PhysicalSystem):
-  """Implementation for ruby Rydberg hamiltonian.
+  """Implementation for cluster state hamiltonian.
     Note: this constructor assumes antiferromagnetic coupling.
-    `coupling_value == 1` corresponds to `H = -1 * (Σ A) ...`.
-  """
-
-  def __init__(self,
-      Lx: int,
-      Ly: int,
-      onsite_z_field: float = 0.,
-      coupling: float = 1.0,
-  ):
-    self.n_sites = int(Lx * Ly)
-    self.Lx = Lx
-    self.Ly = Ly
-    self.coupling = coupling
-    self.onsite_z_field = onsite_z_field
-  
-  @property
-  def hilbert_space(self) -> types.HilbertSpace:
-    return quimb_exp_op.HilbertSpace(self.n_sites)
-
-  def _get_expanded_lattice(self,
-  ) -> lattices.Lattice:
-    """Constructs lattice for cluster state.
-    
-    Returns:
-      Expanded lattice. 
-    """
-    unit_cell_points = np.stack([np.array([0, 0])])
-    unit_cell = lattices.Lattice(unit_cell_points)
-    a1 = np.array([1.0, 0.0])  # unit vectors for square lattice.
-    a2 = np.array([0.0, 1.0])
-    expanded_lattice = sum(
-        unit_cell.shift(a1 * i + a2 * j)
-        for i, j in itertools.product(range(self.Lx), range(self.Ly))
-    )
-    return expanded_lattice
-
-  def _get_stabilizer_groups(self,
-  ) -> list[node_collections.NodesCollection]:
-    """Constructs `NodeCollection`s for all groups in cluster state Hamiltonian.
-    """
-    expanded_lattice = self._get_expanded_lattice()
-    nn_bonds = node_collections.get_nearest_neighbors(
-        expanded_lattice, 1. + 1e-3
-    )    
-    stabilizer_bonds = []
-    for i in range(self.n_sites):
-      stabilizer_bond = []
-      for bond in nn_bonds.nodes:
-          if i in bond:
-            stabilizer_bond.append(bond)
-      stabilizer_bonds.append(np.concatenate(stabilizer_bond))
-
-      lengths = set(
-          [len(stabilizer_bond) for stabilizer_bond in stabilizer_bonds]
-      )
-      stabilizer_bonds_groups = []
-      for length in sorted(lengths):
-        stabilizer_bonds_groups.append(
-            np.stack(
-                [b for b in stabilizer_bonds if len(b) == length]
-            )
-        )
-    stabilizer_nodes_groups = []
-    for stabilizer_bond_group in stabilizer_bonds_groups:
-      stabilizer_nodes = node_collections.NodesCollection(
-          stabilizer_bond_group, expanded_lattice
-      )
-      stabilizer_nodes_groups.append(stabilizer_nodes)   
-    return stabilizer_nodes_groups
-
-  def _get_all_terms_groups(self,
-  ) -> list[types.TermsTuple]:
-    """Constructs all terms for all groups in cluster state Hamiltonian."""
-    def _sort_by_counts(nodes: np.ndarray) -> np.ndarray:
-      """Helper function for sorting sites by their counts."""
-      my_counts = np.apply_along_axis(
-          np.unique, axis=1, arr=nodes, return_counts=True
-      )
-      arg = np.argsort(my_counts[:, 1, :])
-      return np.take_along_axis(my_counts[:, 0, :], arg, axis=1)
-
-    stabilizer_nodes_groups = self._get_stabilizer_groups()
-    stabilizer_terms_groups = []
-    for stabilizer_nodes in stabilizer_nodes_groups:
-      sorted_nodes = _sort_by_counts(stabilizer_nodes.nodes)
-      stabilizer_terms = []
-      for node in sorted_nodes:
-        term = (-self.coupling, ('x', node[-1]))
-        term += tuple([('z', i) for i in node[:-1]])
-        stabilizer_terms.append(term)
-      stabilizer_terms_groups.append(stabilizer_terms)  
-    return stabilizer_terms_groups
-  
-  def get_terms(self
-  ) -> types.TermsTuple:
-    """Merge all terms from all groups into one list."""
-    all_terms_groups = self._get_all_terms_groups()
-    all_terms = []
-    for group in all_terms_groups:
-      all_terms += group
-    return all_terms
-
-  def get_ham(self,
-  ) -> qtn.MatrixProductOperator:
-    """Get surface code hamiltonian as MPO."""
-    surface_code_ham = self.get_sparse_operator(self.get_terms())
-    return surface_code_ham.build_mpo()
-
-
-class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
-  """Implementation for ruby Rydberg hamiltonian.
-
-    Note: this constructor assumes Van der Waals interactions among neibours. 
-    The range of neibours are determined by Callable `nb_ratio_fn`, depending on 
-    ruby lattice aspect ratio, `rho`specified in ascending order.
-
-    Args:
-      Lx: number of unit cells in x direction.
-      Ly: number of unit cells in y direction.
-      delta: detuning of the laser from the atomic transition, `z` field.
-      rho: aspect ratio of the ruby lattice.
-      rb: Rydberg blockade radius, in units of lattice spacing.
-      omega: laser Rabi frequency, `x` field.
-      nb_ratio_fn: Callable that returns a tuple of ascending neibour radii.  
-
-    Returns:
-      Ruby Rydberg hamiltonian Physical system.
+    `coupling_value == 1` corresponds to `H = -1 * (Σ S) ...`.
   """
 
   def __init__(
       self,
       Lx: int,
       Ly: int,
-      delta: float = 5.0,
-      rho: float = 3.,  
-      rb: float = 3.8,  
-      omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ), 
-  ):
-    self.n_sites = int(Lx * Ly * 6)
-    self.Lx = Lx
-    self.Ly = Ly
-    self.delta = delta
-    self.a = 1. / 4.  # lattice spacing.
-    self.omega = omega
-    self.rho = rho  
-    self.epsilon = 1e-3
-    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio_fn(self.rho))
-    self.vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
-  
-    self._lattice = self._get_expanded_lattice(
-        self.rho, self.Lx, self.Ly, self.a
-    )  # COMMENT: I don't seem to need __post_init__ here.
-
-  @property
-  def hilbert_space(self) -> types.HilbertSpace:
-    return quimb_exp_op.HilbertSpace(self.n_sites)
-  
-  def _get_expanded_lattice(
-      self,
-      rho: float, 
-      Lx: int, 
-      Ly: int,
-      a: float,    
-  ) -> lattices.Lattice:
-    """Constructs lattice for rydberg Hamiltonian.
-    Args:
-      rho: aspect ratio of the ruby lattice.
-      Lx: number of unit cells in x direction.
-      Ly: number of unit cells in y direction.
-      a: lattice spacing.
-    
-    Returns: Expanded lattice. 
-    """
-    unit_cell_points = np.array(
-        [[1. / 4., 0.], [1./ 8., np.sqrt(3) / 8.], 
-        [3. / 8., np.sqrt(3) / 8.], [1. / 8., np.sqrt(3) / 8. + a * rho],
-        [3. / 8., np.sqrt(3) / 8. + a * rho], 
-        [1. / 4., np.sqrt(3) / 4. + a * rho]]
-    )    
-    unit_cell = lattices.Lattice(unit_cell_points)
-    a1 = np.array([2 * a * self.rho * np.sqrt(3) / 2. + a, 0.0])
-    a2 = np.array([
-        a * rho * np.sqrt(3) / 2. + a / 2., 
-        a * rho * 1. / 2. + a * np.sqrt(3) / 2 + a * rho
-    ])
-    expanded_lattice = sum(
-        unit_cell.shift(a1 * i + a2 * j)
-        for i, j in itertools.product(range(Lx), range(Ly))
-    )
-    return expanded_lattice
-
-  def _get_annulus_bonds(
-      self,
-      nb_outer: float,
-      nb_inner: float = 0.,
-  ) -> node_collections.NodesCollection:
-    """Constructs `NodeCollection`s for bonds between an annulus of radius 
-     `nb_outer` and `nb_inner` nearest neighbour in the PXP rydberg Hamiltonian.
-    
-    Args:
-      nb_outer: radius of outer annulus.
-      nb_inner: radius of inner annulus.
-    
-    Returns:
-      Bonds within an annulus of radius `nb_outer` and `nb_inner`. 
-    """
-    nn_bonds = node_collections.get_nearest_neighbors(
-        self._lattice, nb_outer, nb_inner
-    )
-    return nn_bonds
-  
-  def _get_nearest_neighbour_bonds(
-      self,
-  ) -> list[node_collections.NodesCollection]:
-    """Constuct list of bonds for nearest neighbours between each annulus."""
-    all_nn_bonds = []  # list of bonds between each annulus.
-    for i in range(len(self.nb_radii)):
-      if i == 0:  # first circle.
-        nn_bonds = self._get_annulus_bonds(self.nb_radii[i])
-      else:  # subsequent annulus.
-        if self.nb_radii[i - 1] > self.nb_radii[i]:
-          raise ValueError(
-              f'`nb_radii` must be in ascending order. '
-              f'{self.nb_radii[i - 1]=}` is greater than {self.nb_radii[i]=}`.'
-          )        
-        nn_bonds = self._get_annulus_bonds(
-            self.nb_radii[i], self.nb_radii[i - 1]
-        )
-      all_nn_bonds.append(nn_bonds)
-    return all_nn_bonds
-  
-  def _get_nearest_neighbour_groups(self) -> list[types.TermsTuple]:
-    """Constuct terms for nearest neighbour bonds between each annulus."""
-    all_nn_bonds = self._get_nearest_neighbour_bonds()
-    all_nn_groups = []
-    for i, bonds in enumerate(all_nn_bonds):
-      terms = []
-      for node in bonds.nodes:
-        terms.append((self.vs[i] / 4., ('z', node[0]), ('z', node[1])))
-        terms.append((-self.vs[i] / 2., ('z', node[0])))
-        terms.append((-self.vs[i] / 2., ('z', node[1])))
-      all_nn_groups.append(terms)
-    return all_nn_groups
-
-  def _get_onsite_groups(self) -> list[types.TermsTuple]:
-    onsite_terms_z = []
-    onsite_terms_x = []
-    for i in range(self.n_sites):
-      onsite_terms_z.append((self.delta / 2., ('z', i)))
-    for i in range(self.n_sites):
-      onsite_terms_x.append((self.omega / 2., ('x', i)))
-    return [onsite_terms_z, onsite_terms_x]
-
-  def _get_all_terms_groups(self) -> list[types.TermsTuple]:
-    """Get all terms in hamiltonian as list of groups."""
-    return self._get_nearest_neighbour_groups() + self._get_onsite_groups()
-  
-  def get_terms(self) -> types.TermsTuple:
-    """Merge all terms from all groups into one tuple."""
-    all_terms_groups = self._get_all_terms_groups()
-    all_terms = []
-    for group in all_terms_groups:
-      all_terms += group
-    return all_terms
-
-  def get_ham(self) -> qtn.MatrixProductOperator:
-    """Get hamiltonian as MPO."""
-    hamiltonian_mpo_groups = []
-    for terms in self._get_all_terms_groups():
-      hamiltonian_mpo_groups.append(
-          self.get_sparse_operator(terms).build_mpo()
-      )
-    return sum(hamiltonian_mpo_groups[1:], start=hamiltonian_mpo_groups[0])
-
-
-class ClusterState(PhysicalSystem):
-  """Implementation for ruby Rydberg hamiltonian.
-    Note: this constructor assumes antiferromagnetic coupling.
-    `coupling_value == 1` corresponds to `H = -1 * (Σ A) ...`.
-  """
-
-  def __init__(self,
-      Lx: int,
-      Ly: int,
       onsite_z_field: float = 0.,
       coupling: float = 1.0,
   ):
@@ -711,17 +432,16 @@ class ClusterState(PhysicalSystem):
     self.Ly = Ly
     self.coupling = coupling
     self.onsite_z_field = onsite_z_field
-  
+
   @property
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
 
-  def _get_expanded_lattice(self,
-  ) -> lattices.Lattice:
+  def _get_expanded_lattice(self) -> lattices.Lattice:
     """Constructs lattice for cluster state.
-    
+
     Returns:
-      Expanded lattice. 
+      Expanded lattice.
     """
     unit_cell_points = np.stack([np.array([0, 0])])
     unit_cell = lattices.Lattice(unit_cell_points)
@@ -733,20 +453,19 @@ class ClusterState(PhysicalSystem):
     )
     return expanded_lattice
 
-  def _get_stabilizer_groups(self,
-  ) -> list[node_collections.NodesCollection]:
+  def _get_stabilizer_groups(self) -> list[node_collections.NodesCollection]:
     """Constructs `NodeCollection`s for all groups in cluster state Hamiltonian.
     """
     expanded_lattice = self._get_expanded_lattice()
     nn_bonds = node_collections.get_nearest_neighbors(
         expanded_lattice, 1. + 1e-3
-    )    
+    )
     stabilizer_bonds = []
     for i in range(self.n_sites):
       stabilizer_bond = []
       for bond in nn_bonds.nodes:
-          if i in bond:
-            stabilizer_bond.append(bond)
+        if i in bond:
+          stabilizer_bond.append(bond)
       stabilizer_bonds.append(np.concatenate(stabilizer_bond))
 
       lengths = set(
@@ -764,14 +483,16 @@ class ClusterState(PhysicalSystem):
       stabilizer_nodes = node_collections.NodesCollection(
           stabilizer_bond_group, expanded_lattice
       )
-      stabilizer_nodes_groups.append(stabilizer_nodes)   
+      stabilizer_nodes_groups.append(stabilizer_nodes)
     return stabilizer_nodes_groups
 
-  def _get_all_terms_groups(self,
-  ) -> list[types.TermsTuple]:
+  def _get_all_terms_groups(self) -> list[types.TermsTuple]:
     """Constructs all terms for all groups in cluster state Hamiltonian."""
     def _sort_by_counts(nodes: np.ndarray) -> np.ndarray:
-      """Helper function for sorting sites by their counts."""
+      """Helper function for sorting sites by their counts.
+      Args: nodes: array of nodes.
+      Returns: sorted array of nodes, with the last site most frequent.
+      """
       my_counts = np.apply_along_axis(
           np.unique, axis=1, arr=nodes, return_counts=True
       )
@@ -784,35 +505,25 @@ class ClusterState(PhysicalSystem):
       sorted_nodes = _sort_by_counts(stabilizer_nodes.nodes)
       stabilizer_terms = []
       for node in sorted_nodes:
-        term = (-self.coupling, ('x', node[-1]))
-        term += tuple([('z', i) for i in node[:-1]])
+        term = (-self.coupling, ('x', node[-1]))  # most frequent site is X.
+        term += tuple(('z', i) for i in node[:-1])
         stabilizer_terms.append(term)
-      stabilizer_terms_groups.append(stabilizer_terms)  
+      stabilizer_terms_groups.append(stabilizer_terms)
     return stabilizer_terms_groups
-  
-  def get_terms(self
-  ) -> types.TermsTuple:
+
+  def get_terms(self) -> types.TermsTuple:
     """Merge all terms from all groups into one list."""
     all_terms_groups = self._get_all_terms_groups()
     all_terms = []
     for group in all_terms_groups:
       all_terms += group
+    if self.onsite_z_field != 0.:
+      all_terms += [
+          (-self.onsite_z_field, ('z', i)) for i in range(self.n_sites)
+      ]
     return all_terms
 
-  def _get_hamiltonian_builder(self, 
-  terms: types.TermsTuple,
-  ) -> quimb_exp_op.SparseOperatorBuilder:
-    """Generates hamiltonian including `terms` using sparse operator builder."""
-    sparse_hamiltonian = quimb_exp_op.SparseOperatorBuilder(
-        hilbert_space=self.hilbert_space
-    )
-    for term in terms:  # add all terms to the hamiltonian.
-      sparse_hamiltonian += term
-    return sparse_hamiltonian
-
-  def get_ham(self,
-  ) -> qtn.MatrixProductOperator:
+  def get_ham(self) -> qtn.MatrixProductOperator:
     """Get hamiltonian as MPO."""
-    ham_builder = self._get_hamiltonian_builder(self.get_terms())
+    ham_builder = self.get_sparse_operator(self.get_terms())
     return ham_builder.build_mpo()
-  
