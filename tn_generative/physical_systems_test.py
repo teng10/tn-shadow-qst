@@ -23,7 +23,7 @@ class RubyRydbergTests(parameterized.TestCase):
   def test_lattice(self, Lx, Ly):
     """Test that the lattice can be generated."""
     ruby_general_system = physical_systems.RubyRydbergVanderwaals(Lx, Ly)
-    ruby_general_system._lattice
+    self.assertTrue(hasattr(ruby_general_system, '_lattice'))
 
   def test_bonds(self):
     """Test that nearest neighbour bonds are generated correctly."""
