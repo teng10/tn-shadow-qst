@@ -33,12 +33,12 @@ register_sampler = lambda name: functools.partial(
 
 
 def gibbs_sampler(
-    key: jax.random.PRNGKey, 
+    key: jax.random.PRNGKey,
     mps: qtn.MatrixProductState,
 ) -> Array:
   """Sample an observation from `mps` using gibbs sampling method.
 
-  Args: 
+  Args:
     key: random key for sampling a measurement.
     mps: mps state from which a sample is drawn.
 
@@ -73,7 +73,7 @@ def gibbs_sampler(
       mps[i].retag_({mps.site_tag(i): mps.site_tag(i - 1)})
     mps._L = L - 1
     outcomes.append(outcome)
-  return jnp.stack(outcomes)  
+  return jnp.stack(outcomes)
 
 
 def fixed_basis_sampler(
@@ -115,7 +115,7 @@ def random_basis_sampler(
 ) -> MeasurementAndBasis:
   """Draws a sample from `mps` in random X, Y or Z basis at each site.
 
-  Samples `mps` in an X, Y or Z basis selected randomly at each site, 
+  Samples `mps` in an X, Y or Z basis selected randomly at each site,
   with probabilities of `x_y_z_probabilities`.
 
   Args:
@@ -172,6 +172,6 @@ register_sampler('z_basis_sampler')(
 register_sampler('xz_basis_sampler')(
     functools.partial(random_uniform_basis_sampler,
                       x_y_z_probabilities=[0.5, 0.0, 0.5]))
-register_sampler('random_xz_basis_sampler')(
+register_sampler('x_or_z_basis_sampler')(
     functools.partial(random_basis_sampler,
                       x_y_z_probabilities=[0.5, 0.0, 0.5]))
