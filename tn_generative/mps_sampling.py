@@ -162,10 +162,46 @@ def random_uniform_basis_sampler(
   return base_sample_fn(sample_key, rotated_mps), basis
 
 
+def xz_neel_basis_sampler(
+    key: jax.random.PRNGKeyArray,
+    mps: qtn.MatrixProductState,
+    neel_probabilities: Tuple[float, float],
+    base_sample_fn: SamplerFn = gibbs_sampler,
+) -> MeasurementAndBasis:
+  """Draws a sample from `mps` in alternating X/Z basis selected randomly.
+
+  Samples `mps` in an alternating X/Z basis which is selected randomly
+  with probabilities neel_probabilities. 
+  [XZX..., ZXZ...] are mapped to [0, 1].
+
+  Args:
+    key: random key used to draw a sample.
+    mps: matrix product state in `z` basis from which to draw a sample.
+    neel_probabilities: probabilities for selecting XZX.../ZXZ... basis.
+    base_sample_fn: sampler method. Default is gibbs_sampler.
+
+  Returns:
+    Tuple of mesurement sample and basis.
+  """
+  neel_probabilities = jnp.asarray(neel_probabilities)
+  sample_key, basis_key = jax.random.split(key, 2)
+  basis_val_start = jax.random.choice(basis_key, np.arange(2), 
+      p=neel_probabilities
+  )
+  basis = (jnp.arange(mps.L) + basis_val_start) % 2 * 2.
+  mps = mps.copy()
+  rotation_mpo = mps_utils.z_to_basis_mpo(basis)
+  rotated_mps = rotation_mpo.apply(mps)
+  return base_sample_fn(sample_key, rotated_mps), basis
+
+
 register_sampler('x_basis_sampler')(
     functools.partial(fixed_basis_sampler, basis=0))
 register_sampler('z_basis_sampler')(
     functools.partial(fixed_basis_sampler, basis=2))
 register_sampler('xz_basis_sampler')(
     functools.partial(random_uniform_basis_sampler,
-                      x_y_z_probabilities=[0.5, 0.0, 0.5]))
+        x_y_z_probabilities=[0.5, 0.0, 0.5]
+    ))
+register_sampler('xz_neel_basis_sampler')(
+    functools.partial(xz_neel_basis_sampler, neel_probabilities=[0.5, 0.5]))

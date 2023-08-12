@@ -45,3 +45,15 @@ def get_ruby_vanderwaals(
   """Generates ruby rydberg physical system for `[size_x, size_y]` domain
   with specification of detuning `delta` parameter."""
   return physical_systems.RubyRydbergVanderwaals(size_x, size_y, delta)
+
+
+@register_task('cluster_state')
+def get_cluster_state(
+    size_x: int,
+    size_y: int,
+    onsite_z_field: float = 0.0,
+) -> PhysicalSystem:
+  """Generates cluster state for `[size_x, size_y]` domain with specification
+  of onsite z field coupling `onsite_z_field`.
+  """
+  return physical_systems.ClusterState(size_x, size_y, onsite_z_field)
