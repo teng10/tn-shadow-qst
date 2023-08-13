@@ -127,6 +127,7 @@ def random_basis_sampler(
   Returns:
     Tuple of mesurement sample and basis.
   """
+  x_y_z_probabilities = jnp.asarray(x_y_z_probabilities)
   sample_key, basis_key = jax.random.split(key, 2)
   basis = jax.random.choice(basis_key, 3, [mps.L], p=x_y_z_probabilities)
   mps = mps.copy()
@@ -211,5 +212,10 @@ register_sampler('xz_neel_basis_sampler')(
 register_sampler('x_or_z_basis_sampler')(
     functools.partial(random_basis_sampler,
         x_y_z_probabilities=[0.5, 0.0, 0.5]
+    )
+)
+register_sampler('x_y_z_basis_sampler')(
+    functools.partial(random_basis_sampler,
+        x_y_z_probabilities=[1. / 3., 1. / 3., 1. / 3.]
     )
 )
