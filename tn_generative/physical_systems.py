@@ -103,33 +103,41 @@ class SurfaceCode(PhysicalSystem):
       Ly: int,
       coupling_value: float = 1.0,
       onsite_z_field: float = 0.,
+      logical_z: float = 0., 
   ):
     self.n_sites = int(Lx * Ly)
     self.Lx = Lx
     self.Ly = Ly
     self.coupling_value = coupling_value
     self.onsite_z_field = onsite_z_field
+    self.logical_z = logical_z
+    self.a1 = np.array([1.0, 0.0])  # unit vectors for square lattice.
+    self.a2 = np.array([0.0, 1.0])
+    self._lattice = self._expanded_lattice(Lx, Ly)
 
   @property
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
 
+  def _expanded_lattice(self, Lx, Ly) -> lattices.Lattice:
+    if Lx % 2 != 1 or Ly % 2 !=1:
+      raise NotImplementedError('Only odd system sizes are implemented.')
+    unit_cell_points = np.stack([np.array([0, 0])])
+    unit_cell = lattices.Lattice(unit_cell_points)
+
+    return sum(
+        unit_cell.shift(self.a1 * i + self.a2 * j)
+        for i, j in itertools.product(range(Lx), range(Ly))
+    ) 
+  
   def _get_surface_code_collections(
       self,
   ) -> tuple[node_collections.NodesCollection, ...]:
     """Constructs `NodeCollection`s for all terms in surface code Hamiltonian.
     """
-    if self.Lx % 2 != 1 or self.Ly % 2 !=1:
-      raise NotImplementedError('Only odd system sizes are implemented.')
-    a1 = np.array([1.0, 0.0])  # unit vectors for square lattice.
-    a2 = np.array([0.0, 1.0])
-    unit_cell_points = np.stack([np.array([0, 0])])
-    unit_cell = lattices.Lattice(unit_cell_points)
-
-    lattice = sum(
-        unit_cell.shift(a1 * i + a2 * j)
-        for i, j in itertools.product(range(self.Lx), range(self.Ly))
-    )
+    a1 = self.a1
+    a2 = self.a2
+    lattice = self._lattice
     # generating terms with Z plaquetts at the top left corner.
     z_top_loc = np.array((0, self.Ly - 1))
     z_base_plaquette = node_collections.build_path_from_sequence(
