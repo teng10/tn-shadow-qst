@@ -110,13 +110,13 @@ def fixed_basis_sampler(
 def random_basis_sampler(
     key: jax.random.PRNGKeyArray,
     mps: qtn.MatrixProductState,
-    x_y_z_probabilities: Tuple[float, float, float],
+    x_y_z_probabilities: Tuple[float, float, float] = [1./3., 1./3., 1./3.],
     base_sample_fn: SamplerFn = gibbs_sampler,
 ) -> MeasurementAndBasis:
   """Draws a sample from `mps` in random X, Y or Z basis at each site.
 
   Samples `mps` in an X, Y or Z basis selected randomly at each site,
-  with probabilities of `x_y_z_probabilities`.
+  with probabilities of `x_y_z_probabilities`. Default is uniform in all bases.
 
   Args:
     key: random key used to draw a sample.
@@ -178,8 +178,4 @@ register_sampler('x_or_z_basis_sampler')(
         x_y_z_probabilities=[0.5, 0.0, 0.5]
     )
 )
-register_sampler('x_y_z_basis_sampler')(
-    functools.partial(random_basis_sampler,
-        x_y_z_probabilities=[1. / 3., 1. / 3., 1. / 3.]
-    )
-)
+register_sampler('x_y_z_basis_sampler')(functools.partial(random_basis_sampler))
