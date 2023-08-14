@@ -21,7 +21,8 @@ def sweep_sc_7x7_fn():
             'task.kwargs.size_y': system_size,
             'dmrg.bond_dims': d,
             'task.kwargs.onsite_z_field': onsite_z_field,
-            'output.filename':  '_'.join(['%JOB_ID', task_name, sampling_method,                 f'{system_size=}', f'{d=}', f'{onsite_z_field=:.3f}']),
+            'output.filename':  '_'.join(['%JOB_ID', task_name, sampling_method,
+                f'{system_size=}', f'{d=}', f'{onsite_z_field=:.3f}']),
         }
 
 
@@ -36,7 +37,8 @@ def sweep_sc_5x5_fn():
             'task.kwargs.size_y': system_size,
             'dmrg.bond_dims': d,
             'task.kwargs.onsite_z_field': onsite_z_field,
-            'output.filename': '_'.join(['%JOB_ID', task_name, sampling_method,                     f'{system_size=}', f'{d=}', f'{onsite_z_field=:.3f}']),
+            'output.filename': '_'.join(['%JOB_ID', task_name, sampling_method,
+                f'{system_size=}', f'{d=}', f'{onsite_z_field=:.3f}']),
         }
 
 def sweep_sc_3x3_fn():
@@ -49,7 +51,8 @@ def sweep_sc_3x3_fn():
             'task.kwargs.size_y': system_size,
             'dmrg.bond_dims': d,
             'task.kwargs.onsite_z_field': onsite_z_field,
-            'output.filename': '_'.join(['%JOB_ID', task_name, sampling_method,                     f'{system_size=}', f'{d=}', f'{onsite_z_field=:.3f}']),
+            'output.filename': '_'.join(['%JOB_ID', task_name, sampling_method,
+                f'{system_size=}', f'{d=}', f'{onsite_z_field=:.3f}']),
         }
 
 sweep_fn_dict = {
@@ -87,7 +90,7 @@ def get_config():
   # Save options.
   config.output = config_dict.ConfigDict()
   config.output.save_data = True
-  config.output.data_dir = f'{home}/tn_shadow_dir/Data/Tests/%CURRENT_DATE_%JOB_ID/'
+  config.output.data_dir = f'{home}/tn_shadow_dir/Data/Tests/%CURRENT_DATE/'
   # by default we use date/job-id for file name.
   # need to keep this line for default value and jobs not on cluster.
   config.output.filename = '%JOB_ID'
