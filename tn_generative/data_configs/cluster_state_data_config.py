@@ -5,9 +5,7 @@ import numpy as np
 from ml_collections import config_dict
 
 home = os.path.expanduser('~')
-
-
-task_name = 'cluster_state'
+DEFAULT_TASK_NAME = 'cluster_state'
 
 
 def sweep_param_fn(system_size, d, onsite_z_field, sampler):
@@ -17,13 +15,13 @@ def sweep_param_fn(system_size, d, onsite_z_field, sampler):
       'task.kwargs.size_y': system_size,
       'dmrg.bond_dims': d,
       'task.kwargs.onsite_z_field': onsite_z_field,
-      'output.filename':  '_'.join(['%JOB_ID', task_name, sampler,
+      'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, sampler,
           f'{system_size=}', f'{d=}', f'{onsite_z_field=:.3f}']),
   }
 
 
 def sweep_sc_3x3_fn():
-  # 3x3 sites surface code sweep
+  # 3x3 sites cluster state sweep
   for system_size in [3]:
     for d in [10, 20]:
       for onsite_z_field in np.linspace(0., 0.2, 11):
@@ -58,7 +56,7 @@ def sweep_sc_7x7_fn():
           yield sweep_param_fn(system_size, d, onsite_z_field, sampler)
 
 
-sweep_fn_dict = {
+SWEEP_FN_REGISTRY = {
     "sweep_sc_3x3_fn": list(sweep_sc_3x3_fn()),
     "sweep_sc_5x5_fn": list(sweep_sc_5x5_fn()),
     "sweep_sc_7x7_fn": list(sweep_sc_7x7_fn())
@@ -71,11 +69,11 @@ def get_config():
   # Task configuration.
   config.dtype = 'complex128'
   config.task = config_dict.ConfigDict()
-  config.task.name = task_name
+  config.task.name = DEFAULT_TASK_NAME
   config.task.kwargs = {'size_x': 3, 'size_y': 3, 'onsite_z_field':0.}
   # sweep parameters.
   config.sweep_name = "sweep_sc_3x3_fn"  # Could change this in slurm script
-  config.sweep_fn_dict = sweep_fn_dict
+  config.sweep_fn_registry = SWEEP_FN_REGISTRY
   # DMRG configuration.
   config.dmrg = config_dict.ConfigDict()
   config.dmrg.bond_dims = 20

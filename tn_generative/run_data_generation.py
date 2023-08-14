@@ -27,13 +27,13 @@ TASK_REGISTRY = data_generation.TASK_REGISTRY
 
 
 def generate_data(config):
-  if config.sweep_name in config.sweep_fn_dict.keys():
-    sweep_param = config.sweep_fn_dict[config.sweep_name]
+  if config.sweep_name in config.sweep_fn_registry:
+    sweep_param = config.sweep_fn_registry[config.sweep_name]
     config.update_from_flattened_dict(sweep_param[config.task_id])
-  elif config.sweep_name == None:
+  elif config.sweep_name is None:
     pass
   else:
-    raise ValueError(f'{config.sweep_name} not in sweep_fn_dict.')
+    raise ValueError(f'{config.sweep_name} not in sweep_fn_registry.')
   current_date = datetime.now().strftime('%m%d')
   dtype = DTYPES_REGISTRY[config.dtype]
   task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
@@ -46,6 +46,7 @@ def generate_data(config):
   dmrg.solve(**config.dmrg.solve_kwargs)
   mps = dmrg.state.copy()
   mps = mps.canonize(0)  # canonicalize MPS.
+  # TODO(YT): add dmrg data analysis.
 
   # Running data generation
   qtn.contraction.set_tensor_linop_backend('jax')
