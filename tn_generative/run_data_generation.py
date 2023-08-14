@@ -27,6 +27,7 @@ TASK_REGISTRY = data_generation.TASK_REGISTRY
 
 
 def generate_data(config):
+  config.sweep_param = config.sweep_fn_dict[config.sweep_name]
   config.update_from_flattened_dict(config.sweep_param[config.task_id])
   current_date = datetime.now().strftime('%m%d')
   dtype = DTYPES_REGISTRY[config.dtype]
@@ -76,13 +77,17 @@ def generate_data(config):
     filepath = os.path.join(data_dir, filename)  
     #TODO(YT): remove/add extension e.g. os.path.splitext(name)[0] + '.nc'
     ds.to_netcdf(filepath + '.nc')
+    np.save(filepath + '.txt', np.array(dmrg.energies))
   return ds
 
 
 def main(argv):
   config = FLAGS.data_config
   return generate_data(config)
-
+  # run this script with the following command in the terminal:
+  # python -m tn_generative.run_data_generation\ 
+  # --data_config=tn_generative/data_configs/surface_code_data_config.py\ 
+  # --data_config.job_id=0 --data_config.task_id=0
 
 if __name__ == '__main__':
   app.run(main)
