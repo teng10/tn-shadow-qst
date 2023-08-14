@@ -27,8 +27,13 @@ TASK_REGISTRY = data_generation.TASK_REGISTRY
 
 
 def generate_data(config):
-  config.sweep_param = config.sweep_fn_dict[config.sweep_name]
-  config.update_from_flattened_dict(config.sweep_param[config.task_id])
+  if config.sweep_name in config.sweep_fn_dict.keys():
+    sweep_param = config.sweep_fn_dict[config.sweep_name]
+    config.update_from_flattened_dict(sweep_param[config.task_id])
+  elif config.sweep_name == None:
+    pass
+  else:
+    raise ValueError(f'{config.sweep_name} not in sweep_fn_dict.')
   current_date = datetime.now().strftime('%m%d')
   dtype = DTYPES_REGISTRY[config.dtype]
   task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
@@ -77,7 +82,7 @@ def generate_data(config):
     filepath = os.path.join(data_dir, filename)  
     #TODO(YT): remove/add extension e.g. os.path.splitext(name)[0] + '.nc'
     ds.to_netcdf(filepath + '.nc')
-    np.save(filepath + '.txt', np.array(dmrg.energies))
+    np.save(filepath, np.array(dmrg.energies))
   return ds
 
 
