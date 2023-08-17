@@ -1,8 +1,9 @@
 """Lattice class and lattice helper functions."""
 from __future__ import annotations
-import dataclasses
-from typing import Mapping, Tuple
 import math
+import dataclasses
+import itertools
+from typing import Mapping, Tuple
 
 import numpy as np
 import shapely
@@ -24,7 +25,6 @@ class Lattice:
   ndim: int = dataclasses.field(init=False)
 
   def __post_init__(self):
-    self.points = np.round(self.points, self.decimal_precision)
     self.n_sites, self.ndim = self.points.shape
     loc_to_idx = {}
     for idx in range(self.n_sites):
@@ -47,17 +47,19 @@ class Lattice:
   def merge(self, other: Lattice, raise_on_overlap: bool = False) -> Lattice:
     """Returns a new lattice with points from `self` and `other`."""
     common_precision = min(self.decimal_precision, other.decimal_precision)
-    combined_points = np.concatenate([
-        np.round(self.points, common_precision),
-        np.round(other.points, common_precision)])
-    unique_combined = np.unique(combined_points, axis=0)
+    combined_points = np.concatenate([self.points, other.points])
+    combined_points_rounded = np.round(combined_points, common_precision)
+    _, unique_indices = np.unique(
+        combined_points_rounded, axis=0, return_index=True
+    )
+    unique_combined = combined_points[unique_indices]
     if raise_on_overlap and unique_combined.shape != combined_points.shape:
       raise ValueError('Attempting to merge lattice with overlapp.')
     return Lattice(unique_combined, common_precision)
 
   def shift(self, vector: np.ndarray) -> Lattice:
     """Returns a new lattice shifted by `vector`."""
-    new_points = np.round(self.points + vector, self.decimal_precision)
+    new_points = self.points + vector
     return Lattice(new_points, self.decimal_precision)
 
   def __add__(self, other):
