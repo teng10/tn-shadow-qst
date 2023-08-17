@@ -3,9 +3,7 @@ from absl import app
 from absl import flags
 from datetime import datetime
 import os
-import pickle
-import glob
-import re
+import logging
 
 from jax import config as jax_config
 from ml_collections import config_flags
@@ -17,6 +15,7 @@ import xarray as xr
 
 from tn_generative import data_generation
 from tn_generative import data_utils
+from tn_generative import mps_utils
 from tn_generative import train_utils
 from tn_generative import regularizers
 from tn_generative import types
@@ -29,7 +28,7 @@ DTYPES_REGISTRY = types.DTYPES_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
 regularization = regularizers.REGULARIZER_REGISTRY
 
-      
+
 def run_full_batch_experiment(config):
   current_date = datetime.now().strftime('%m%d')
   jax_config.update('jax_enable_x64', True)
@@ -41,31 +40,29 @@ def run_full_batch_experiment(config):
     pass
   else:
     raise ValueError(f'Invalid sweep name {config.sweep_name}')
-  if config.data.filename_fn is not None:
-    config.data.filename = config.data.filename_fn(config.data.dir)
-    print(f'Using filename {config.data.filename}')
-    # TODO(YT): temporary solution to allow pickle. Find a better way!
-    config.unlock()
-    del config.data.filename_fn
-    del config.sweep_fn_registry
-    config.lock()
+  # TODO(YT): temporary solution to delete the sweep_fn. Find a better way!
+  config.unlock()
+  del config.sweep_fn_registry
+  config.lock()
   train_config = config.training
-  model_config = config.model    
+  model_config = config.model
   datapath = os.path.join(config.data.dir, config.data.filename)
+  logging.info(f'Using {datapath=}')
   ds = xr.open_dataset(datapath)
-  ds = data_utils.combine_complex_ds(ds)  # combine complex data into one ds.
+  # Load dataset by combining real&imag fields into complex fields.
+  ds = data_utils.combine_complex_ds(ds)
   train_ds = ds.isel(sample=slice(0, config.data.num_training_samples))
-  #TODO(YT): better way to reload attrs from dataset.
+  # TODO(YT): better way to reload attrs from dataset.
+  # Add utils for physical_system: `to_xarray_attrs`, `from_xarray_attrs`.
   ds_attrs = ds.attrs.copy()
   ds_attrs.pop('name')
   physical_system = TASK_REGISTRY[ds.name](**ds_attrs)
   reg_fn = regularization[train_config.reg_name]
   reg_fn = reg_fn(
-      system=physical_system, train_ds=train_ds, 
+      system=physical_system, train_ds=train_ds,
       **train_config.reg_kwargs
   )
-  random_seed = model_config.init_seed + train_config.iterations
-  qugen.rand.seed_rand(random_seed)
+  qugen.rand.seed_rand(model_config.init_seed)
   model_mps = qtn.MPS_rand_state(
       train_ds.sizes['site'], model_config.bond_dim, dtype=model_config.dtype)
   train_df, eval_df, final_mps = train_utils.run_full_batch_training(
@@ -91,17 +88,24 @@ def run_full_batch_experiment(config):
         '%JOB_ID', str(config.job_id)
     )
     save_path = os.path.join(results_dir, results_filename)
-    complete_train_df.to_pickle(save_path + '_train.pkl')
-    complete_eval_df.to_pickle(save_path + '_eval.pkl')
-    pickle.dump(final_mps, open(save_path + '_mps.pkl', 'wb'))
+    complete_train_df.to_csv(save_path + '_train.csv')
+    complete_eval_df.to_csv(save_path + '_eval.csv')
+    mps_ds = data_utils.split_complex_ds(mps_utils.mps_to_xarray(final_mps))
+    mps_ds.to_netcdf(save_path + '_mps.nc')
   return complete_train_df, complete_eval_df, final_mps
 
 
 def main(argv):
   config = FLAGS.train_config
   return run_full_batch_experiment(config)
+# How to run this file:
+# python -m tn_generative.run_training \
+# --train_config=tn_generative/train_configs/surface_code_training_config.py \
+# --train_config.job_id=0828 \
+# --train_config.task_id=0 \
+# --train_config.sweep_name="sweep_sc_3x3_fn" \
+# --train_config.training.num_training_steps=20
 
 
 if __name__ == '__main__':
   app.run(main)
-  
