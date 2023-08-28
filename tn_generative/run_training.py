@@ -1,4 +1,11 @@
 """Main file for running training."""
+# How to run this file:
+# python -m tn_generative.run_training \
+# --train_config=tn_generative/train_configs/surface_code_training_config.py \
+# --train_config.job_id=0828 \
+# --train_config.task_id=0 \
+# --train_config.sweep_name="sweep_sc_3x3_fn" \
+# --train_config.training.num_training_steps=20
 from absl import app
 from absl import flags
 from datetime import datetime
@@ -98,13 +105,6 @@ def run_full_batch_experiment(config):
 def main(argv):
   config = FLAGS.train_config
   return run_full_batch_experiment(config)
-# How to run this file:
-# python -m tn_generative.run_training \
-# --train_config=tn_generative/train_configs/surface_code_training_config.py \
-# --train_config.job_id=0828 \
-# --train_config.task_id=0 \
-# --train_config.sweep_name="sweep_sc_3x3_fn" \
-# --train_config.training.num_training_steps=20
 
 
 if __name__ == '__main__':

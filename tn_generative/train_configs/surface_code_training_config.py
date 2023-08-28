@@ -9,9 +9,10 @@ DEFAULT_TASK_NAME = 'surface_code'
 
 
 def get_dataset_name(
-  sampler,
-  system_size,
-  onsite_z_field):
+    sampler,
+    system_size,
+    onsite_z_field
+ ) -> str:
   """Select the right dataset filename from available filenames."""
   # COMMENT: these lines are currently too long, but I don't know how to break.
   filenames = [
@@ -39,14 +40,14 @@ def get_dataset_name(
 
 
 def sweep_param_fn(
-  sampler,
-  system_size,
-  onsite_z_field,
-  train_d,
-  train_num_samples,
-  train_beta,
-  init_seed,
-  ) -> dict:
+    sampler,
+    system_size,
+    onsite_z_field,
+    train_d,
+    train_num_samples,
+    train_beta,
+    init_seed,
+) -> dict:
   """Helper function for formatting sweep parameters.
 
   Note: this function sweeps over dataset and training parameters.
@@ -92,8 +93,10 @@ def sweep_sc_3x3_fn():
             for train_num_samples in [5000, 10_000, 30_000, 50_000, 100_000]:
               for train_beta in [0., 1., 5., 10.]:
                 yield sweep_param_fn(
-                    sampler, system_size, onsite_z_field,
-                    train_d, train_num_samples, train_beta, init_seed
+                    sampler=sampler, system_size=system_size,
+                    onsite_z_field=onsite_z_field, train_d=train_d,
+                    train_num_samples=train_num_samples, train_beta=train_beta,
+                    init_seed=init_seed,
                 )
 
 
@@ -107,8 +110,10 @@ def sweep_sc_5x5_fn():
             for train_num_samples in [5000, 10_000, 30_000, 50_000, 100_000]:
               for train_beta in [0., 1.]:
                 yield sweep_param_fn(
-                    sampler, system_size, onsite_z_field,
-                    train_d, train_num_samples, train_beta, init_seed
+                    sampler=sampler, system_size=system_size,
+                    onsite_z_field=onsite_z_field, train_d=train_d,
+                    train_num_samples=train_num_samples, train_beta=train_beta,
+                    init_seed=init_seed,
                 )
 
 
@@ -122,8 +127,10 @@ def sweep_sc_7x7_fn():
             for train_num_samples in [5000, 10_000, 30_000, 50_000, 100_000]:
               for train_beta in [0., 1.]:
                 yield sweep_param_fn(
-                    sampler, system_size, onsite_z_field,
-                    train_d, train_num_samples, train_beta, init_seed
+                    sampler=sampler, system_size=system_size,
+                    onsite_z_field=onsite_z_field, train_d=train_d,
+                    train_num_samples=train_num_samples, train_beta=train_beta,
+                    init_seed=init_seed,
                 )
 
 
