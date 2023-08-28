@@ -17,17 +17,20 @@ source activate tn-shadow-qst
 package_path="/n/home11/yteng/tn-shadow-qst/"
 cd ${package_path}
 FILEPATH="/n/home11/yteng/experiments/TNS"
-data_dir="$FILEPATH/dataTNS/%CURRENT_DATE/"
-mkdir -p ${data_dir}
-echo "Data saving directory is ${data_dir}"
+results_dir="$FILEPATH/resultsTNS/%CURRENT_DATE/"
+data_dir="$FILEPATH/dataTNS/${1:-'surface_code'}/" # $1-TASK_NAME
+mkdir -p ${results_dir}
+echo "Results saving directory is ${results_dir}"
 echo "array_task_id=${SLURM_ARRAY_TASK_ID}"
 
-python -m tn_generative.run_data_generation \
---data_config=tn_generative/data_configs/${1:-'surface_code'}_data_config.py \
---data_config.job_id=${SLURM_ARRAY_JOB_ID} \
---data_config.task_id=${SLURM_ARRAY_TASK_ID} \
---data_config.output.data_dir=${data_dir} \
---data_config.sweep_name=${2:-"sweep_sc_5x5_fn"} # $2-SWEEP_NAME
+python -m tn_generative.run_training \
+--train_config=tn_generative/train_configs/${1:-'surface_code'}_training_config.py \
+--train_config.job_id=${SLURM_ARRAY_JOB_ID} \
+--train_config.task_id=${SLURM_ARRAY_TASK_ID} \
+--train_config.data.dir=${data_dir} \
+--train_config.results.experiment_dir=${results_dir} \
+--train_config.sweep_name=${2:-"sweep_sc_5x5_fn"} # $2-SWEEP_NAME
+--train_config.num_training_steps=${3:-300} # $3-NUM_TRAINING_STEPS
 
 echo "job finished"
 > "$FILEPATH/logsTNS/${SLURM_ARRAY_JOB_ID}_log.txt"
