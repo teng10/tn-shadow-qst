@@ -27,21 +27,20 @@ class KagomeLatticeTests(parameterized.TestCase):
   def test_kagome_lattice(self):  #TODO(YT): move all plotting to colab.
     """Test plotting the kagome lattice."""
     with self.subTest("Unit cell"):
-      unit_cell = lattices.Lattice(self.unit_cell_points)
       expected_cell = lattices.Lattice(
           points=np.array([
           [ 0.5  ,  0.   ],
           [-0.5  ,  0.   ],
           [ 0.   ,  np.sqrt(3) / 2.]]),
       )
-      self.assertTrue(unit_cell == expected_cell)
+      self.assertTrue(self.unit_cell == expected_cell)
       fig, ax = plt.subplots(1, 1)
-      plotting_utils.plot_lattice(unit_cell, ax, annotate=True)
+      plotting_utils.plot_lattice(self.unit_cell, ax, annotate=True)
       ax.set_aspect("equal")
 
     with self.subTest("Expanded lattice"):
       expanded_lattice = sum(
-          unit_cell.shift(self.a1 * i + self.a2 * j)
+          self.unit_cell.shift(self.a1 * i + self.a2 * j)
           for i, j in itertools.product(range(self.nx), range(self.ny))
       )     
       fig, ax = plt.subplots(1, 1)

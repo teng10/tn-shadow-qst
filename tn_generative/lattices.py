@@ -1,8 +1,8 @@
 """Lattice class and lattice helper functions."""
 from __future__ import annotations
-import math
 import dataclasses
 import itertools
+import math
 from typing import Mapping, Tuple
 
 import numpy as np
