@@ -22,27 +22,27 @@ class KagomeLatticeTests(parameterized.TestCase):
       ]
     )
     self.nx, self.ny = 8, 8
+    self.unit_cell = lattices.Lattice(self.unit_cell_points)
 
   def test_kagome_lattice(self):  #TODO(YT): move all plotting to colab.
     """Test plotting the kagome lattice."""
     with self.subTest("Unit cell"):
-      unit_cell = lattices.Lattice(self.unit_cell_points)
       expected_cell = lattices.Lattice(
           points=np.array([
           [ 0.5  ,  0.   ],
           [-0.5  ,  0.   ],
-          [ 0.   ,  0.866]]),
+          [ 0.   ,  np.sqrt(3) / 2.]]),
       )
-      self.assertTrue(unit_cell == expected_cell)
+      self.assertTrue(self.unit_cell == expected_cell)
       fig, ax = plt.subplots(1, 1)
-      plotting_utils.plot_lattice(unit_cell, ax, annotate=True)
+      plotting_utils.plot_lattice(self.unit_cell, ax, annotate=True)
       ax.set_aspect("equal")
 
     with self.subTest("Expanded lattice"):
       expanded_lattice = sum(
-          unit_cell.shift(self.a1 * i + self.a2 * j)
+          self.unit_cell.shift(self.a1 * i + self.a2 * j)
           for i, j in itertools.product(range(self.nx), range(self.ny))
-      )
+      )     
       fig, ax = plt.subplots(1, 1)
       plotting_utils.plot_lattice(expanded_lattice, ax, annotate=True)
       ax.set_aspect("equal")
@@ -56,7 +56,7 @@ class KagomeLatticeTests(parameterized.TestCase):
 
   def test_idx_point_conversion(self):
     """Tests that the idx_to_point and point_to_idx functions are inverses."""
-    unit_cell = lattices.Lattice(self.unit_cell_points)
+    unit_cell = self.unit_cell
     indices = unit_cell.get_idx(
         unit_cell.get_point(np.arange(unit_cell.n_sites))
     )
@@ -64,6 +64,16 @@ class KagomeLatticeTests(parameterized.TestCase):
         np.array([1]),
         np.squeeze(unit_cell.get_idx([unit_cell.get_point([1])]))
     )
+
+  @parameterized.parameters(2, 3, 4, 5, 6, 7)
+  def test_shifted_coordinate(self, shift):
+    """Tests that the shifted point is numerically precise."""
+    test_point  = self.unit_cell.points[2]
+    test_point_shifted = test_point + self.a2 * shift
+    unit_cell_shifted = self.unit_cell.shift(self.a2 * shift)
+    np.testing.assert_allclose(
+        test_point_shifted, unit_cell_shifted.points[2]
+    )    
 
 if __name__ == "__main__":
   absltest.main()
