@@ -244,7 +244,7 @@ class SurfaceCode(PhysicalSystem):
     return surface_code_ham.build_mpo()
 
 
-class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
+class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
   """Implementation for ruby Rydberg hamiltonian.
 
     Note: this constructor assumes Van der Waals interactions among neibours. 
@@ -263,33 +263,6 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
     Returns:
       Ruby Rydberg hamiltonian Physical system.
   """
-
-  def __init__(
-      self,
-      Lx: int,
-      Ly: int,
-      delta: float = 5.0,
-      rho: float = 3.,  
-      rb: float = 3.8,  
-      omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ), 
-  ):
-    self.n_sites = int(Lx * Ly * 6)
-    self.Lx = Lx
-    self.Ly = Ly
-    self.delta = delta
-    self.a = 1. / 4.  # lattice spacing.
-    self.omega = omega
-    self.rho = rho  
-    self.epsilon = 1e-3
-    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio_fn(self.rho))
-    self.vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
-  
-    self._lattice = self._get_expanded_lattice(
-        self.rho, self.Lx, self.Ly, self.a
-    )  # COMMENT: I don't seem to need __post_init__ here.
 
   @property
   def hilbert_space(self) -> types.HilbertSpace:
@@ -377,8 +350,8 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
       terms = []
       for node in bonds.nodes:
         terms.append((self.vs[i] / 4., ('z', node[0]), ('z', node[1])))
-        terms.append((-self.vs[i] / 2., ('z', node[0])))
-        terms.append((-self.vs[i] / 2., ('z', node[1])))
+        terms.append((-self.vs[i] / 4., ('z', node[0])))
+        terms.append((-self.vs[i] / 4., ('z', node[1])))
       all_nn_groups.append(terms)
     return all_nn_groups
 
@@ -411,3 +384,61 @@ class RubyRydbergVanderwaals(PhysicalSystem):  #TODO(YT): add tests.
           self.get_sparse_operator(terms).build_mpo()
       )
     return sum(hamiltonian_mpo_groups[1:], start=hamiltonian_mpo_groups[0])
+
+
+class RubyRydbergVanderwaals(RubyRydberg):
+  """Implementation for Van der Waals ruby Rydberg interactions."""
+  def __init__(
+      self,
+      Lx: int,
+      Ly: int,
+      delta: float = 5.0,
+      rho: float = np.sqrt(3.),  
+      rb: float = 3.8,  
+      omega: float = 1.,
+      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
+          1., rho, np.sqrt(1. + rho**2)
+      ), 
+  ):
+    self.n_sites = int(Lx * Ly * 6)
+    self.Lx = Lx
+    self.Ly = Ly
+    self.delta = delta
+    self.a = 1. / 4.  # lattice spacing.
+    self.omega = omega
+    self.rho = rho  
+    self.epsilon = 1e-3
+    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio_fn(self.rho))
+    self._lattice = self._get_expanded_lattice(
+        self.rho, self.Lx, self.Ly, self.a
+    )
+    self.vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
+
+
+class RubyRydbergPXP(RubyRydberg):
+  """Implementation for PXP ruby Rydberg interactions."""
+  def __init__(
+      self,
+      Lx: int,
+      Ly: int,
+      delta: float = 5.0,
+      rho: float = np.sqrt(3.),  
+      rb: float = 3.8,  
+      omega: float = 1.,
+      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
+          1., rho, np.sqrt(1. + rho**2)
+      ), 
+  ):
+    self.n_sites = int(Lx * Ly * 6)
+    self.Lx = Lx
+    self.Ly = Ly
+    self.delta = delta
+    self.a = 1. / 4.  # lattice spacing.
+    self.omega = omega
+    self.rho = rho  
+    self.epsilon = 1e-3
+    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio_fn(self.rho))
+    self._lattice = self._get_expanded_lattice(
+        self.rho, self.Lx, self.Ly, self.a
+    )
+    self.vs = (rb/(nb_ratio_fn(self.rho)[-1]))**6 * np.ones(len(self.nb_radii))
