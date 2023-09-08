@@ -23,11 +23,11 @@ echo "Data saving directory is ${data_dir}"
 echo "array_task_id=${SLURM_ARRAY_TASK_ID}"
 
 python -m tn_generative.run_data_generation \
---data_config=tn_generative/data_configs/surface_code_data_xyz_config.py \
+--data_config=tn_generative/data_configs/${1:-'surface_code'}_data_config.py \
 --data_config.job_id=${SLURM_ARRAY_JOB_ID} \
 --data_config.task_id=${SLURM_ARRAY_TASK_ID} \
 --data_config.output.data_dir=${data_dir} \
---data_config.sweep_name="sweep_sc_7x7_fn"
+--data_config.sweep_name=${2:-"sweep_sc_5x5_fn"} # $2-SWEEP_NAME
 
 echo "job finished"
 > "$FILEPATH/logsTNS/${SLURM_ARRAY_JOB_ID}_log.txt"
