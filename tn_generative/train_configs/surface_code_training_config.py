@@ -59,8 +59,8 @@ def sweep_param_fn(
           sampler, system_size, onsite_z_field
       ),
       'data.kwargs': {
-          'task_name': DEFAULT_TASK_NAME, 
-          'sampler': sampler, 'system_size': system_size, 
+          'task_name': DEFAULT_TASK_NAME,
+          'sampler': sampler, 'system_size': system_size,
           'onsite_z_field': onsite_z_field,
       },
       'results.filename': '_'.join(['%JOB_ID', DEFAULT_TASK_NAME,
@@ -90,12 +90,13 @@ def sweep_sc_3x3_fn():
 def sweep_sc_5x5_fn():
   # 5x5 sites surface code sweep
   for system_size in [5]:
-    for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler']:
-      for onsite_z_field in [0.]:
-        for train_d in [10, 20, 40]:
-          for train_num_samples in [5000, 10_000, 30_000, 50_000, 100_000]:
-            for train_beta in [0., 1., 5., 10.]:
-              for train_iter in range(10):
+    for train_iter in range(10):
+      for sampler in ['x_or_z_basis_sampler']:
+        for onsite_z_field in [0.]:
+          for train_d in [10, 20, 40]:
+            for train_num_samples in [5000, 10_000, 30_000, 50_000, 100_000]:
+              for train_beta in [0., 1.]:
+              #for train_iter in range(10):
                 yield sweep_param_fn(
                     sampler, system_size, onsite_z_field,
                     train_d, train_num_samples, train_beta, train_iter
@@ -105,12 +106,13 @@ def sweep_sc_5x5_fn():
 def sweep_sc_7x7_fn():
   # 7x7 sites surface code sweep
   for system_size in [7]:
-    for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler']:
-      for onsite_z_field in [0.]:
-        for train_d in [20, 40, 60]:
-          for train_num_samples in [5000, 10_000, 30_000, 50_000, 100_000]:
-            for train_beta in [0., 1., 5., 10.]:
-              for train_iter in range(10):
+    for train_iter in range(10):
+      for sampler in ['x_or_z_basis_sampler']:
+        for onsite_z_field in [0.]:
+          for train_d in [40, 60]:
+            for train_num_samples in [5000, 10_000, 30_000, 50_000, 100_000]:
+              for train_beta in [0., 1.]:
+              #for train_iter in range(10):
                 yield sweep_param_fn(
                     sampler, system_size, onsite_z_field,
                     train_d, train_num_samples, train_beta, train_iter
@@ -129,7 +131,7 @@ def get_config():
   # job properties.
   config.job_id = config_dict.placeholder(int)
   config.task_id = config_dict.placeholder(int)
-  # model.  
+  # model.
   config.model = config_dict.ConfigDict()
   config.model.bond_dim = 5
   config.model.dtype = 'complex128'
@@ -140,8 +142,8 @@ def get_config():
   # CLUSTER: needs to be changed
   config.data.dir = f'{HOME}/tn_shadow_dir/Data/{DEFAULT_TASK_NAME}'
   config.data.kwargs = {
-      'task_name': DEFAULT_TASK_NAME, 
-      'sampler': 'xz_basis_sampler', 'system_size': 3, 'd': 10, 
+      'task_name': DEFAULT_TASK_NAME,
+      'sampler': 'xz_basis_sampler', 'system_size': 3, 'd': 10,
       'onsite_z_field': 0.0
   }
   config.data.filename = '_'.join([
@@ -154,13 +156,13 @@ def get_config():
   config.data.filename_fn = None # Not needed if we know filename.
   # sweep parameters.
   # CLUSTER: could change this in slurm script
-  config.sweep_name = None  
+  config.sweep_name = 'None'
   config.sweep_fn_registry = SWEEP_FN_REGISTRY
   # training.
   config.training = config_dict.ConfigDict()
   # Note for benchmarking a model, we want to train independently for many
   # iterations. This will give us a better estimate of the model performance.
-  # Need to use this to change initial random seed. This is achieved in 
+  # Need to use this to change initial random seed. This is achieved in
   # setting iterations in `sweep_param_fn`.
   config.training.iterations = 0  # Number of independent iterations.
   config.training.num_training_steps = 200

@@ -7,7 +7,7 @@
 #SBATCH --mail-type=END #This command would send an email when the job ends.
 #SBATCH --mem=50000
 #SBATCH -c 1
-#SBATCH --array=0-11 # 30 different parameter settings
+#SBATCH --array=0-3 # 30 different parameter settings
 # enumerating in parameter {bond_dimension}, {onsite_z_field} index.
 # e.g. 2 x 3=6 This enumerates 6 parameter setting
 #SBATCH -o /n/home11/yteng/experiments/TNS/logsTNS/%j.out # Standard out
@@ -23,11 +23,11 @@ echo "Data saving directory is ${data_dir}"
 echo "array_task_id=${SLURM_ARRAY_TASK_ID}"
 
 python -m tn_generative.run_data_generation \
---data_config=tn_generative/data_configs/surface_code_data_config.py \
+--data_config=tn_generative/data_configs/surface_code_data_xyz_config.py \
 --data_config.job_id=${SLURM_ARRAY_JOB_ID} \
 --data_config.task_id=${SLURM_ARRAY_TASK_ID} \
 --data_config.output.data_dir=${data_dir} \
---data_config.sweep_name="sweep_sc_5x5_fn"
+--data_config.sweep_name="sweep_sc_7x7_fn"
 
 echo "job finished"
 > "$FILEPATH/logsTNS/${SLURM_ARRAY_JOB_ID}_log.txt"
