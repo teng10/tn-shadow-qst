@@ -290,6 +290,10 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     )
   
   @property
+  def vs(self) -> np.ndarray:
+    return self._vs
+  
+  @property
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
   
@@ -426,7 +430,7 @@ class RubyRydbergVanderwaals(RubyRydberg):
       ), 
   ):
     super().__init__(Lx, Ly, delta, rho, rb, omega, nb_ratio_fn)
-    self.vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
+    self._vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
 
 
 class RubyRydbergPXP(RubyRydberg):
@@ -444,4 +448,4 @@ class RubyRydbergPXP(RubyRydberg):
       ), 
   ):
     super().__init__(Lx, Ly, delta, rho, rb, omega, nb_ratio_fn)
-    self.vs = (rb/(nb_ratio_fn(self.rho)[-1]))**6 * np.ones(len(self.nb_radii))
+    self._vs = (rb/(nb_ratio_fn(self.rho)[-1]))**6 * np.ones(len(self.nb_radii))
