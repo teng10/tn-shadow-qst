@@ -1,8 +1,9 @@
 """Lattice class and lattice helper functions."""
 from __future__ import annotations
 import dataclasses
-from typing import Mapping, Tuple
+import itertools
 import math
+from typing import Mapping, Tuple
 
 import numpy as np
 import shapely
@@ -24,7 +25,6 @@ class Lattice:
   ndim: int = dataclasses.field(init=False)
 
   def __post_init__(self):
-    self.points = np.round(self.points, self.decimal_precision)
     self.n_sites, self.ndim = self.points.shape
     loc_to_idx = {}
     for idx in range(self.n_sites):
@@ -67,7 +67,7 @@ class Lattice:
 
   def shift(self, vector: np.ndarray) -> Lattice:
     """Returns a new lattice shifted by `vector`."""
-    new_points = np.round(self.points + vector, self.decimal_precision)
+    new_points = self.points + vector
     return Lattice(new_points, self.decimal_precision)
 
   def __add__(self, other):
