@@ -45,3 +45,14 @@ def get_ruby_vanderwaals(
   """Generates ruby rydberg physical system for `[size_x, size_y]` domain
   with specification of detuning `delta` parameter."""
   return physical_systems.RubyRydbergVanderwaals(size_x, size_y, delta)
+
+
+@register_task('ruby_pxp')
+def get_ruby_pxp(
+    size_x: int,
+    size_y: int,
+    delta: float = 5.,
+):
+  """Generates ruby PXP physical system for `[size_x, size_y]` domain
+  with specification of detuning `delta` parameter."""
+  return physical_systems.RubyRydbergPXP(size_x, size_y, delta)
