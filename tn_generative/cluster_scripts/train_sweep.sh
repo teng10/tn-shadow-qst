@@ -10,8 +10,8 @@
 #SBATCH --array=0-11 # 30 different parameter settings
 # enumerating in parameter {bond_dimension}, {onsite_z_field} index.
 # e.g. 2 x 3=6 This enumerates 6 parameter setting
-#SBATCH -o /n/home11/yteng/experiments/TNS/logsTNS/%j.out # Standard out
-#SBATCH -e /n/home11/yteng/experiments/TNS/logsTNS/%j.err # Standard err
+#SBATCH -o /n/home11/yteng/experiments/TNS/logsTNS/%A_%a.out # Standard out
+#SBATCH -e /n/home11/yteng/experiments/TNS/logsTNS/%A_%a.err # Standard err
 module load python/3.10.9-fasrc01
 source activate tn-shadow-qst
 package_path="/n/home11/yteng/tn-shadow-qst/"
@@ -29,8 +29,9 @@ python -m tn_generative.run_training \
 --train_config.task_id=${SLURM_ARRAY_TASK_ID} \
 --train_config.data.dir=${data_dir} \
 --train_config.results.experiment_dir=${results_dir} \
---train_config.sweep_name=${2:-"sweep_sc_5x5_fn"} # $2-SWEEP_NAME
---train_config.num_training_steps=${3:-300} # $3-NUM_TRAINING_STEPS
-
+--train_config.sweep_name=${2:-"sweep_sc_5x5_fn"} \
+--train_config.training.num_training_steps=${3:-300} \
+ #$2-SWEEP_NAME #$3-NUM_TRAINING_STEPS
+ # Note: the comments have to be after python command!
 echo "job finished"
 > "$FILEPATH/logsTNS/${SLURM_ARRAY_JOB_ID}_log.txt"
