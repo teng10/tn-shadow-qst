@@ -313,12 +313,11 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     
     Returns: Expanded lattice. 
     """
-    unit_cell_points = np.array(
-        [[1. / 4., 0.], [1./ 8., np.sqrt(3) / 8.], 
-        [3. / 8., np.sqrt(3) / 8.], [1. / 8., np.sqrt(3) / 8. + a * rho],
-        [3. / 8., np.sqrt(3) / 8. + a * rho], 
-        [1. / 4., np.sqrt(3) / 4. + a * rho]]
-    )    
+    unit_cell_points = a * np.array(
+        [[1., 0.], [1. / 2., np.sqrt(3) / 2.], [3. / 2., np.sqrt(3) / 2.],
+        [1. / 2., np.sqrt(3) / 2. + rho], [3. / 2., np.sqrt(3) / 2. + rho], 
+        [1., np.sqrt(3) + rho]]
+    )
     unit_cell = lattices.Lattice(unit_cell_points)
     a1 = np.array([2 * a * self.rho * np.sqrt(3) / 2. + a, 0.0])
     a2 = np.array([
