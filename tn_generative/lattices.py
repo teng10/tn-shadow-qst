@@ -50,11 +50,8 @@ class Lattice:
         """Returns unique vectors in `arr` in order of appearance.
         Note: this is important for DMRG in 2 dimension.
         """
-        _, unique_indices = np.unique(
-            arr, axis=0, return_index=True
-        )
-        sorted_indices = np.argsort(unique_indices)
-        return unique_indices[sorted_indices]
+        _, unique_indices = np.unique(arr, axis=0, return_index=True)
+        return np.sort(unique_indices)
 
     common_precision = min(self.decimal_precision, other.decimal_precision)
     combined_points = np.concatenate([self.points, other.points])
