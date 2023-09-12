@@ -46,12 +46,17 @@ class Lattice:
 
   def merge(self, other: Lattice, raise_on_overlap: bool = False) -> Lattice:
     """Returns a new lattice with points from `self` and `other`."""
+    def _unique_ordered(arr):
+        """Returns unique vectors in `arr` in order of appearance.
+        Note: this is important for DMRG in 2 dimension.
+        """
+        _, unique_indices = np.unique(arr, axis=0, return_index=True)
+        return np.sort(unique_indices)
+
     common_precision = min(self.decimal_precision, other.decimal_precision)
     combined_points = np.concatenate([self.points, other.points])
     combined_points_rounded = np.round(combined_points, common_precision)
-    _, unique_indices = np.unique(
-        combined_points_rounded, axis=0, return_index=True
-    )
+    unique_indices = _unique_ordered(combined_points_rounded)
     unique_combined = combined_points[unique_indices]
     if raise_on_overlap and unique_combined.shape != combined_points.shape:
       raise ValueError('Attempting to merge lattice with overlapp.')
