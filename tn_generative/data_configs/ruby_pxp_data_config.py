@@ -38,8 +38,9 @@ SWEEP_FN_REGISTRY = {
     "sweep_sc_2x2_fn": list(sweep_sc_2x2_fn()),
 }
 
+
 def get_config():
-  """config using surface code as an example."""
+  """Config dictionary."""
   config = config_dict.ConfigDict()
   # job properties
   config.job_id = config_dict.placeholder(int)
