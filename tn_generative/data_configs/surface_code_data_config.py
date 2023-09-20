@@ -21,8 +21,7 @@ def sweep_param_fn(size_x, size_y, d, onsite_z_field, sampler):
 
 
 def sweep_sc_7x7_fn():
-  """Helper function for sweeping over surface code configs."""
-  # 7x7 sites surface code sweep
+  """Sweep over surface code data configs."""
   size_x = 7
   size_y = 7
   for d in [40, 60]:
@@ -37,8 +36,7 @@ def sweep_sc_7x7_fn():
 
 
 def sweep_sc_5x5_fn():
-  """Helper function for sweeping over surface code configs."""
-  # 5x5 sites surface code sweep
+  """Sweep over surface code data configs."""
   size_x = 5
   size_y = 5
   for d in [20, 40]:
@@ -53,7 +51,7 @@ def sweep_sc_5x5_fn():
 
 
 def sweep_sc_3x3_fn():
-  # 3x3 sites surface code sweep
+  """Sweep over surface code data configs."""
   size_x = 3
   size_y = 3
   for d in [5, 10]:
@@ -68,7 +66,7 @@ def sweep_sc_3x3_fn():
 
 
 def sweep_sc_3x5_fn():
-  # 3x3 sites surface code sweep
+  """Sweep over surface code data configs."""
   size_x = 3
   size_y = 5
   for d in [10, 20]:
@@ -83,7 +81,7 @@ def sweep_sc_3x5_fn():
 
 
 def sweep_sc_3x7_fn():
-  # 3x3 sites surface code sweep
+  """Sweep over surface code data configs."""
   size_x = 3
   size_y = 7
   for d in [10, 20]:
@@ -98,7 +96,7 @@ def sweep_sc_3x7_fn():
 
 
 def sweep_sc_3x9_fn():
-  # 3x3 sites surface code sweep
+  """Sweep over surface code data configs."""
   size_x = 3
   size_y = 9
   for d in [20, 40]:
@@ -113,7 +111,7 @@ def sweep_sc_3x9_fn():
 
 
 def sweep_sc_3x11_fn():
-  # 3x3 sites surface code sweep
+  """Sweep over surface code data configs."""
   size_x = 3
   size_y = 11
   for d in [40, 60]:
