@@ -1,5 +1,7 @@
 """Training and evaluation helper functions."""
+import functools
 from typing import Any, Dict, Optional, Sequence, Tuple
+import time
 
 import pandas as pd
 import xarray as xr
@@ -38,7 +40,7 @@ def batched_neg_ll_loss_fn(
   return loss_fn(mps, measurements, bases)
 
 
-def evaluate_model(mps, train_ds):
+def evaluate_model(mps, train_ds, regularization_fn):
   """Evaluates `mps` wrt learning the state in `train_ds`.
 
   This function computes: (1) fieldlity - how well the ground truth state is
@@ -54,9 +56,11 @@ def evaluate_model(mps, train_ds):
     train_ds: default tomography dataset containing `measurement`, `basis` vars
       on which `mps` was trained on, as well as parameters of the ground truth
       state which are used to reconstruct the state and compute fidelity.
+    regularization_fn: function that computes regularization term.
 
   Returns:
-    Dictionary containing evaluation summary: fildelity, model_ll, target_ll.
+    Dictionary containing evaluation summary: fildelity, model_ll, target_ll, 
+    and regularization (if not None).
   """
   target_mps = mps_utils.xarray_to_mps(train_ds)
   fidelity = (mps.H | target_mps) ^ ...
@@ -65,10 +69,13 @@ def evaluate_model(mps, train_ds):
   bases = train_ds.basis.values
   model_ll = batched_neg_ll_loss_fn(mps.arrays, measurements, bases)
   target_ll = batched_neg_ll_loss_fn(target_mps.arrays, measurements, bases)
+  if regularization_fn is not None:
+    regularization = regularization_fn(mps.arrays)
   return pd.DataFrame({
       'fidelity': [np.abs(fidelity)],
       'model_ll': [model_ll],
       'target_ll': [target_ll],
+      'regularization': [regularization],
   })
 
 
@@ -99,20 +106,24 @@ def run_full_batch_training(
 
   if regularization_fn is not None:
     loss_fn = lambda psi, m, b: (batched_neg_ll_loss_fn(psi.arrays, m, b)
-    + jax.jit(regularization_fn)(psi.arrays))
+    + regularization_fn(psi.arrays))  #TODO(YT): is there a difference to jit?
   else:
     loss_fn = lambda psi, m, b: batched_neg_ll_loss_fn(psi.arrays, m, b)
+  loss_fn = functools.partial(loss_fn, m=measurements, b=bases)
   tnopt = qtn.TNOptimizer(
       mps,
       loss_fn=loss_fn,
       norm_fn=mps_utils.uniform_normalize,  # use normalize that acts on `mps`.
-      loss_constants={'m': measurements, 'b': bases},
+      autodiff_backend='jax',
   )
+  start_training_time = time.time()
   trained_mps = tnopt.optimize(training_config.num_training_steps)
+  end_training_time = time.time()
   train_df = pd.DataFrame({
       'loss': tnopt.losses,
       'opt_step': np.arange(len(tnopt.losses)),
   })
+  train_df['training_time'] = end_training_time - start_training_time
   train_df = train_df.astype(np.float32)
-  eval_df = evaluate_model(trained_mps, train_ds)
+  eval_df = evaluate_model(trained_mps, train_ds, regularization_fn)
   return train_df, eval_df, trained_mps
