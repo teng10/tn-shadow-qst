@@ -23,20 +23,21 @@ def get_dataset_name(
       '66324730_surface_code_x_or_z_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.000.nc',
       '66325458_surface_code_x_or_z_basis_sampler_size_x=5_size_y=5_d=40_onsite_z_field=0.000.nc',
       '66325485_surface_code_x_or_z_basis_sampler_size_x=7_size_y=7_d=60_onsite_z_field=0.000.nc',
-      '2771128_surface_code_x_or_z_basis_sampler_size_x=3_size_y=9_d=40_onsite_z_field=0.000.nc',
+      '2771105_surface_code_xz_basis_sampler_size_x=3_size_y=5_d=10_onsite_z_field=0.000.nc',
       '2771117_surface_code_xz_basis_sampler_size_x=3_size_y=7_d=20_onsite_z_field=0.000.nc',
-      # '2867669_surface_code_x_or_z_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.000.nc',
-      # '2867669_surface_code_xz_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.000.nc',
       '2771128_surface_code_xz_basis_sampler_size_x=3_size_y=9_d=40_onsite_z_field=0.000.nc',
-      '2771117_surface_code_x_y_z_basis_sampler_size_x=3_size_y=7_d=20_onsite_z_field=0.000.nc',
-      '2868588_surface_code_x_y_z_basis_sampler_size_x=3_size_y=11_d=80_onsite_z_field=0.000.nc',
-      '2868588_surface_code_x_or_z_basis_sampler_size_x=3_size_y=11_d=80_onsite_z_field=0.000.nc',
-      '2771117_surface_code_x_or_z_basis_sampler_size_x=3_size_y=7_d=20_onsite_z_field=0.000.nc',
       '2868588_surface_code_xz_basis_sampler_size_x=3_size_y=11_d=80_onsite_z_field=0.000.nc',
+      '2771105_surface_code_x_or_z_basis_sampler_size_x=3_size_y=5_d=10_onsite_z_field=0.000.nc',
+      '2771117_surface_code_x_or_z_basis_sampler_size_x=3_size_y=7_d=20_onsite_z_field=0.000.nc',
+      '2771128_surface_code_x_or_z_basis_sampler_size_x=3_size_y=9_d=40_onsite_z_field=0.000.nc',
+      '2868588_surface_code_x_or_z_basis_sampler_size_x=3_size_y=11_d=80_onsite_z_field=0.000.nc',
       '2867669_surface_code_x_y_z_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.000.nc',
       '2771105_surface_code_x_y_z_basis_sampler_size_x=3_size_y=5_d=10_onsite_z_field=0.000.nc',
-      '2771105_surface_code_x_or_z_basis_sampler_size_x=3_size_y=5_d=10_onsite_z_field=0.000.nc',
-      '2771105_surface_code_xz_basis_sampler_size_x=3_size_y=5_d=10_onsite_z_field=0.000.nc',      
+      '2771117_surface_code_x_y_z_basis_sampler_size_x=3_size_y=7_d=20_onsite_z_field=0.000.nc',
+      '2771128_surface_code_x_y_z_basis_sampler_size_x=3_size_y=9_d=40_onsite_z_field=0.000.nc',
+      '2868588_surface_code_x_y_z_basis_sampler_size_x=3_size_y=11_d=80_onsite_z_field=0.000.nc',      
+
+            
   ]
   unique_match = 0  # Check only one dataset is found.
   for name in filenames:
