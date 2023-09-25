@@ -87,6 +87,11 @@ def sweep_param_fn(
       'data.num_training_samples': train_num_samples,
       'training.reg_kwargs.beta': train_beta,
       'data.filename': get_dataset_name(sampler, size_x, size_y, onsite_z_field),
+      'data.kwargs': {
+          'task_name': DEFAULT_TASK_NAME,
+          'sampler': sampler, 'size_x': size_x, 'size_y': size_y,
+          'onsite_z_field': onsite_z_field,
+      },      
       'results.filename': '_'.join(['%JOB_ID', DEFAULT_TASK_NAME,
           sampler, f'{size_x=}', f'{size_y=}', f'{onsite_z_field=:.3f}',
           f'{train_d=}', f'{train_num_samples=}', f'{train_beta=:.3f}',
