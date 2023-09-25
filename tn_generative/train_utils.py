@@ -106,8 +106,7 @@ def run_full_batch_training(
 
   if regularization_fn is not None:
     loss_fn = lambda psi, m, b: (batched_neg_ll_loss_fn(psi.arrays, m, b)
-    + regularization_fn(psi.arrays))
-    # + jax.jit(regularization_fn)(psi.arrays))
+    + regularization_fn(psi.arrays))  #TODO(YT): is there a difference to jit?
   else:
     loss_fn = lambda psi, m, b: batched_neg_ll_loss_fn(psi.arrays, m, b)
   loss_fn = functools.partial(loss_fn, m=measurements, b=bases)
