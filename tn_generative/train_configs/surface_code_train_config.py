@@ -246,14 +246,14 @@ def get_config():
   config.data.num_training_samples = 1000
   # CLUSTER: needs to be changed
   config.data.dir = f'{HOME}/tn_shadow_dir/Data/{DEFAULT_TASK_NAME}'
-  data_kwargs = {
+  config.data.kwargs = {
       'task_name': DEFAULT_TASK_NAME,
-      'sampler': 'xz_basis_sampler', 'size_x': 3, 'size_y': 3, 'd': 10,
+      'sampler': 'xz_basis_sampler', 'size_x': 3, 'size_y':3, 'd': 10,
       'onsite_z_field': 0.0
-  }
+  }  #TODO(YT): this can be loaded from xr dataset attrs to reduce bugs.
   config.data.filename = '_'.join([
-      '66321312', data_kwargs['task_name'], 
-      data_kwargs['sampler'], 'size_x=3', 'size_y=3',
+      '66321312', config.data.kwargs['task_name'], 
+      config.data.kwargs['sampler'], 'size_x=3', 'size_y=3',
       'd=10', 'onsite_z_field=0.000.nc']
   )
   # Note: format of the data filename.
