@@ -24,7 +24,7 @@ echo "Results saving directory is ${results_dir}"
 echo "array_task_id=${SLURM_ARRAY_TASK_ID}"
 
 python -m tn_generative.run_training \
---train_config=tn_generative/train_configs/${1:-'surface_code'}_training_config.py \
+--train_config=tn_generative/train_configs/${1:-'surface_code'}_train_config.py \
 --train_config.job_id=${SLURM_ARRAY_JOB_ID} \
 --train_config.task_id=${SLURM_ARRAY_TASK_ID} \
 --train_config.data.dir=${data_dir} \
