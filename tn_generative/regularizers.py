@@ -54,8 +54,9 @@ def get_hamiltonian_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
     )
+  train_mps = mps_utils.xarray_to_mps(train_ds)
   stabilizer_estimates = np.array([
-      estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_mpos
+      estimator_fn(train_mps, ham_mpo) for ham_mpo in ham_mpos
   ])
   def reg_fn(mps_arrays: Sequence[jax.Array]):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
@@ -92,9 +93,10 @@ def get_pauli_z_reg_fn(
   )
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
-    )  
+    )
+  train_mps = mps_utils.xarray_to_mps(ds)
   pauli_z_estimates = np.array(
-      [estimator_fn(ds, pauli_z) for pauli_z in pauli_z_mpos]
+      [estimator_fn(train_mps, pauli_z) for pauli_z in pauli_z_mpos]
   )
   def reg_fn(mps_arrays):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
