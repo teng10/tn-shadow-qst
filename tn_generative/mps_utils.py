@@ -136,3 +136,29 @@ def estimate_observable(
     raise NotImplementedError(f'{method=} not implemented.')
   else:
     raise ValueError(f'Unexpected estimation method {method}.')
+
+
+def estimate_density_matrices(
+  mps: qtn.MatrixProductState,
+  subsystem: Sequence[int],
+  method: str = 'mps',
+) -> qtn.MatrixProductOperator:
+  """Estimates reduced density matrices as `mpo` from `mps` using `method`.
+
+  Args:
+    mps: MPS for which to estimate reduce density matrices.
+    subsystem: subsystem indices for which to estimate reduced density matrices.
+    method: method to use for estimation. Should we either `mps`, `shadow` or
+    `placeholder`. Default is exact computation using 'mps'.
+
+  Return:
+    Reduced density matrix MPO.
+  """
+  if method == 'mps':
+    mps = mps.copy()
+    reduced_density_mat = mps.partial_trace(subsystem, rescale_sites=False)
+    return reduced_density_mat
+  elif method == 'shadow':
+    raise NotImplementedError(f'{method=} not implemented.')
+  else:
+    raise ValueError(f'Unexpected estimation method {method}.')
