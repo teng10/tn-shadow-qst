@@ -42,9 +42,9 @@ def get_hamiltonian_reg_fn(
 
   Args:
     system: physical system where the dataset is generated from.
-    ds: dataset containing `measurement`, `basis`.
+    train_ds: dataset containing `measurement`, `basis`.
     estimator: method used to compute expectation value of the regularization
-        mpos and dataset `ds`.
+        mpos and dataset `train_ds`.
     beta: regularization strength. Default is 1.
 
   Return:
@@ -54,9 +54,9 @@ def get_hamiltonian_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
     )
-  train_mps = mps_utils.xarray_to_mps(train_ds)
+  target_mps = mps_utils.xarray_to_mps(train_ds)
   stabilizer_estimates = np.array([
-      estimator_fn(train_mps, ham_mpo) for ham_mpo in ham_mpos
+      estimator_fn(target_mps, ham_mpo) for ham_mpo in ham_mpos
   ])
   def reg_fn(mps_arrays: Sequence[jax.Array]):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
@@ -72,7 +72,7 @@ def get_hamiltonian_reg_fn(
 @register_reg_fn('pauli_z')
 def get_pauli_z_reg_fn(
   system: PhysicalSystem,
-  ds: xr.Dataset,
+  train_ds: xr.Dataset,
   estimator: str = 'mps',
   beta: Optional[Union[np.ndarray, float]] = 1.,
 ) -> Callable[[Sequence[jax.Array]], float]:
@@ -80,9 +80,9 @@ def get_pauli_z_reg_fn(
 
   Args:
     system: physical system where the dataset is generated from.
-    ds: dataset containing `measurement`, `basis`.
+    train_ds: dataset containing `measurement`, `basis`.
     estimator: method used to compute expectation value of the regularization
-        mpos and dataset `ds`.
+        mpos and dataset `train_ds`.
     beta: regularization strength. Default is 1.
 
   Return:
@@ -94,9 +94,9 @@ def get_pauli_z_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
     )
-  train_mps = mps_utils.xarray_to_mps(ds)
+  target_mps = mps_utils.xarray_to_mps(train_ds)
   pauli_z_estimates = np.array(
-      [estimator_fn(train_mps, pauli_z) for pauli_z in pauli_z_mpos]
+      [estimator_fn(target_mps, pauli_z) for pauli_z in pauli_z_mpos]
   )
   def reg_fn(mps_arrays):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
