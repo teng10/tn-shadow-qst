@@ -16,6 +16,9 @@ PhysicalSystem = physical_systems.PhysicalSystem
 REGULARIZER_REGISTRY = {}  # define registry for regularization functions.
 
 
+REGULARIZER_REGISTRY['none'] = None  # default regularizer is None.
+
+
 def _register_reg_fn(get_reg_fn, name: str):
   """Registers `get_reg_fn` in global `REGULARIZER_REGISTRY`."""
   registered_fn = REGULARIZER_REGISTRY.get(name, None)
@@ -63,7 +66,7 @@ def get_hamiltonian_reg_fn(
     stabilizer_expectations = jnp.array([
         (mps.H @ (s.apply(mps))) for s in ham_mpos
     ])
-    return jnp.sum(
+    return jnp.mean(
         beta * jnp.abs(stabilizer_expectations - stabilizer_estimates)**2
     )
   return reg_fn
@@ -103,7 +106,7 @@ def get_pauli_z_reg_fn(
     pauli_z_expectations = jnp.array([
         (mps.H @ (sz.apply(mps))) for sz in pauli_z_mpos
     ])
-    return jnp.sum(
+    return jnp.mean(
         beta * jnp.abs(pauli_z_expectations - pauli_z_estimates)**2
     )
   return reg_fn
