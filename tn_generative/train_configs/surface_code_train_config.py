@@ -64,6 +64,7 @@ def sweep_param_fn(
     train_num_samples,
     train_beta,
     init_seed,
+    reg_name,
 ) -> dict:
   """Helper function for formatting sweep parameters.
 
@@ -82,9 +83,12 @@ def sweep_param_fn(
   Returns:
     dictionary of parameters for a single sweep.
   """
+  if train_beta != 0. and reg_name == 'none':
+    raise ValueError(f'Not meaningful {reg_name=} for {train_beta=}')  
   return {
       'model.bond_dim': train_d,
       'data.num_training_samples': train_num_samples,
+      'training.reg_name': reg_name,
       'training.reg_kwargs.beta': train_beta,
       'data.filename': get_dataset_name(sampler, size_x, size_y, onsite_z_field),
       'data.kwargs': {
@@ -104,6 +108,7 @@ def sweep_param_fn(
 def sweep_sc_3x3_fn():
   size_x = 3
   size_y = 3
+  reg_name = 'hamiltonian'
   for init_seed in range(10):
     for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler']:
       for onsite_z_field in [0.]:
@@ -115,12 +120,14 @@ def sweep_sc_3x3_fn():
                   onsite_z_field=onsite_z_field, train_d=train_d,
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
+                  reg_name=(reg_name if train_beta > 0 else 'none'),
               )
 
 
 def sweep_sc_5x5_fn():
   size_x = 5
   size_y = 5
+  reg_name = 'hamiltonian'
   for init_seed in range(10):
     for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler']:
       for onsite_z_field in [0.]:
@@ -132,12 +139,14 @@ def sweep_sc_5x5_fn():
                   onsite_z_field=onsite_z_field, train_d=train_d,
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
+                  reg_name=(reg_name if train_beta > 0 else 'none'),
               )
 
 
 def sweep_sc_7x7_fn():
   size_x = 7
   size_y = 7
+  reg_name = 'hamiltonian'
   for init_seed in range(10):
     for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler']:
       for onsite_z_field in [0.]:
@@ -149,12 +158,14 @@ def sweep_sc_7x7_fn():
                   onsite_z_field=onsite_z_field, train_d=train_d,
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
+                  reg_name=(reg_name if train_beta > 0 else 'none'),
               )
 
 
 def sweep_sc_3x5_fn():
   size_x = 3
   size_y = 5
+  reg_name = 'hamiltonian'
   for init_seed in range(10):
     for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler']:
       for onsite_z_field in [0.]:
@@ -166,12 +177,14 @@ def sweep_sc_3x5_fn():
                   onsite_z_field=onsite_z_field, train_d=train_d,
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
+                  reg_name=(reg_name if train_beta > 0 else 'none'),
               )
 
 
 def sweep_sc_3x7_fn():
   size_x = 3
   size_y = 7
+  reg_name = 'hamiltonian'
   for init_seed in range(10):
     for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler']:
       for onsite_z_field in [0.]:
@@ -183,12 +196,14 @@ def sweep_sc_3x7_fn():
                   onsite_z_field=onsite_z_field, train_d=train_d,
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
+                  reg_name=(reg_name if train_beta > 0 else 'none'),
               )
 
 
 def sweep_sc_3x9_fn():
   size_x = 3
   size_y = 9
+  reg_name = 'hamiltonian'
   for init_seed in range(10):
     for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler']:
       for onsite_z_field in [0.]:
@@ -200,12 +215,14 @@ def sweep_sc_3x9_fn():
                   onsite_z_field=onsite_z_field, train_d=train_d,
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
+                  reg_name=(reg_name if train_beta > 0 else 'none'),
               )
 
 
 def sweep_sc_3x11_fn():
   size_x = 3
   size_y = 11
+  reg_name = 'hamiltonian'
   for init_seed in range(10):
     for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler']:
       for onsite_z_field in [0.]:
@@ -217,6 +234,7 @@ def sweep_sc_3x11_fn():
                   onsite_z_field=onsite_z_field, train_d=train_d,
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
+                  reg_name=(reg_name if train_beta > 0 else 'none'),
               )
 
 
