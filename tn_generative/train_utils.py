@@ -71,6 +71,8 @@ def evaluate_model(mps, train_ds, regularization_fn):
   target_ll = batched_neg_ll_loss_fn(target_mps.arrays, measurements, bases)
   if regularization_fn is not None:
     regularization = regularization_fn(mps.arrays)
+  else:
+    regularization = np.nan
   return pd.DataFrame({
       'fidelity': [np.abs(fidelity)],
       'model_ll': [model_ll],

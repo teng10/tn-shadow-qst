@@ -64,8 +64,6 @@ def run_full_batch_experiment(config):
   ds_attrs = ds.attrs.copy()
   ds_attrs.pop('name')
   physical_system = TASK_REGISTRY[ds.name](**ds_attrs)
-  if train_config.reg_kwargs.beta == 0.:
-    train_config.reg_name = 'none'
   reg_fn = regularization[train_config.reg_name]
   if reg_fn is not None:
     reg_fn = reg_fn(
