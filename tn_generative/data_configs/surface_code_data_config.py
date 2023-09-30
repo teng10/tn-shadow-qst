@@ -223,7 +223,7 @@ SWEEP_FN_REGISTRY = {
     "sweep_sc_3x7_fn": list(sweep_sc_3x7_fn()),
     "sweep_sc_3x9_fn": list(sweep_sc_3x9_fn()),
     "sweep_sc_3x11_fn": list(sweep_sc_3x11_fn()),
-    "sweep_sc_size_y_3_fn": list(sweep_sc_3x3_fn) + list(sweep_sc_5x3_fn()) + \
+    "sweep_sc_size_y_3_fn": list(sweep_sc_3x3_fn()) + list(sweep_sc_5x3_fn()) + \
         list(sweep_sc_7x3_fn()) + list(sweep_sc_9x3_fn()) + \
         list(sweep_sc_11x3_fn()) + list(sweep_sc_13x3_fn()) + \
         list(sweep_sc_15x3_fn()),
