@@ -125,6 +125,96 @@ def sweep_sc_3x11_fn():
         )
 
 
+def sweep_sc_5x3_fn():
+  """Sweep over surface code data configs."""
+  size_x = 5
+  size_y = 3
+  for d in [5, 10]:
+    for onsite_z_field in np.linspace(0., 0.1, 2):
+      for sampler in [
+          'xz_basis_sampler', 'x_or_z_basis_sampler',
+          'x_y_z_basis_sampler',
+      ]:
+        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
+            onsite_z_field=onsite_z_field, sampler=sampler
+        )
+
+
+def sweep_sc_7x3_fn():
+  """Sweep over surface code data configs."""
+  size_x = 7
+  size_y = 3
+  for d in [5, 10]:
+    for onsite_z_field in np.linspace(0., 0.1, 2):
+      for sampler in [
+          'xz_basis_sampler', 'x_or_z_basis_sampler',
+          'x_y_z_basis_sampler',
+      ]:
+        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
+            onsite_z_field=onsite_z_field, sampler=sampler
+        )
+
+
+def sweep_sc_9x3_fn():
+  """Sweep over surface code data configs."""
+  size_x = 9
+  size_y = 3
+  for d in [5, 10]:
+    for onsite_z_field in np.linspace(0., 0.1, 2):
+      for sampler in [
+          'xz_basis_sampler', 'x_or_z_basis_sampler',
+          'x_y_z_basis_sampler',
+      ]:
+        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
+            onsite_z_field=onsite_z_field, sampler=sampler
+        )
+
+
+def sweep_sc_11x3_fn():
+  """Sweep over surface code data configs."""
+  size_x = 11
+  size_y = 3
+  for d in [5, 10]:
+    for onsite_z_field in np.linspace(0., 0.1, 2):
+      for sampler in [
+          'xz_basis_sampler', 'x_or_z_basis_sampler',
+          'x_y_z_basis_sampler',
+      ]:
+        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
+            onsite_z_field=onsite_z_field, sampler=sampler
+        )
+
+
+def sweep_sc_13x3_fn():
+  """Sweep over surface code data configs."""
+  size_x = 13
+  size_y = 3
+  for d in [5, 10]:
+    for onsite_z_field in np.linspace(0., 0.1, 2):
+      for sampler in [
+          'xz_basis_sampler', 'x_or_z_basis_sampler',
+          'x_y_z_basis_sampler',
+      ]:
+        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
+            onsite_z_field=onsite_z_field, sampler=sampler
+        )
+
+
+def sweep_sc_15x3_fn():
+  """Sweep over surface code data configs."""
+  size_x = 15
+  size_y = 3
+  for d in [5, 10]:
+    for onsite_z_field in np.linspace(0., 0.1, 2):
+      for sampler in [
+          'xz_basis_sampler', 'x_or_z_basis_sampler',
+          'x_y_z_basis_sampler',
+      ]:
+        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
+            onsite_z_field=onsite_z_field, sampler=sampler
+        )
+
+
 SWEEP_FN_REGISTRY = {
     "sweep_sc_3x3_fn": list(sweep_sc_3x3_fn()),
     "sweep_sc_5x5_fn": list(sweep_sc_5x5_fn()),
@@ -133,6 +223,10 @@ SWEEP_FN_REGISTRY = {
     "sweep_sc_3x7_fn": list(sweep_sc_3x7_fn()),
     "sweep_sc_3x9_fn": list(sweep_sc_3x9_fn()),
     "sweep_sc_3x11_fn": list(sweep_sc_3x11_fn()),
+    "sweep_sc_size_y_3_fn": list(sweep_sc_3x3_fn) + list(sweep_sc_5x3_fn()) + \
+        list(sweep_sc_7x3_fn()) + list(sweep_sc_9x3_fn()) + \
+        list(sweep_sc_11x3_fn()) + list(sweep_sc_13x3_fn()) + \
+        list(sweep_sc_15x3_fn()),
 }
 
 

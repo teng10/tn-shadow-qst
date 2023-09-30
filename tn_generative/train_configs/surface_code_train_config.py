@@ -238,6 +238,25 @@ def sweep_sc_3x11_fn():
               )
 
 
+def sweep_sc_size_y_3_fn():
+  size_y = 3
+  reg_name = 'hamiltonian'
+  for init_seed in range(1):
+    for size_x in [3, 5, 7, 9, 11, 13, 15]:
+      for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler']:
+        for onsite_z_field in [0.]:
+          for train_d in [5, 10]:
+            for train_num_samples in [100, 500, 3_000, 20_000, 100_000]:
+              for train_beta in [0., 1., 5.]:
+                yield sweep_param_fn(
+                    sampler=sampler, size_x=size_x, size_y=size_y,
+                    onsite_z_field=onsite_z_field, train_d=train_d,
+                    train_num_samples=train_num_samples, train_beta=train_beta,
+                    init_seed=init_seed,
+                    reg_name=(reg_name if train_beta > 0 else 'none'),
+                )
+
+
 SWEEP_FN_REGISTRY = {
     'sweep_sc_3x3_fn': list(sweep_sc_3x3_fn()),
     'sweep_sc_5x5_fn': list(sweep_sc_5x5_fn()),
@@ -246,6 +265,7 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_3x7_fn': list(sweep_sc_3x7_fn()),
     'sweep_sc_3x9_fn': list(sweep_sc_3x9_fn()),
     'sweep_sc_3x11_fn': list(sweep_sc_3x11_fn()),
+    'sweep_sc_size_y_3_fn': list(sweep_sc_size_y_3_fn()),
 }
 
 
