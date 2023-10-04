@@ -279,8 +279,8 @@ def sweep_sc_3x11_fn():
 def sweep_sc_size_y_3_fn():
   size_y = 3
   reg_name = 'hamiltonian'
-  for init_seed in range(1):
-    for size_x in [3, 5, 7, 9, 11, 13, 15]:
+  for init_seed in range(10):
+    for size_x in [3, 5, 7, 15]:
       for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler']:
         for onsite_z_field in [0., 0.1]:
           for train_d in [10]:
