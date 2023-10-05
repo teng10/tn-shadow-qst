@@ -17,3 +17,18 @@ def vectorized_method(otypes=None, signature=None):
       return vectorized(*args)
     return wrapper
   return decorator
+
+
+def get_register_fn(registry):
+  def _register_fn(get_fn, name: str):
+    """Registers `get_fn` in `registry`."""
+    registered_fn = registry.get(name, None)
+    if registered_fn is None:
+      registry[name] = get_fn
+    else:
+      if registered_fn != get_fn:
+        raise ValueError(f'{name} is already registerd {registered_fn}.')
+  register_fn = lambda name: functools.partial(
+      _register_fn, name=name
+  )
+  return register_fn

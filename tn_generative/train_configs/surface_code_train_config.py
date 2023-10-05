@@ -83,7 +83,7 @@ def sweep_param_fn(
   Returns:
     dictionary of parameters for a single sweep.
   """
-  if train_beta != 0. and reg_name == 'none':
+  if train_beta != 0. and reg_name == 'none':  #BUG: reg_name != 'none'
     raise ValueError(f'Not meaningful {reg_name=} for {train_beta=}')  
   return {
       'model.bond_dim': train_d,
@@ -283,8 +283,15 @@ def get_config():
   config.sweep_fn_registry = SWEEP_FN_REGISTRY
   # training.
   config.training = config_dict.ConfigDict()
+  config.training.optimizer = 'lbfgs'
   config.training.num_training_steps = 200
-  config.training.opt_kwargs = {}
+  config.training.opt_kwargs = {
+      'lbfgs': {},
+      'minibatch': {'learning_rate': 1e-3}
+  }  # Not sure if this is the best way to do this.
+  config.training.kwargs = {
+      'minibatch': {'batch_size': 256, 'record_loss_interval': 50}
+  }
   config.training.reg_name = 'hamiltonian'
   config.training.reg_kwargs = {'beta': 0., 'estimator': 'mps'}
   # Save options.

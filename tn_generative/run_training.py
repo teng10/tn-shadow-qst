@@ -5,7 +5,7 @@
 # --train_config.job_id=0828 \
 # --train_config.task_id=0 \
 # --train_config.sweep_name="sweep_sc_3x3_fn" \
-# --train_config.training.num_training_steps=20
+# --train_config.training.num_training_steps=20 \
 from absl import app
 from absl import flags
 from datetime import datetime
@@ -32,8 +32,7 @@ FLAGS = flags.FLAGS
 
 #TODO(YT): check whether can pass string detype and remove DTYPE_REGISTRY.
 DTYPES_REGISTRY = types.DTYPES_REGISTRY
-TASK_REGISTRY = data_generation.TASK_REGISTRY
-regularization = regularizers.REGULARIZER_REGISTRY
+OPTIMIZER_REGISTRY = train_utils.OPTIMIZER_REGISTRY
 
 
 def run_full_batch_experiment(config):
@@ -59,22 +58,12 @@ def run_full_batch_experiment(config):
   # Load dataset by combining real&imag fields into complex fields.
   ds = data_utils.combine_complex_ds(ds)
   train_ds = ds.isel(sample=slice(0, config.data.num_training_samples))
-  # TODO(YT): better way to reload attrs from dataset.
-  # Add utils for physical_system: `to_xarray_attrs`, `from_xarray_attrs`.
-  ds_attrs = ds.attrs.copy()
-  ds_attrs.pop('name')
-  physical_system = TASK_REGISTRY[ds.name](**ds_attrs)
-  reg_fn = regularization[train_config.reg_name]
-  if reg_fn is not None:
-    reg_fn = reg_fn(
-        system=physical_system, train_ds=train_ds,
-        **train_config.reg_kwargs
-    )
   qugen.rand.seed_rand(model_config.init_seed)
   model_mps = qtn.MPS_rand_state(
       train_ds.sizes['site'], model_config.bond_dim, dtype=model_config.dtype)
-  train_df, eval_df, final_mps = train_utils.run_full_batch_training(
-      model_mps, train_ds, train_config, reg_fn)
+  optimizer = OPTIMIZER_REGISTRY[train_config.optimizer]
+  train_df, eval_df, final_mps = optimizer(
+      model_mps, train_ds, train_config)
 
   # massaging configs to store all experiment parameters.
   config_df = pd.json_normalize(config.to_dict(), sep='_')
