@@ -1,6 +1,6 @@
 """Training and evaluation helper functions."""
 import functools
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Sequence, Tuple
 import time
 import tqdm
 
@@ -20,9 +20,11 @@ from tn_generative import func_utils
 from tn_generative import regularizers
 
 
-OPTIMIZER_REGISTRY = {}  # define registry for optimizer training step function.
+TRAIN_SCHEME_REGISTRY = {}  # define registry for training scheme step function.
 
-register_optimizer = func_utils.get_register_fn(OPTIMIZER_REGISTRY)
+register_training_scheme = func_utils.get_register_decorator(
+    TRAIN_SCHEME_REGISTRY
+)
 
 REGULARIZATION = regularizers.REGULARIZER_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
@@ -97,11 +99,12 @@ def evaluate_model(mps, train_ds, regularization_fn):
   })
 
 
-@register_optimizer('lbfgs')
+@register_training_scheme('lbfgs')
 def run_full_batch_training(
     mps: qtn.MatrixProductState,
     train_ds: xr.Dataset,
     training_config: Dict[str, Any],
+    num_training_steps: int,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, qtn.MatrixProductState]:
   """Runs training with full-batch optimization using LBFGS.
 
@@ -109,8 +112,7 @@ def run_full_batch_training(
     mps: initial state to train.
     train_ds: default tomography dataset containing `measurement`, `basis`.
     training_config: dictionary containing training configuration.
-    regularization_fn: function that computes regularization term.
-    beta: regularization strength.
+    num_training_steps: number of training steps.
 
   Returns:
     train_df: pandas dataframe containing training loss and optimization step.
@@ -124,8 +126,8 @@ def run_full_batch_training(
   ds_attrs = train_ds.attrs.copy()
   ds_attrs.pop('name')
   physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
-  regularization_fn = REGULARIZATION[training_config.reg_name]
-  if regularization_fn is not None:
+  get_regularization_fn = REGULARIZATION[training_config.reg_name]
+  if get_regularization_fn is not None:
     regularization_fn = regularization_fn(
         system=physical_system, train_ds=train_ds,
         **training_config.reg_kwargs
@@ -142,7 +144,7 @@ def run_full_batch_training(
       autodiff_backend='jax',
   )
   start_training_time = time.time()
-  trained_mps = tnopt.optimize(training_config.num_training_steps)
+  trained_mps = tnopt.optimize(num_training_steps)
   end_training_time = time.time()
   train_df = pd.DataFrame({
       'loss': tnopt.losses,
@@ -154,11 +156,12 @@ def run_full_batch_training(
   return train_df, eval_df, trained_mps
 
 
-@register_optimizer('minibatch')
+@register_training_scheme('minibatch')
 def run_minibatch_trainig(
     mps: qtn.MatrixProductState,
     train_ds: xr.Dataset,
     training_config: Dict[str, Any],
+    num_training_steps: int,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, qtn.MatrixProductState]:
   """Runs training using adam on mini-batches of data.
   
@@ -166,6 +169,7 @@ def run_minibatch_trainig(
     mps: initial state to train.
     train_ds: default tomography dataset containing `measurement`, `basis`.
     training_config: dictionary containing training configuration.
+    num_training_steps: number of training steps.
   
   Returns:
     train_df: pandas dataframe containing training loss and optimization step.
@@ -177,8 +181,8 @@ def run_minibatch_trainig(
   ds_attrs = train_ds.attrs.copy()
   ds_attrs.pop('name')
   physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
-  regularization_fn = REGULARIZATION[training_config.reg_name]
-  if regularization_fn is not None:
+  get_regularization_fn = REGULARIZATION[training_config.reg_name]
+  if get_regularization_fn is not None:
     regularization_fn = regularization_fn(
         system=physical_system, train_ds=train_ds,
         **training_config.reg_kwargs
@@ -187,14 +191,13 @@ def run_minibatch_trainig(
     + regularization_fn(psi_arrays))  #TODO(YT): difference to jit? -> No
   else:
     loss_fn = lambda psi_arrays, m, b: batched_neg_ll_loss_fn(psi_arrays, m, b)
+    regularization_fn = None  # for eval_df, otherwise raise an error.
 
   loss_and_grad_fn = jax.value_and_grad(jax.jit(loss_fn))
 
   params = mps.copy().arrays
   #TODO(YT): try different optimizers?
-  opt_init_fn, opt_update_fn = optax.adam(
-      **training_config.opt_kwargs[training_config.optimizer]
-  )
+  opt_init_fn, opt_update_fn = optax.adam(**training_config.opt_kwargs)
   opt_state = opt_init_fn(params)
 
   @jax.jit
@@ -207,7 +210,7 @@ def run_minibatch_trainig(
     # grad_norms = jax.tree_util.tree_map(jnp.linalg.norm, grad)
     return params, opt_state, loss_value
 
-  training_kwargs = training_config.kwargs[training_config.optimizer]
+  training_kwargs = training_config.training_kwargs
   tf_dataset = tf.data.Dataset.from_tensor_slices(
       (train_ds.measurement.values, train_ds.basis.values))
   tf_dataset = tf_dataset.shuffle(buffer_size=1024 * 20)
@@ -216,7 +219,7 @@ def run_minibatch_trainig(
   tf_dataset = tf_dataset.repeat()  # makes it infinite.
   train_iter = tf_dataset.as_numpy_iterator()
 
-  pbar = tqdm.tqdm(range(training_config.num_training_steps),
+  pbar = tqdm.tqdm(range(num_training_steps),
                    desc='Step', position=0, leave=True)
   results = []
   start_training_time = time.time()

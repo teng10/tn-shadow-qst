@@ -19,16 +19,19 @@ def vectorized_method(otypes=None, signature=None):
   return decorator
 
 
-def get_register_fn(registry):
-  def _register_fn(get_fn, name: str):
-    """Registers `get_fn` in `registry`."""
-    registered_fn = registry.get(name, None)
+def get_register_decorator(global_registry):
+  """Returns a decorator that registers a function in `global_registry`."""
+  def _register_decorator(fn, name_in_registry: str):
+    """Registers `fn` in `registry` under `name_in_registry`."""
+    registered_fn = global_registry.get(name_in_registry, None)
     if registered_fn is None:
-      registry[name] = get_fn
+      global_registry[name_in_registry] = fn
     else:
-      if registered_fn != get_fn:
-        raise ValueError(f'{name} is already registerd {registered_fn}.')
-  register_fn = lambda name: functools.partial(
-      _register_fn, name=name
+      if registered_fn != fn:
+        raise ValueError(
+            f'{name_in_registry=} is already registerd in {global_registry=} \
+            as {registered_fn}.'
+        )
+  return lambda name: functools.partial(
+      _register_decorator, name_in_registry=name
   )
-  return register_fn

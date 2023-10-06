@@ -283,17 +283,28 @@ def get_config():
   config.sweep_fn_registry = SWEEP_FN_REGISTRY
   # training.
   config.training = config_dict.ConfigDict()
-  config.training.optimizer = 'lbfgs'
-  config.training.num_training_steps = 200
-  config.training.opt_kwargs = {
-      'lbfgs': {},
-      'minibatch': {'learning_rate': 1e-3}
-  }  # Not sure if this is the best way to do this.
-  config.training.kwargs = {
-      'minibatch': {'batch_size': 256, 'record_loss_interval': 50}
+  # minibatch pre-training config.
+  minibatch_pretrain_config = config_dict.ConfigDict()
+  minibatch_pretrain_config.training_scheme = 'minibatch'
+  minibatch_pretrain_config.training_kwargs = {
+      'batch_size': 256, 'record_loss_interval': 50
   }
-  config.training.reg_name = 'hamiltonian'
-  config.training.reg_kwargs = {'beta': 0., 'estimator': 'mps'}
+  minibatch_pretrain_config.opt_kwargs = {'learning_rate': 1e-4}
+  minibatch_pretrain_config.reg_name = 'none'    
+  # lbfgs training config.
+  lbfgs_finetune_config = config_dict.ConfigDict()
+  lbfgs_finetune_config.training_scheme = 'lbfgs'
+  lbfgs_finetune_config.training_kwargs = {}
+  lbfgs_finetune_config.reg_name = 'hamiltonian'
+  lbfgs_finetune_config.reg_kwargs = {'beta': 0., 'estimator': 'mps'}
+  config.training.training_schemes = {
+      'minibatch_no_reg': minibatch_pretrain_config,
+      'lbfgs_reg': lbfgs_finetune_config,
+  }
+  # can be accessed via --config.training.training_schemes.
+  # train through minibatch for 50 steps first, then lbfgs for 50 steps.
+  config.training.training_sequence = ('minibatch_no_reg', ) #, 'lbfgs_reg'
+  config.training.steps_sequence = (50, )
   # Save options.
   config.results = config_dict.ConfigDict()
   config.results.save_results = True

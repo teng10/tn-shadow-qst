@@ -11,6 +11,7 @@ from absl import flags
 from datetime import datetime
 import os
 import logging
+from typing import Any, Dict, Tuple
 
 from jax import config as jax_config
 from ml_collections import config_flags
@@ -20,11 +21,9 @@ import quimb.gen as qugen
 import pandas as pd
 import xarray as xr
 
-from tn_generative import data_generation
 from tn_generative import data_utils
 from tn_generative import mps_utils
 from tn_generative import train_utils
-from tn_generative import regularizers
 from tn_generative import types
 
 config_flags.DEFINE_config_file('train_config')
@@ -32,10 +31,12 @@ FLAGS = flags.FLAGS
 
 #TODO(YT): check whether can pass string detype and remove DTYPE_REGISTRY.
 DTYPES_REGISTRY = types.DTYPES_REGISTRY
-OPTIMIZER_REGISTRY = train_utils.OPTIMIZER_REGISTRY
+TRAIN_SCHEME_REGISTRY = train_utils.TRAIN_SCHEME_REGISTRY
 
 
-def run_full_batch_experiment(config):
+def run_full_batch_experiment(
+      config: Dict[str, Any],
+  ) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, qtn.MatrixProductState]]:
   current_date = datetime.now().strftime('%m%d')
   jax_config.update('jax_enable_x64', True)
   qtn.contraction.set_contract_backend('jax')
@@ -61,10 +62,28 @@ def run_full_batch_experiment(config):
   qugen.rand.seed_rand(model_config.init_seed)
   model_mps = qtn.MPS_rand_state(
       train_ds.sizes['site'], model_config.bond_dim, dtype=model_config.dtype)
-  optimizer = OPTIMIZER_REGISTRY[train_config.optimizer]
-  train_df, eval_df, final_mps = optimizer(
-      model_mps, train_ds, train_config)
-
+  # Define training scheme.
+  train_dfs = []
+  eval_dfs = []
+  mps_sequences = {}
+  for i, (schedule_step, train_schedule_name) in enumerate(
+      zip(
+          train_config.steps_sequence, train_config.training_sequence
+      )
+  ):
+    train_scheme_config = train_config.training_schemes[train_schedule_name]
+    train_scheme = TRAIN_SCHEME_REGISTRY[train_scheme_config.training_scheme]
+    train_df, eval_df, model_mps = train_scheme(
+        model_mps, train_ds, train_scheme_config, schedule_step
+    )  # Choose to leave step as a separate argument from the config.
+    current_sequence = '_'.join([train_scheme_config.training_scheme, str(i)])
+    train_df['current_sequence'] = current_sequence
+    eval_df['current_sequence'] = current_sequence
+    train_dfs.append(train_df)
+    eval_dfs.append(eval_df)
+    mps_sequences[current_sequence] = model_mps
+  train_df = pd.concat(train_dfs)
+  eval_df = pd.concat(eval_dfs)
   # massaging configs to store all experiment parameters.
   config_df = pd.json_normalize(config.to_dict(), sep='_')
   complete_eval_df = pd.merge(
@@ -87,9 +106,10 @@ def run_full_batch_experiment(config):
     save_path = os.path.join(results_dir, results_filename)
     complete_train_df.to_csv(save_path + '_train.csv')
     complete_eval_df.to_csv(save_path + '_eval.csv')
-    mps_ds = data_utils.split_complex_ds(mps_utils.mps_to_xarray(final_mps))
-    mps_ds.to_netcdf(save_path + '_mps.nc')
-  return complete_train_df, complete_eval_df, final_mps
+    for sequence_name, final_mps in mps_sequences.items():
+      mps_ds = data_utils.split_complex_ds(mps_utils.mps_to_xarray(final_mps))
+      mps_ds.to_netcdf(save_path + f'_mps_{sequence_name}.nc')
+  return complete_train_df, complete_eval_df, mps_sequences
 
 
 def main(argv):
