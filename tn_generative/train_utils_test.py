@@ -12,6 +12,7 @@ from tn_generative import run_training
 
 class RunTrainingTests(absltest.TestCase):
   """Tests data generation."""
+  #TODO: add tests for sweep.
 
   def setUp(self): 
     jax_config.update('jax_enable_x64', True)

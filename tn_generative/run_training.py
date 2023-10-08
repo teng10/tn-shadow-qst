@@ -82,18 +82,20 @@ def run_full_batch_experiment(
     train_dfs.append(train_df)
     eval_dfs.append(eval_df)
     mps_sequences[current_sequence] = model_mps
-  train_df = pd.concat(train_dfs)
-  eval_df = pd.concat(eval_dfs)
+  train_df = pd.concat(train_dfs, ignore_index=True)
+  eval_df = pd.concat(eval_dfs, ignore_index=True)
   # massaging configs to store all experiment parameters.
   config_df = pd.json_normalize(config.to_dict(), sep='_')
-  complete_eval_df = pd.merge(
-      eval_df, config_df, left_index=True, right_index=True, how='outer')
+  tiled_config_df = pd.DataFrame(
+      np.tile(config_df.to_numpy(), (eval_df.index.stop, 1)),
+      columns=config_df.columns)
+  complete_eval_df = data_utils.combine_df_config_df(eval_df, tiled_config_df)    
   tiled_config_df = pd.DataFrame(
       np.tile(config_df.to_numpy(), (train_df.index.stop, 1)),
       columns=config_df.columns)
-  complete_train_df = pd.merge(
-      train_df, tiled_config_df,
-      left_index=True, right_index=True, how='outer')
+  complete_train_df = data_utils.combine_df_config_df(
+      train_df, tiled_config_df
+  )  
   if config.results.save_results:
     results_dir = config.results.experiment_dir.replace(
         '%CURRENT_DATE', current_date

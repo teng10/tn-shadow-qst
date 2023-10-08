@@ -128,7 +128,7 @@ def run_full_batch_training(
   physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
   get_regularization_fn = REGULARIZATION[training_config.reg_name]
   if get_regularization_fn is not None:
-    regularization_fn = regularization_fn(
+    regularization_fn = get_regularization_fn(
         system=physical_system, train_ds=train_ds,
         **training_config.reg_kwargs
     )
@@ -136,6 +136,7 @@ def run_full_batch_training(
     + regularization_fn(psi.arrays))  #TODO(YT): is there a difference to jit?
   else:
     loss_fn = lambda psi, m, b: batched_neg_ll_loss_fn(psi.arrays, m, b)
+    regularization_fn = None  # for eval_df, otherwise raise an error.
   loss_fn = functools.partial(loss_fn, m=measurements, b=bases)
   tnopt = qtn.TNOptimizer(
       mps,
@@ -183,7 +184,7 @@ def run_minibatch_trainig(
   physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
   get_regularization_fn = REGULARIZATION[training_config.reg_name]
   if get_regularization_fn is not None:
-    regularization_fn = regularization_fn(
+    regularization_fn = get_regularization_fn(
         system=physical_system, train_ds=train_ds,
         **training_config.reg_kwargs
     )
@@ -214,8 +215,8 @@ def run_minibatch_trainig(
   tf_dataset = tf.data.Dataset.from_tensor_slices(
       (train_ds.measurement.values, train_ds.basis.values))
   tf_dataset = tf_dataset.shuffle(buffer_size=1024 * 20)
-  tf_dataset = tf_dataset.batch(training_kwargs['batch_size'])
   tf_dataset = tf_dataset.cache()
+  tf_dataset = tf_dataset.batch(training_kwargs['batch_size'])  
   tf_dataset = tf_dataset.repeat()  # makes it infinite.
   train_iter = tf_dataset.as_numpy_iterator()
 
@@ -235,7 +236,7 @@ def run_minibatch_trainig(
       pbar.set_postfix(results[-1])
   end_training_time = time.time()
   trained_mps = qtn.MatrixProductState(params)
-  train_df = pd.DataFrame(jax.device_get(results)).reset_index()
+  train_df = pd.DataFrame(jax.device_get(results))
   train_df['training_time'] = end_training_time - start_training_time
   train_df = train_df.astype(np.float32)
   eval_df = evaluate_model(trained_mps, train_ds, regularization_fn)

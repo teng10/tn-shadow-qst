@@ -117,6 +117,7 @@ def sweep_param_fn(
     train_num_sample: number of training samples.
     train_beta: regularization strength.
     init_seed: random seed number for initializing mps.
+    reg_name: name of regularization.
 
   Returns:
     dictionary of parameters for a single sweep.
@@ -126,8 +127,8 @@ def sweep_param_fn(
   return {
       'model.bond_dim': train_d,
       'data.num_training_samples': train_num_samples,
-      'training.reg_name': reg_name,
-      'training.reg_kwargs.beta': train_beta,
+      'training.training_schemes.lbfgs_reg.reg_name': reg_name,
+      'training.training_schemes.lbfgs_reg.reg_kwargs.beta': train_beta,
       'data.filename': get_dataset_name(sampler, size_x, size_y, onsite_z_field),
       'data.kwargs': {
           'task_name': DEFAULT_TASK_NAME,
@@ -153,15 +154,15 @@ def surface_code_nxm_sweep_fn(
     train_betas: tuple[float] = (0., 1., 5.),
     onsite_z_fields: tuple[float] = (0., ),
     samplers: tuple[str] = (
-        'xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler'
+        'x_y_z_basis_sampler', 'xz_basis_sampler', 'x_or_z_basis_sampler',
     ),
 ):
   for init_seed in range(num_seeds):
     for sampler in samplers:
       for onsite_z_field in onsite_z_fields:
         for train_d in train_bond_dims:
-          for train_num_samples in train_samples:
-            for train_beta in train_betas:
+          for train_beta in train_betas:
+            for train_num_samples in train_samples:
               yield sweep_param_fn(
                   sampler=sampler, size_x=size_x, size_y=size_y,
                   onsite_z_field=onsite_z_field, train_d=train_d,
@@ -244,14 +245,13 @@ def get_config():
   lbfgs_finetune_config.training_kwargs = {}
   lbfgs_finetune_config.reg_name = 'hamiltonian'
   lbfgs_finetune_config.reg_kwargs = {'beta': 0., 'estimator': 'mps'}
-  config.training.training_schemes = {
-      'minibatch_no_reg': minibatch_pretrain_config,
-      'lbfgs_reg': lbfgs_finetune_config,
-  }
+  config.training.training_schemes = config_dict.ConfigDict()
+  config.training.training_schemes.minibatch_no_reg = minibatch_pretrain_config
+  config.training.training_schemes.lbfgs_reg = lbfgs_finetune_config
   # can be accessed via --config.training.training_schemes.
   # train through minibatch for 50 steps first, then lbfgs for 50 steps.
-  config.training.training_sequence = ('minibatch_no_reg', ) #, 'lbfgs_reg'
-  config.training.steps_sequence = (50, )
+  config.training.training_sequence = ('minibatch_no_reg', 'lbfgs_reg')
+  config.training.steps_sequence = (200, 50)
   # Save options.
   config.results = config_dict.ConfigDict()
   config.results.save_results = True
