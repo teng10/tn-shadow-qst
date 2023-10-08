@@ -116,7 +116,10 @@ def sweep_nxm_ruby_fn(
 
 
 SWEEP_FN_REGISTRY = {
-    'sweep_sc_2x2_fn': list(sweep_nxm_ruby_fn(2, 2)),
+    'sweep_sc_2x2_fn': list(sweep_nxm_ruby_fn(
+        2, 2, (20., 30.), 
+        samplers=('xz_basis_sampler', 'x_or_z_basis_sampler')
+    )),
 }
 
 
