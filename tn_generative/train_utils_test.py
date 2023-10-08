@@ -1,5 +1,6 @@
 """Integration tests for train_utils.py."""
 from absl.testing import absltest
+from absl.testing import parameterized
 import os
 
 from jax import config as jax_config
@@ -10,7 +11,7 @@ from tn_generative.train_configs import ruby_pxp_train_config
 from tn_generative import run_training
 
 
-class RunTrainingTests(absltest.TestCase):
+class RunTrainingTests(parameterized.TestCase):
   """Tests data generation."""
 
   def setUp(self): 
@@ -32,16 +33,20 @@ class RunTrainingTests(absltest.TestCase):
         'model.bond_dim': 5,
     }
 
-  def test_surface_code(self):
+  @parameterized.parameters('lbfgs', 'minibatch')
+  def test_surface_code(self, optimizer):
     """Tests training for surface code."""
     config = surface_code_train_config.get_config()
     config.update_from_flattened_dict(self.default_options)
+    config.training.optimizer = optimizer
     run_training.run_full_batch_experiment(config)
 
-  def test_ruby_pxp(self):
+  @parameterized.parameters('lbfgs', 'minibatch')
+  def test_ruby_pxp(self, optimizer):
     """Tests training for ruby PXP model."""
     config = ruby_pxp_train_config.get_config()
     config.update_from_flattened_dict(self.default_options)
+    config.training.optimizer = optimizer    
     run_training.run_full_batch_experiment(config)
 
   if __name__ == '__main__':
