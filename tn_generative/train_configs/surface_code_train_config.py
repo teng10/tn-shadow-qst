@@ -23,6 +23,7 @@ def get_dataset_name(
       '66324730_surface_code_x_or_z_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.000.nc',
       '66325458_surface_code_x_or_z_basis_sampler_size_x=5_size_y=5_d=40_onsite_z_field=0.000.nc',
       '66325485_surface_code_x_or_z_basis_sampler_size_x=7_size_y=7_d=60_onsite_z_field=0.000.nc',
+      '4362342_surface_code_x_y_z_basis_sampler_size_x=7_size_y=7_d=40_onsite_z_field=0.000.nc',
       '2771105_surface_code_xz_basis_sampler_size_x=3_size_y=5_d=10_onsite_z_field=0.000.nc',
       '2771117_surface_code_xz_basis_sampler_size_x=3_size_y=7_d=20_onsite_z_field=0.000.nc',
       '2771128_surface_code_xz_basis_sampler_size_x=3_size_y=9_d=40_onsite_z_field=0.000.nc',
@@ -182,7 +183,8 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_7x7_fn': list(
         surface_code_nxm_sweep_fn(
           7, 7, (20, 40), 
-          samplers=('xz_basis_sampler', 'x_or_z_basis_sampler')), 
+          samplers=('x_y_z_basis_sampler', 'x_or_z_basis_sampler', 
+          'xz_basis_sampler')), 
     ),
     'sweep_sc_3x5_fn': list(surface_code_nxm_sweep_fn(3, 5, (10, 20))),
     'sweep_sc_3x7_fn': list(surface_code_nxm_sweep_fn(3, 7, (20, 30))),
@@ -235,7 +237,7 @@ def get_config():
   minibatch_pretrain_config = config_dict.ConfigDict()
   minibatch_pretrain_config.training_scheme = 'minibatch'
   minibatch_pretrain_config.training_kwargs = {
-      'batch_size': 256, 'record_loss_interval': 50
+      'batch_size': 1024, 'record_loss_interval': 50
   }
   minibatch_pretrain_config.opt_kwargs = {'learning_rate': 1e-4}
   minibatch_pretrain_config.reg_name = 'none'    
@@ -251,7 +253,7 @@ def get_config():
   # can be accessed via --config.training.training_schemes.
   # train through minibatch for 50 steps first, then lbfgs for 50 steps.
   config.training.training_sequence = ('minibatch_no_reg', 'lbfgs_reg')
-  config.training.steps_sequence = (200, 50)
+  config.training.steps_sequence = (50000, 400)
   # Save options.
   config.results = config_dict.ConfigDict()
   config.results.save_results = True
