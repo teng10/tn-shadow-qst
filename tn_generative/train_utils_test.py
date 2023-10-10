@@ -1,15 +1,17 @@
 """Integration tests for train_utils.py."""
 from absl.testing import absltest
+from absl.testing import parameterized
 import os
 
 from jax import config as jax_config
 import quimb.tensor as qtn
 
-from tn_generative.train_configs  import surface_code_training_config
+from tn_generative.train_configs  import surface_code_train_config
+from tn_generative.train_configs import ruby_pxp_train_config
 from tn_generative import run_training
 
 
-class RunTrainingTests(absltest.TestCase):
+class RunTrainingTests(parameterized.TestCase):
   """Tests data generation."""
 
   def setUp(self): 
@@ -19,20 +21,33 @@ class RunTrainingTests(absltest.TestCase):
     script_path = os.path.abspath(__file__)
     # Extract the directory containing the script
     current_file_dir = os.path.dirname(script_path)    
-    self.experiment_config = surface_code_training_config.get_config()
-    self.experiment_config.output.save_data = False
-    self.experiment_config.job_id = 1
-    self.experiment_config.task_id = 0
-    self.experiment_config.data.path = os.path.join(
-        current_file_dir, 'test_data', 'example_dataset.nc'
-    )
-    self.experiment_config.data.num_training_samples = 1000
-    self.experiment_config.training.num_training_steps = 10
-    self.experiment_config.model.bond_dim = 5
+    
+    self.default_options = {
+        'results.save_results': False,
+        'job_id': 0,
+        'task_id': 0,
+        'data.dir': os.path.join(current_file_dir, 'test_data'),
+        'data.filename': 'example_dataset.nc',
+        'data.num_training_samples': 1000,
+        'training.num_training_steps': 10,
+        'model.bond_dim': 5,
+    }
 
-  def test_full_batch_experiment(self):
-    run_training.run_full_batch_experiment(self.experiment_config)
+  @parameterized.parameters('lbfgs', 'minibatch')
+  def test_surface_code(self, optimizer):
+    """Tests training for surface code."""
+    config = surface_code_train_config.get_config()
+    config.update_from_flattened_dict(self.default_options)
+    config.training.optimizer = optimizer
+    run_training.run_full_batch_experiment(config)
 
+  @parameterized.parameters('lbfgs', 'minibatch')
+  def test_ruby_pxp(self, optimizer):
+    """Tests training for ruby PXP model."""
+    config = ruby_pxp_train_config.get_config()
+    config.update_from_flattened_dict(self.default_options)
+    config.training.optimizer = optimizer    
+    run_training.run_full_batch_experiment(config)
 
   if __name__ == '__main__':
     absltest.main()

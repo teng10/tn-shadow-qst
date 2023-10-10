@@ -8,8 +8,14 @@ home = os.path.expanduser('~')
 DEFAULT_TASK_NAME = 'surface_code'
 
 
-def sweep_param_fn(size_x, size_y, d, onsite_z_field, sampler):
-  """Helper function for constructing sweep parameters."""
+def sweep_param_fn(
+    size_x: int,
+    size_y: int,
+    d: int,
+    onsite_z_field: float,
+    sampler: str,
+) -> dict:
+  """Helper function for constructing dmrg sweep parameters."""
   return {
       'task.kwargs.size_x': size_x,
       'task.kwargs.size_y': size_y,
@@ -20,119 +26,39 @@ def sweep_param_fn(size_x, size_y, d, onsite_z_field, sampler):
   }
 
 
-def sweep_sc_7x7_fn():
+def surface_code_nxm_sweep_fn(
+    size_x: int,
+    size_y: int,
+    bond_dims: list[int],
+    onsite_z_fields = np.linspace(0., 0.1, 2),
+    samplers: tuple[str] = (
+        'xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler'
+    ),
+):
   """Sweep over surface code data configs."""
-  size_x = 7
-  size_y = 7
-  for d in [40, 60]:
-    for onsite_z_field in np.linspace(0., 0.1, 2):
-      for sampler in [
-          'xz_basis_sampler', 'x_or_z_basis_sampler',
-          'x_y_z_basis_sampler',
-      ]:
-        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
-            onsite_z_field=onsite_z_field, sampler=sampler
-        )
-
-
-def sweep_sc_5x5_fn():
-  """Sweep over surface code data configs."""
-  size_x = 5
-  size_y = 5
-  for d in [20, 40]:
-    for onsite_z_field in np.linspace(0., 0.1, 2):
-      for sampler in [
-          'xz_basis_sampler', 'x_or_z_basis_sampler',
-          'x_y_z_basis_sampler',
-      ]:
-        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
-            onsite_z_field=onsite_z_field, sampler=sampler
-        )
-
-
-def sweep_sc_3x3_fn():
-  """Sweep over surface code data configs."""
-  size_x = 3
-  size_y = 3
-  for d in [5, 10]:
-    for onsite_z_field in np.linspace(0., 0.1, 2):
-      for sampler in [
-          'xz_basis_sampler', 'x_or_z_basis_sampler',
-          'x_y_z_basis_sampler',
-      ]:
-        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
-            onsite_z_field=onsite_z_field, sampler=sampler
-        )
-
-
-def sweep_sc_3x5_fn():
-  """Sweep over surface code data configs."""
-  size_x = 3
-  size_y = 5
-  for d in [10, 20]:
-    for onsite_z_field in np.linspace(0., 0.1, 2):
-      for sampler in [
-          'xz_basis_sampler', 'x_or_z_basis_sampler',
-          'x_y_z_basis_sampler',
-      ]:
-        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
-            onsite_z_field=onsite_z_field, sampler=sampler
-        )
-
-
-def sweep_sc_3x7_fn():
-  """Sweep over surface code data configs."""
-  size_x = 3
-  size_y = 7
-  for d in [10, 20]:
-    for onsite_z_field in np.linspace(0., 0.1, 2):
-      for sampler in [
-          'xz_basis_sampler', 'x_or_z_basis_sampler',
-          'x_y_z_basis_sampler',
-      ]:
-        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
-            onsite_z_field=onsite_z_field, sampler=sampler
-        )
-
-
-def sweep_sc_3x9_fn():
-  """Sweep over surface code data configs."""
-  size_x = 3
-  size_y = 9
-  for d in [20, 40]:
-    for onsite_z_field in np.linspace(0., 0.1, 2):
-      for sampler in [
-          'xz_basis_sampler', 'x_or_z_basis_sampler',
-          'x_y_z_basis_sampler',
-      ]:
-        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
-            onsite_z_field=onsite_z_field, sampler=sampler
-        )
-
-
-def sweep_sc_3x11_fn():
-  """Sweep over surface code data configs."""
-  size_x = 3
-  size_y = 11
-  for d in [40, 60]:
-    for onsite_z_field in np.linspace(0., 0.1, 2):
-      for sampler in [
-          'xz_basis_sampler', 'x_or_z_basis_sampler',
-          'x_y_z_basis_sampler',
-      ]:
+  for d in bond_dims:
+    for onsite_z_field in onsite_z_fields:
+      for sampler in samplers:
         yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
             onsite_z_field=onsite_z_field, sampler=sampler
         )
 
 
 SWEEP_FN_REGISTRY = {
-    "sweep_sc_3x3_fn": list(sweep_sc_3x3_fn()),
-    "sweep_sc_5x5_fn": list(sweep_sc_5x5_fn()),
-    "sweep_sc_7x7_fn": list(sweep_sc_7x7_fn()), 
-    "sweep_sc_3x5_fn": list(sweep_sc_3x5_fn()),
-    "sweep_sc_3x7_fn": list(sweep_sc_3x7_fn()),
-    "sweep_sc_3x9_fn": list(sweep_sc_3x9_fn()),
-    "sweep_sc_3x11_fn": list(sweep_sc_3x11_fn()),
+    'sweep_sc_3x3_fn': list(surface_code_nxm_sweep_fn(3, 3, [5, 10])),
+    'sweep_sc_5x5_fn': list(surface_code_nxm_sweep_fn(5, 5, [20, 40])),
+    'sweep_sc_7x7_fn': list(surface_code_nxm_sweep_fn(7, 7, [40, 60])),
+    'sweep_sc_3x5_fn': list(surface_code_nxm_sweep_fn(3, 5, [10, 20])),
+    'sweep_sc_3x7_fn': list(surface_code_nxm_sweep_fn(3, 7, [10, 20])),
+    'sweep_sc_3x9_fn': list(surface_code_nxm_sweep_fn(3, 9, [20, 40])),
+    'sweep_sc_3x11_fn': list(surface_code_nxm_sweep_fn(3, 11, [40, 60])),
+    'sweep_sc_size_y_3_fn': sum(
+        [list(
+            surface_code_nxm_sweep_fn(x, 3, [5, 10])
+        ) for x in [3, 5, 7, 9, 11, 13, 15]],
+        start=[]
+    ),
+    'sweep_sc_33x3_fn': list(surface_code_nxm_sweep_fn(33, 3, [5, 10])),
 }
 
 
@@ -148,7 +74,7 @@ def get_config():
   config.task.name = DEFAULT_TASK_NAME
   config.task.kwargs = {'size_x': 5, 'size_y': 5, 'onsite_z_field': 0.1}
   # sweep parameters.
-  config.sweep_name = "sweep_sc_3x3_fn"  # Could change this in slurm script
+  config.sweep_name = 'sweep_sc_3x3_fn'  # Could change this in slurm script
   config.sweep_fn_registry = SWEEP_FN_REGISTRY
   # DMRG configuration.
   config.dmrg = config_dict.ConfigDict()

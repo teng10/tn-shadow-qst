@@ -65,10 +65,11 @@ def run_full_batch_experiment(config):
   ds_attrs.pop('name')
   physical_system = TASK_REGISTRY[ds.name](**ds_attrs)
   reg_fn = regularization[train_config.reg_name]
-  reg_fn = reg_fn(
-      system=physical_system, train_ds=train_ds,
-      **train_config.reg_kwargs
-  )
+  if reg_fn is not None:
+    reg_fn = reg_fn(
+        system=physical_system, train_ds=train_ds,
+        **train_config.reg_kwargs
+    )
   qugen.rand.seed_rand(model_config.init_seed)
   model_mps = qtn.MPS_rand_state(
       train_ds.sizes['site'], model_config.bond_dim, dtype=model_config.dtype)
