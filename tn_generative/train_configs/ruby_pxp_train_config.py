@@ -12,7 +12,8 @@ def get_dataset_name(
     sampler,
     size_x,
     size_y,
-    delta
+    delta,
+    boundary,
  ) -> str:
   """Select the right dataset filename from available filenames."""
   # COMMENT: these lines are currently too long, but I don't know how to break.
@@ -24,7 +25,7 @@ def get_dataset_name(
   for name in filenames:
     regex = '_'.join([
         DEFAULT_TASK_NAME, sampler, f'{size_x=}', f'{size_y=}', 'd=(\d+)',
-        f'{delta=:.3f}.nc']
+        f'{delta=:.3f}', f'{boundary}.nc']
     )
     if re.search(regex, name) is not None:
       unique_match += 1
@@ -40,6 +41,7 @@ def sweep_param_fn(
     sampler: str,
     size_x: int,
     size_y: int,
+    boundary: str,
     delta: float,
     train_d: int,
     train_num_samples: int,
@@ -55,6 +57,7 @@ def sweep_param_fn(
     sampler: dataset sampler name.
     size_x: dataset system size x.
     size_y: dataset system size y.
+    boundary: dataset boundary condition: `periodic` or `open`.
     delta: dataset onsite z field delta.
     train_d: bond dimension.
     train_num_sample: number of training samples.
@@ -72,14 +75,17 @@ def sweep_param_fn(
       'data.num_training_samples': train_num_samples,
       'training.training_schemes.lbfgs_reg.reg_name': reg_name,
       'training.training_schemes.lbfgs_reg.reg_kwargs.beta': train_beta,
-      'data.filename': get_dataset_name(sampler, size_x, size_y, delta),
+      'data.filename': get_dataset_name(
+          sampler=sampler, size_x=size_x, size_y=size_y, delta=delta,
+          boundary=boundary,
+      ),
       'data.kwargs': {
           'task_name': DEFAULT_TASK_NAME,
           'sampler': sampler, 'size_x': size_x, 'size_y': size_y,
-          'delta': delta,
+          'delta': delta, 'boundary': boundary,
       },
       'results.filename': '_'.join(['%JOB_ID', DEFAULT_TASK_NAME,
-          sampler, f'{size_x=}', f'{size_y=}', f'{delta=:.3f}',
+          sampler, f'{size_x=}', f'{size_y=}', f'{delta=:.3f}', f'{boundary=}',
           f'{train_d=}', f'{train_num_samples=}', f'{train_beta=:.3f}',
           f'{init_seed=}']
       ),
@@ -98,7 +104,8 @@ def sweep_nxm_ruby_fn(
     deltas: tuple[float] = (0., ),
     samplers: tuple[str] = (
         'x_y_z_basis_sampler', 'xz_basis_sampler', 'x_or_z_basis_sampler',
-    ),    
+    ),
+    boundary: str = 'periodic',
 ):
   for init_seed in range(num_seeds):
     for sampler in samplers:
@@ -108,7 +115,7 @@ def sweep_nxm_ruby_fn(
             for train_beta in train_betas:
               yield sweep_param_fn(
                   sampler=sampler, size_x=size_x, size_y=size_y,
-                  delta=delta, train_d=train_d,
+                  boundary=boundary, delta=delta, train_d=train_d,
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
                   reg_name=(reg_name if train_beta > 0 else 'none'),
@@ -141,12 +148,12 @@ def get_config():
   config.data.kwargs = {
       'task_name': DEFAULT_TASK_NAME,
       'sampler': 'xz_basis_sampler', 'size_x': 2, 'size_y': 2, 'd': 10,
-      'delta': 0.0
+      'delta': 0.0, 'boundary': 'periodic',
   }
   config.data.filename = '_'.join([
       '0', config.data.kwargs['task_name'], 
       config.data.kwargs['sampler'], 'size_x=2', 'size_y=2',
-      'd=20', 'delta=0.000.nc']
+      'd=20', 'delta=0.000', 'periodic.nc']
   )
   # Note: format of the data filename.
   # ['%JOB_ID', '%TASK_NAME', '%SAMPLER', '%SYSTEM_SIZE', '%D',
