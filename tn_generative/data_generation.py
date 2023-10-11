@@ -52,7 +52,10 @@ def get_ruby_pxp(
     size_x: int,
     size_y: int,
     delta: float = 5.,
+    boundary: str = 'open',
 ):
   """Generates ruby PXP physical system for `[size_x, size_y]` domain
-  with specification of detuning `delta` parameter."""
-  return physical_systems.RubyRydbergPXP(size_x, size_y, delta)
+  with specification of detuning `delta` parameter with `boundary`."""
+  return physical_systems.RubyRydbergPXP(
+      size_x, size_y, delta, boundary=boundary
+  )
