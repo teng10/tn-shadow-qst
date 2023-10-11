@@ -15,6 +15,16 @@ from tn_generative import lattices
 from tn_generative import types
 
 
+def _distance_fn_mod(
+    x: np.ndarray , y: np.ndarray, mod_vector: np.ndarray
+) -> float:
+  """Distance function for periodic boundary conditions."""
+  shifted_distances = [
+      np.sqrt(((x - y + i * mod_vector)**2).sum()) for i in range(-1, 2)
+  ]
+  return min(shifted_distances)
+
+
 class PhysicalSystem(abc.ABC):
   """Abstract class for defining physical systems."""
 
@@ -319,16 +329,8 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
           self._lattice, nb_outer, nb_inner
       )
     elif self.boundary == 'periodic':
-      def distance_fn_mod(
-          x: np.ndarray , y: np.ndarray, mod_vector: np.ndarray
-      ) -> float:
-        """Distance function for periodic boundary conditions."""
-        shifted_distances = [
-            np.sqrt(((x - y + i * mod_vector)**2).sum()) for i in range(-1, 2)
-        ]
-        return min(shifted_distances)
       arity_fn = functools.partial(
-          distance_fn_mod, mod_vector=self.Ly * self.ruby_lattice.a2
+          _distance_fn_mod, mod_vector=self.Ly * self.ruby_lattice.a2
       )
       nn_bonds = node_collections.get_nearest_neighbors(
           self._lattice, nb_outer, nb_inner, arity_fn

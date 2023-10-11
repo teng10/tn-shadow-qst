@@ -88,6 +88,7 @@ class RubyLattice(Lattice):
       a: float = 1. / 4., 
   ):
     """Ruby lattice of lattice constant `a` and rectangular ratio `rho`.
+    
     Args:
       rho: aspect ratio of the ruby lattice.
       a: lattice spacing.

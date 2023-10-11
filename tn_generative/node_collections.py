@@ -116,7 +116,7 @@ def get_nearest_neighbors(
     lattice: Lattice,
     nb_outer_radius: float,
     nb_inner_radius: float = 0.,
-    arity_fn: callable = None,
+    arity_fn: str | callable = 'euclidean',
 ) -> NodesCollection:
   """Returns neighbors of `lattice` nodes within a distance of `nb_outer_radius`
   outside a distance of `nb_inner radius`.
@@ -125,8 +125,8 @@ def get_nearest_neighbors(
     lattice: lattice on which to get neighbors for.
     nb_outer_radius: outer radius of the neighborhood.
     nb_inner_radius: inner radius of the neighborhood.
-    arity_fn: function to compute distance between points, defaults (None)
-      to Euclidean distance.
+    arity_fn: function to compute distance between points, defaults (euclidean)
+      to Euclidean distance in scipy.
 
   Returns:
     NodesCollection of neighbors within the radius contraint.
@@ -139,10 +139,7 @@ def get_nearest_neighbors(
 
   def _close_pairs_indices(points: np.ndarray) -> np.ndarray:
     """Returns indices of pairs of points within the radius constraint."""
-    if arity_fn is not None:
-      d = sp_spatial.distance.pdist(points, arity_fn)
-    else:
-      d = sp_spatial.distance.pdist(points)
+    d = sp_spatial.distance.pdist(points, arity_fn)
     close_pairs_indices = (
         (nb_inner_radius <= d) * (d <= nb_outer_radius)
     ).nonzero()[0]
