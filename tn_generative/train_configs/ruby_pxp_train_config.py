@@ -18,15 +18,18 @@ def get_dataset_name(
   """Select the right dataset filename from available filenames."""
   # COMMENT: these lines are currently too long, but I don't know how to break.
   filenames = [
-      '0_ruby_pxp_x_or_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000.nc',
-      '0_ruby_pxp_xz_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000.nc',
+      '0_ruby_pxp_x_or_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=open.nc',
+      '0_ruby_pxp_xz_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=open.nc',
+      '4529345_ruby_pxp_x_or_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=periodic.nc',
+      '4529345_ruby_pxp_x_y_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=periodic.nc',
+      '4529345_ruby_pxp_xz_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=periodic.nc',
   ]
   unique_match = 0  # Check only one dataset is found.
   for name in filenames:
     regex = '_'.join([
         DEFAULT_TASK_NAME, sampler, f'{size_x=}', f'{size_y=}', 'd=(\d+)',
-        f'{delta=:.3f}', f'{boundary}.nc']
-    )
+        f'{delta=:.3f}', f'boundary={boundary}']
+    ) + '.nc'
     if re.search(regex, name) is not None:
       unique_match += 1
       filename_match = name
@@ -148,12 +151,12 @@ def get_config():
   config.data.kwargs = {
       'task_name': DEFAULT_TASK_NAME,
       'sampler': 'xz_basis_sampler', 'size_x': 2, 'size_y': 2, 'd': 10,
-      'delta': 0.0, 'boundary': 'periodic',
+      'delta': 0.0, 'boundary': 'open',
   }
   config.data.filename = '_'.join([
       '0', config.data.kwargs['task_name'], 
       config.data.kwargs['sampler'], 'size_x=2', 'size_y=2',
-      'd=20', 'delta=0.000', 'periodic.nc']
+      'd=20', 'delta=0.000', 'open.nc']
   )
   # Note: format of the data filename.
   # ['%JOB_ID', '%TASK_NAME', '%SAMPLER', '%SYSTEM_SIZE', '%D',

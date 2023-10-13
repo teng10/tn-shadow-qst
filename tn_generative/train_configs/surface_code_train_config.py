@@ -247,6 +247,12 @@ def get_config():
   lbfgs_finetune_config.training_kwargs = {}
   lbfgs_finetune_config.reg_name = 'hamiltonian'
   lbfgs_finetune_config.reg_kwargs = {'beta': 0., 'estimator': 'mps'}
+  #TODO(YT): consider add training schemes as dict.
+  # training_schemes = {
+  #     'minibatch_no_reg': minibatch_pretrain_config,
+  #     'lbfgs_reg': lbfgs_finetune_config,
+  # }
+  # config.training.training_schemes = config_dict.ConfigDict(training_schemes)
   config.training.training_schemes = config_dict.ConfigDict()
   config.training.training_schemes.minibatch_no_reg = minibatch_pretrain_config
   config.training.training_schemes.lbfgs_reg = lbfgs_finetune_config

@@ -35,8 +35,8 @@ TRAIN_SCHEME_REGISTRY = train_utils.TRAIN_SCHEME_REGISTRY
 
 
 def run_full_batch_experiment(
-      config: Dict[str, Any],
-  ) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, qtn.MatrixProductState]]:
+    config: Dict[str, Any],
+) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, qtn.MatrixProductState]]:
   current_date = datetime.now().strftime('%m%d')
   jax_config.update('jax_enable_x64', True)
   qtn.contraction.set_contract_backend('jax')
@@ -86,16 +86,8 @@ def run_full_batch_experiment(
   eval_df = pd.concat(eval_dfs, ignore_index=True)
   # massaging configs to store all experiment parameters.
   config_df = pd.json_normalize(config.to_dict(), sep='_')
-  tiled_config_df = pd.DataFrame(
-      np.tile(config_df.to_numpy(), (eval_df.index.stop, 1)),
-      columns=config_df.columns)
-  complete_eval_df = data_utils.combine_df_config_df(eval_df, tiled_config_df)    
-  tiled_config_df = pd.DataFrame(
-      np.tile(config_df.to_numpy(), (train_df.index.stop, 1)),
-      columns=config_df.columns)
-  complete_train_df = data_utils.combine_df_config_df(
-      train_df, tiled_config_df
-  )  
+  complete_eval_df = data_utils.merge_pd_tiled_config(eval_df, config_df)    
+  complete_train_df = data_utils.merge_pd_tiled_config(train_df, config_df)  
   if config.results.save_results:
     results_dir = config.results.experiment_dir.replace(
         '%CURRENT_DATE', current_date

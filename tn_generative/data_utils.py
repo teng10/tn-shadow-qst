@@ -22,7 +22,11 @@ def combine_complex_ds(ds):
   return ds
 
 
-def combine_df_config_df(df, config_df):
+def merge_pd_tiled_config(df, config_df):
+  """Merge pandas dataframe with tiled config dataframe."""
+  tiled_config_df = pd.DataFrame(
+      np.tile(config_df.to_numpy(), (df.index.stop, 1)),
+      columns=config_df.columns)  
   complete_df = pd.merge(
-      df, config_df, left_index=True, right_index=True, how='outer')
+      df, tiled_config_df, left_index=True, right_index=True, how='outer')
   return complete_df

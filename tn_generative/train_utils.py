@@ -26,7 +26,7 @@ register_training_scheme = func_utils.get_register_decorator(
     TRAIN_SCHEME_REGISTRY
 )
 
-REGULARIZATION = regularizers.REGULARIZER_REGISTRY
+REGULARIZER_REGISTRY = regularizers.REGULARIZER_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
 
 
@@ -126,7 +126,7 @@ def run_full_batch_training(
   ds_attrs = train_ds.attrs.copy()
   ds_attrs.pop('name')
   physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
-  get_regularization_fn = REGULARIZATION[training_config.reg_name]
+  get_regularization_fn = REGULARIZER_REGISTRY[training_config.reg_name]
   if get_regularization_fn is not None:
     regularization_fn = get_regularization_fn(
         system=physical_system, train_ds=train_ds,
@@ -182,7 +182,7 @@ def run_minibatch_trainig(
   ds_attrs = train_ds.attrs.copy()
   ds_attrs.pop('name')
   physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
-  get_regularization_fn = REGULARIZATION[training_config.reg_name]
+  get_regularization_fn = REGULARIZER_REGISTRY[training_config.reg_name]
   if get_regularization_fn is not None:
     regularization_fn = get_regularization_fn(
         system=physical_system, train_ds=train_ds,
