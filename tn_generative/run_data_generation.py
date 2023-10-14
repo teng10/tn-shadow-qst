@@ -42,8 +42,8 @@ def generate_data(config):
   qtn.contraction.set_tensor_linop_backend('numpy')
   qtn.contraction.set_contract_backend('numpy')
   mps = qtn.MPS_rand_state(task_mpo.L, config.dmrg.bond_dims, dtype=dtype)
-  dmrg = qtn.DMRG1(task_mpo, bond_dims=config.dmrg.bond_dims, p0=mps)
-  dmrg.solve(**config.dmrg.solve_kwargs)
+  dmrg = qtn.DMRG2(task_mpo, bond_dims=config.dmrg.bond_dims, p0=mps)
+  convergence = dmrg.solve(**config.dmrg.solve_kwargs)
   mps = dmrg.state.copy()
   mps = mps.canonize(0)  # canonicalize MPS.
   # TODO(YT): add dmrg data analysis.
@@ -71,6 +71,8 @@ def generate_data(config):
   ds = xr.merge([target_mps_ds, ds])
   # ds = ds.assign_attrs(**config)  #Can't save nested dictionary to netcdf.
   # TODO(YT): figure out how to flatten_json config using pd.json.normalize.
+  ds.attrs['convergence'] = int(convergence)
+  ds['energy'] = dmrg.energy
   ds = ds.assign_attrs(**config.task.kwargs)
   ds.attrs['name'] = config.task.name
   # Saving data  

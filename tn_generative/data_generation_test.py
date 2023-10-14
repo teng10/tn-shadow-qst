@@ -35,7 +35,9 @@ class RunDataGeneration(absltest.TestCase):
   def test_ruby_pxp(self):
     """Tests data generation for ruby lattice PXP model."""
     config = ruby_pxp_data_config.get_config()
-    config.task.kwargs = {'size_x': 1, 'size_y': 2, 'delta': 0.1}
+    config.task.kwargs = {
+        'size_x': 1, 'size_y': 2, 'delta': 0.1, 'boundary': 'periodic',
+    }
     config.update_from_flattened_dict(self.default_options)
     run_data_generation.generate_data(config)
 
