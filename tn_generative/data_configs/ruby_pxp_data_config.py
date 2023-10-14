@@ -43,21 +43,21 @@ def sweep_sc_nxm_fn(
     boundary: str = 'periodic',
 ):
   for delta in deltas:
-    for d in bond_dims:    
+    for d in bond_dims:
       for sampler in samplers:
         yield sweep_param_fn(
-            size_x=size_x, size_y=size_y, d=d, boundary=boundary, delta=delta, 
+            size_x=size_x, size_y=size_y, d=d, boundary=boundary, delta=delta,
             sampler=sampler,
         )
 
 
 SWEEP_FN_REGISTRY = {
     'sweep_sc_2x2_fn': list(sweep_sc_nxm_fn(
-        size_x=2, size_y=2, deltas=np.arange(0., 1.2, 0.05), bond_dims=(20, 40)
+        size_x=2, size_y=2, deltas=np.arange(0., 1.2, 0.05), bond_dims=(20, 80)
     )),
     'sweep_sc_3x2_fn': list(sweep_sc_nxm_fn(
-        size_x=3, size_y=2, deltas=np.arange(0., 1.2, 0.05), bond_dims=(40, 80)
-    )),    
+        size_x=3, size_y=2, deltas=np.arange(0., 1.2, 0.05), bond_dims=(40, 160)
+    )),
 }
 
 
@@ -81,7 +81,7 @@ def get_config():
   config.dmrg = config_dict.ConfigDict()
   config.dmrg.bond_dims = 20
   config.dmrg.solve_kwargs = {
-      'max_sweeps': 300, 'cutoffs': 1e-6, 'verbosity': 1, 
+      'max_sweeps': 300, 'cutoffs': 1e-6, 'verbosity': 1,
       'sweep_sequence': 'RRL',
   }
   # Sampler configuration.
