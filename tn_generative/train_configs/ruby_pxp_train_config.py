@@ -12,20 +12,24 @@ def get_dataset_name(
     sampler,
     size_x,
     size_y,
-    delta
+    delta,
+    boundary,
  ) -> str:
   """Select the right dataset filename from available filenames."""
   # COMMENT: these lines are currently too long, but I don't know how to break.
   filenames = [
-      '0_ruby_pxp_x_or_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000.nc',
-      '0_ruby_pxp_xz_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000.nc',
+      '0_ruby_pxp_x_or_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=open.nc',
+      '0_ruby_pxp_xz_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=open.nc',
+      '4529345_ruby_pxp_x_or_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=periodic.nc',
+      '4529345_ruby_pxp_x_y_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=periodic.nc',
+      '4529345_ruby_pxp_xz_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=periodic.nc',
   ]
   unique_match = 0  # Check only one dataset is found.
   for name in filenames:
     regex = '_'.join([
         DEFAULT_TASK_NAME, sampler, f'{size_x=}', f'{size_y=}', 'd=(\d+)',
-        f'{delta=:.3f}.nc']
-    )
+        f'{delta=:.3f}', f'boundary={boundary}']
+    ) + '.nc'
     if re.search(regex, name) is not None:
       unique_match += 1
       filename_match = name
@@ -37,14 +41,16 @@ def get_dataset_name(
 
 
 def sweep_param_fn(
-    sampler,
-    size_x,
-    size_y,
-    delta,
-    train_d,
-    train_num_samples,
-    train_beta,
-    init_seed,
+    sampler: str,
+    size_x: int,
+    size_y: int,
+    boundary: str,
+    delta: float,
+    train_d: int,
+    train_num_samples: int,
+    train_beta: float,
+    init_seed: int,
+    reg_name: str,
 ) -> dict:
   """Helper function for formatting sweep parameters.
 
@@ -54,27 +60,35 @@ def sweep_param_fn(
     sampler: dataset sampler name.
     size_x: dataset system size x.
     size_y: dataset system size y.
+    boundary: dataset boundary condition: `periodic` or `open`.
     delta: dataset onsite z field delta.
     train_d: bond dimension.
     train_num_sample: number of training samples.
     train_beta: regularization strength.
     init_seed: random seed number for initializing mps.
+    reg_name: regularization name.
 
   Returns:
     dictionary of parameters for a single sweep.
   """
+  if train_beta != 0. and reg_name == 'none':
+    raise ValueError(f'Not meaningful {reg_name=} for {train_beta=}')  
   return {
       'model.bond_dim': train_d,
       'data.num_training_samples': train_num_samples,
-      'training.reg_kwargs.beta': train_beta,
-      'data.filename': get_dataset_name(sampler, size_x, size_y, delta),
+      'training.training_schemes.lbfgs_reg.reg_name': reg_name,
+      'training.training_schemes.lbfgs_reg.reg_kwargs.beta': train_beta,
+      'data.filename': get_dataset_name(
+          sampler=sampler, size_x=size_x, size_y=size_y, delta=delta,
+          boundary=boundary,
+      ),
       'data.kwargs': {
           'task_name': DEFAULT_TASK_NAME,
           'sampler': sampler, 'size_x': size_x, 'size_y': size_y,
-          'delta': delta,
+          'delta': delta, 'boundary': boundary,
       },
       'results.filename': '_'.join(['%JOB_ID', DEFAULT_TASK_NAME,
-          sampler, f'{size_x=}', f'{size_y=}', f'{delta=:.3f}',
+          sampler, f'{size_x=}', f'{size_y=}', f'{delta=:.3f}', f'{boundary=}',
           f'{train_d=}', f'{train_num_samples=}', f'{train_beta=:.3f}',
           f'{init_seed=}']
       ),
@@ -82,26 +96,40 @@ def sweep_param_fn(
   }
 
 
-def sweep_sc_2x2_fn():
-  # 5x5 sites surface code sweep
-  size_x = 2
-  size_y = 2
-  for init_seed in range(10):
-    for sampler in ['xz_basis_sampler', 'x_or_z_basis_sampler']:
-      for delta in [0.]:
-        for train_d in [5, 10, 20]:
-          for train_num_samples in [100, 1000, 5000, 10_000, 30_000, 50_000]:
-            for train_beta in [0., 1.]:
+def sweep_nxm_ruby_fn(
+    size_x: int,
+    size_y: int,
+    train_bond_dims: tuple[int],
+    reg_name: str = 'hamiltonian',
+    num_seeds: int = 10,
+    train_samples: tuple[int] = (100, 500, 3_000, 20_000, 100_000),
+    train_betas: tuple[float] = (0., 1., 5.),
+    deltas: tuple[float] = (0., ),
+    samplers: tuple[str] = (
+        'x_y_z_basis_sampler', 'xz_basis_sampler', 'x_or_z_basis_sampler',
+    ),
+    boundary: str = 'periodic',
+):
+  for init_seed in range(num_seeds):
+    for sampler in samplers:
+      for delta in deltas:
+        for train_d in train_bond_dims:
+          for train_num_samples in train_samples:
+            for train_beta in train_betas:
               yield sweep_param_fn(
                   sampler=sampler, size_x=size_x, size_y=size_y,
-                  delta=delta, train_d=train_d,
+                  boundary=boundary, delta=delta, train_d=train_d,
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
+                  reg_name=(reg_name if train_beta > 0 else 'none'),
               )
 
 
 SWEEP_FN_REGISTRY = {
-    'sweep_sc_2x2_fn': list(sweep_sc_2x2_fn()),
+    'sweep_sc_2x2_fn': list(sweep_nxm_ruby_fn(
+        2, 2, (20., 30.), 
+        samplers=('xz_basis_sampler', 'x_or_z_basis_sampler')
+    )),
 }
 
 
@@ -123,12 +151,12 @@ def get_config():
   config.data.kwargs = {
       'task_name': DEFAULT_TASK_NAME,
       'sampler': 'xz_basis_sampler', 'size_x': 2, 'size_y': 2, 'd': 10,
-      'delta': 0.0
+      'delta': 0.0, 'boundary': 'open',
   }
   config.data.filename = '_'.join([
       '0', config.data.kwargs['task_name'], 
       config.data.kwargs['sampler'], 'size_x=2', 'size_y=2',
-      'd=20', 'delta=0.000.nc']
+      'd=20', 'delta=0.000', 'open.nc']
   )
   # Note: format of the data filename.
   # ['%JOB_ID', '%TASK_NAME', '%SAMPLER', '%SYSTEM_SIZE', '%D',
@@ -139,10 +167,27 @@ def get_config():
   config.sweep_fn_registry = SWEEP_FN_REGISTRY
   # training.
   config.training = config_dict.ConfigDict()
-  config.training.num_training_steps = 200
-  config.training.opt_kwargs = {}
-  config.training.reg_name = 'hamiltonian'
-  config.training.reg_kwargs = {'beta': 0., 'estimator': 'mps'}
+  # minibatch pre-training config.
+  minibatch_pretrain_config = config_dict.ConfigDict()
+  minibatch_pretrain_config.training_scheme = 'minibatch'
+  minibatch_pretrain_config.training_kwargs = {
+      'batch_size': 256, 'record_loss_interval': 50
+  }
+  minibatch_pretrain_config.opt_kwargs = {'learning_rate': 1e-4}
+  minibatch_pretrain_config.reg_name = 'none'    
+  # lbfgs training config.
+  lbfgs_finetune_config = config_dict.ConfigDict()
+  lbfgs_finetune_config.training_scheme = 'lbfgs'
+  lbfgs_finetune_config.training_kwargs = {}
+  lbfgs_finetune_config.reg_name = 'hamiltonian'
+  lbfgs_finetune_config.reg_kwargs = {'beta': 0., 'estimator': 'mps'}
+  config.training.training_schemes = config_dict.ConfigDict()
+  config.training.training_schemes.minibatch_no_reg = minibatch_pretrain_config
+  config.training.training_schemes.lbfgs_reg = lbfgs_finetune_config
+  # can be accessed via --config.training.training_schemes.
+  # train through minibatch for 50 steps first, then lbfgs for 50 steps.
+  config.training.training_sequence = ('minibatch_no_reg', 'lbfgs_reg')
+  config.training.steps_sequence = (200, 50)
   # Save options.
   config.results = config_dict.ConfigDict()
   config.results.save_results = True

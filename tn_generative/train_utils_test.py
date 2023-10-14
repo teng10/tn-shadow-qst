@@ -13,6 +13,8 @@ from tn_generative import run_training
 
 class RunTrainingTests(parameterized.TestCase):
   """Tests data generation."""
+  #TODO(YT): currently sweep is tested only at the level of config file.
+  # The example_dataset.nc is fixed. We should add a test for sweep.
 
   def setUp(self): 
     jax_config.update('jax_enable_x64', True)
@@ -29,8 +31,8 @@ class RunTrainingTests(parameterized.TestCase):
         'data.dir': os.path.join(current_file_dir, 'test_data'),
         'data.filename': 'example_dataset.nc',
         'data.num_training_samples': 1000,
-        'training.num_training_steps': 10,
-        'model.bond_dim': 5,
+        'training.steps_sequence': (10, 2),
+        'model.bond_dim': 2,
     }
 
   @parameterized.parameters('lbfgs', 'minibatch')
