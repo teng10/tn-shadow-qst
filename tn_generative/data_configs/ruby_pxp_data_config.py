@@ -27,7 +27,7 @@ def sweep_param_fn(
       'task.kwargs.boundary': boundary,
       'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, sampler,
           f'{size_x=}', f'{size_y=}', f'{d=}', f'{delta=:.3f}',
-          f'{boundary=}',
+          f'boundary={boundary}',
       ]),
   }
 
@@ -53,10 +53,10 @@ def sweep_sc_nxm_fn(
 
 SWEEP_FN_REGISTRY = {
     'sweep_sc_2x2_fn': list(sweep_sc_nxm_fn(
-        size_x=2, size_y=2, deltas=np.arange(0., 1.2, 0.05), bond_dims=(20, 80)
+        size_x=2, size_y=2, deltas=np.arange(0., 1.7, 0.05), bond_dims=(20, 40)
     )),
     'sweep_sc_3x2_fn': list(sweep_sc_nxm_fn(
-        size_x=3, size_y=2, deltas=np.arange(0., 1.2, 0.05), bond_dims=(40, 160)
+        size_x=3, size_y=2, deltas=np.arange(0., 1.7, 0.05), bond_dims=(20, 40)
     )),
 }
 
@@ -81,7 +81,7 @@ def get_config():
   config.dmrg = config_dict.ConfigDict()
   config.dmrg.bond_dims = 20
   config.dmrg.solve_kwargs = {
-      'max_sweeps': 300, 'cutoffs': 1e-6, 'verbosity': 1,
+      'max_sweeps': 500, 'cutoffs': 1e-6, 'verbosity': 1,
       'sweep_sequence': 'RRL',
   }
   # Sampler configuration.

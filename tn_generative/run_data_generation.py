@@ -42,12 +42,14 @@ def generate_data(config):
   qtn.contraction.set_tensor_linop_backend('numpy')
   qtn.contraction.set_contract_backend('numpy')
   mps = qtn.MPS_rand_state(task_mpo.L, config.dmrg.bond_dims, dtype=dtype)
-  dmrg = qtn.DMRG2(task_mpo, bond_dims=config.dmrg.bond_dims, p0=mps)
+  dmrg = qtn.DMRG1(task_mpo, bond_dims=config.dmrg.bond_dims, p0=mps)
   convergence = dmrg.solve(**config.dmrg.solve_kwargs)
   mps = dmrg.state.copy()
   mps = mps.canonize(0)  # canonicalize MPS.
   # TODO(YT): add dmrg data analysis.
-
+  energy_variance = (
+      mps.H @ (task_mpo.apply(task_mpo.apply(mps))) - dmrg.energy**2
+  )
   # Running data generation
   qtn.contraction.set_tensor_linop_backend('jax')
   qtn.contraction.set_contract_backend('jax')
@@ -73,6 +75,7 @@ def generate_data(config):
   # TODO(YT): figure out how to flatten_json config using pd.json.normalize.
   ds.attrs['convergence'] = int(convergence)
   ds['energy'] = dmrg.energy
+  ds['energy_variance'] = energy_variance
   ds = ds.assign_attrs(**config.task.kwargs)
   ds.attrs['name'] = config.task.name
   # Saving data  
