@@ -10,8 +10,8 @@
 #SBATCH --array=0-11 # 30 different parameter settings
 # enumerating in parameter {bond_dimension}, {onsite_z_field} index.
 # e.g. 2 x 3=6 This enumerates 6 parameter setting
-#SBATCH -o /n/home11/yteng/experiments/TNS/logsTNS/%j.out # Standard out
-#SBATCH -e /n/home11/yteng/experiments/TNS/logsTNS/%j.err # Standard err
+#SBATCH -o /n/home11/yteng/experiments/TNS/logsTNS/%A_%a.out # Standard out
+#SBATCH -e /n/home11/yteng/experiments/TNS/logsTNS/%A_%a.err # Standard err
 module load python/3.10.9-fasrc01
 source activate tn-shadow-qst
 package_path="/n/home11/yteng/tn-shadow-qst/"

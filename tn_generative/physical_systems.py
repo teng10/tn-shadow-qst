@@ -372,6 +372,7 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
         terms.append((self.vs[i] / 4., ('z', node[0]), ('z', node[1])))
         terms.append((+self.vs[i] / 4., ('z', node[0])))
         terms.append((+self.vs[i] / 4., ('z', node[1])))
+        terms.append((+self.vs[i] / 4., ('I', node[0])))
       all_nn_groups.append(terms)
     return all_nn_groups
 
@@ -380,6 +381,7 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     onsite_terms_x = []
     for i in range(self.n_sites):
       onsite_terms_z.append((-self.delta / 2., ('z', i)))
+      onsite_terms_z.append((-self.delta / 2., ('I', i)))
     for i in range(self.n_sites):
       onsite_terms_x.append((self.omega / 2., ('x', i)))
     return [onsite_terms_z, onsite_terms_x]

@@ -10,32 +10,54 @@ home = os.path.expanduser('~')
 DEFAULT_TASK_NAME = 'ruby_pxp'
 
 
-def sweep_param_fn(size_x, size_y, d, delta, sampler):
+def sweep_param_fn(
+    size_x: int,
+    size_y: int,
+    d: int,
+    delta: float,
+    sampler: str,
+    boundary: str,
+):
   """Helper function for constructing sweep parameters."""
   return {
       'task.kwargs.size_x': size_x,
       'task.kwargs.size_y': size_y,
       'dmrg.bond_dims': d,
       'task.kwargs.delta': delta,
+      'task.kwargs.boundary': boundary,
       'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, sampler,
-          f'{size_x=}', f'{size_y=}', f'{d=}', f'{delta=:.3f}']),
+          f'{size_x=}', f'{size_y=}', f'{d=}', f'{delta=:.3f}',
+          f'boundary={boundary}',
+      ]),
   }
 
 
-def sweep_sc_2x2_fn():
-  # 2x2 unit cells sweep for ruby pxp
-  size_x = 2
-  size_y = 2
-  for delta in np.arange(-10., 11., 10.):
-    for d in [10, 20]:    
-      for sampler in [
-          'xz_basis_sampler', 'x_or_z_basis_sampler',
-      ]:
-        yield sweep_param_fn(size_x, size_y, d, delta, sampler)
+def sweep_sc_nxm_fn(
+    size_x: int,
+    size_y: int,
+    deltas: np.ndarray,
+    bond_dims: tuple[int],
+    samplers: tuple[str] = (
+        'xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler'
+    ),
+    boundary: str = 'periodic',
+):
+  for delta in deltas:
+    for d in bond_dims:
+      for sampler in samplers:
+        yield sweep_param_fn(
+            size_x=size_x, size_y=size_y, d=d, boundary=boundary, delta=delta,
+            sampler=sampler,
+        )
 
 
 SWEEP_FN_REGISTRY = {
-    "sweep_sc_2x2_fn": list(sweep_sc_2x2_fn()),
+    'sweep_sc_2x2_fn': list(sweep_sc_nxm_fn(
+        size_x=2, size_y=2, deltas=np.arange(0., 1.7, 0.05), bond_dims=(20, 40)
+    )),
+    'sweep_sc_3x2_fn': list(sweep_sc_nxm_fn(
+        size_x=3, size_y=2, deltas=np.arange(0., 1.7, 0.05), bond_dims=(20, 40)
+    )),
 }
 
 
@@ -49,7 +71,9 @@ def get_config():
   config.dtype = 'complex128'
   config.task = config_dict.ConfigDict()
   config.task.name = DEFAULT_TASK_NAME
-  config.task.kwargs = {'size_x': 2, 'size_y': 2, 'delta': 0.}
+  config.task.kwargs = {
+      'size_x': 2, 'size_y': 2, 'delta': 0., 'boundary': 'periodic',
+  }
   # sweep parameters.
   config.sweep_name = config_dict.placeholder(str)  # Could change this in slurm script
   config.sweep_fn_registry = SWEEP_FN_REGISTRY
@@ -57,7 +81,8 @@ def get_config():
   config.dmrg = config_dict.ConfigDict()
   config.dmrg.bond_dims = 20
   config.dmrg.solve_kwargs = {
-      'max_sweeps': 40, 'cutoffs': 1e-6, 'verbosity': 1
+      'max_sweeps': 500, 'cutoffs': 1e-6, 'verbosity': 1,
+      'sweep_sequence': 'RRL',
   }
   # Sampler configuration.
   config.sampling = config_dict.ConfigDict()
