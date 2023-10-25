@@ -84,7 +84,7 @@ def get_config():
   config.dmrg = config_dict.ConfigDict()
   config.dmrg.bond_dims = 20
   config.dmrg.solve_kwargs = {
-      'max_sweeps': 500, 'cutoffs': 1e-7, 'verbosity': 1,
+      'max_sweeps': 500, 'cutoffs': 1e-8, 'verbosity': 1,
       'sweep_sequence': 'RRLL',
   }
   # Sampler configuration.
