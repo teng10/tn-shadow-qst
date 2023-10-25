@@ -53,11 +53,14 @@ def sweep_sc_nxm_fn(
 
 SWEEP_FN_REGISTRY = {
     'sweep_sc_2x2_fn': list(sweep_sc_nxm_fn(
-        size_x=2, size_y=2, deltas=np.arange(0., 1.7, 0.05), bond_dims=(20, 40)
+        size_x=2, size_y=2, deltas=np.arange(0., 2.5, 0.05), bond_dims=(20, 40)
     )),
     'sweep_sc_3x2_fn': list(sweep_sc_nxm_fn(
-        size_x=3, size_y=2, deltas=np.arange(0., 1.7, 0.05), bond_dims=(20, 40)
+        size_x=3, size_y=2, deltas=np.arange(0., 2.5, 0.05), bond_dims=(20, 40)
     )),
+    'sweep_sc_4x2_fn': list(sweep_sc_nxm_fn(
+        size_x=4, size_y=2, deltas=np.arange(0., 2.5, 0.05), bond_dims=(20, 60)
+    )),    
 }
 
 
@@ -81,8 +84,8 @@ def get_config():
   config.dmrg = config_dict.ConfigDict()
   config.dmrg.bond_dims = 20
   config.dmrg.solve_kwargs = {
-      'max_sweeps': 500, 'cutoffs': 1e-6, 'verbosity': 1,
-      'sweep_sequence': 'RRL',
+      'max_sweeps': 500, 'cutoffs': 1e-7, 'verbosity': 1,
+      'sweep_sequence': 'RRLL',
   }
   # Sampler configuration.
   config.sampling = config_dict.ConfigDict()
