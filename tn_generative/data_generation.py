@@ -62,7 +62,7 @@ def get_ruby_pxp(
 
 
 @register_task('ruby_pxp_boundary')
-def get_ruby_pxp(
+def get_ruby_pxp_boundary(
     size_x: int,
     size_y: int,
     delta: float = 5.,
@@ -71,6 +71,10 @@ def get_ruby_pxp(
   """Generates ruby PXP physical system for `[size_x, size_y]` domain
   with specification of detuning `delta` parameter with `boundary`.
   The boundary field is set to `-delta` to offset boundary effects."""
+  # TODO: fix docstring. 
+  # COMMENT: this is a hack to offset boundary effects.
+  # Rather than only adding delta, try mean-field 3 * <n> ~0.6
+  mean_field = 0.6
   return physical_systems.RubyRydbergPXP(
-      size_x, size_y, delta, boundary=boundary, boundary_z_field=-delta
+      size_x, size_y, delta, boundary=boundary, boundary_z_field=-mean_field
   )

@@ -71,6 +71,8 @@ def generate_data(config):
   ds = runner.run_combos(combos, parallel=False)
   target_mps_ds = mps_utils.mps_to_xarray(mps)
   ds = xr.merge([target_mps_ds, ds])
+  ds_properties = data_utils.compute_onsite_pauli_expectations(ds, task_system)
+  ds = xr.merge([ds, ds_properties])
   # ds = ds.assign_attrs(**config)  #Can't save nested dictionary to netcdf.
   # TODO(YT): figure out how to flatten_json config using pd.json.normalize.
   ds.attrs['convergence'] = int(convergence)

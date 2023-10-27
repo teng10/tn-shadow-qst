@@ -450,7 +450,8 @@ class RubyRydbergVanderwaals(RubyRydberg):
       boundary: str = 'open',
   ):
     super().__init__(
-        Lx, Ly, delta, boundary_z_field, rho, rb, omega, nb_ratio_fn, boundary
+        Lx=Lx, Ly=Ly, delta=delta, boundary_z_field=boundary_z_field, rho=rho,
+        rb=rb, omega=omega, nb_ratio_fn=nb_ratio_fn, boundary=boundary
     )
     self._vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
 
@@ -472,6 +473,7 @@ class RubyRydbergPXP(RubyRydberg):
       boundary: str = 'open',
   ):
     super().__init__(
-        Lx, Ly, delta, boundary_z_field, rho, rb, omega, nb_ratio_fn, boundary
+        Lx=Lx, Ly=Ly, delta=delta, boundary_z_field=boundary_z_field, rho=rho,
+        rb=rb, omega=omega, nb_ratio_fn=nb_ratio_fn, boundary=boundary
     )
     self._vs = (rb/(nb_ratio_fn(self.rho)[-1]))**6 * np.ones(len(self.nb_radii))
