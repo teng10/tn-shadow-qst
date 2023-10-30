@@ -5,7 +5,7 @@ import re
 from ml_collections import config_dict
 
 HOME = os.path.expanduser('~')
-DEFAULT_TASK_NAME = 'ruby_pxp'
+DEFAULT_TASK_NAME = 'ruby_pxp_boundary'
 
 
 def get_dataset_name(
@@ -18,11 +18,9 @@ def get_dataset_name(
   """Select the right dataset filename from available filenames."""
   # COMMENT: these lines are currently too long, but I don't know how to break.
   filenames = [
-      '0_ruby_pxp_x_or_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=open.nc',
-      '0_ruby_pxp_xz_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=open.nc',
-      '4529345_ruby_pxp_x_or_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=periodic.nc',
-      '4529345_ruby_pxp_x_y_z_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=periodic.nc',
-      '4529345_ruby_pxp_xz_basis_sampler_size_x=2_size_y=2_d=20_delta=0.000_boundary=periodic.nc',
+      '6262798_ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary=periodic.nc',
+      '6262798_ruby_pxp_boundary_x_y_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary=periodic.nc',
+      '6262798_ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary=periodic.nc',
   ]
   unique_match = 0  # Check only one dataset is found.
   for name in filenames:
@@ -126,10 +124,11 @@ def sweep_nxm_ruby_fn(
 
 
 SWEEP_FN_REGISTRY = {
-    'sweep_sc_2x2_fn': list(sweep_nxm_ruby_fn(
-        2, 2, (20., 30.), 
-        samplers=('xz_basis_sampler', 'x_or_z_basis_sampler')
-    )),
+    'sweep_sc_4x2_fn': list(sweep_nxm_ruby_fn(
+        4, 2, (20., 40., 60), 
+        samplers=('xz_basis_sampler', 'x_or_z_basis_sampler'), 
+        deltas=(1.7, )
+    )),    
 }
 
 
@@ -150,13 +149,13 @@ def get_config():
   config.data.dir = f'{HOME}/tn_shadow_dir/Data/{DEFAULT_TASK_NAME}'
   config.data.kwargs = {
       'task_name': DEFAULT_TASK_NAME,
-      'sampler': 'xz_basis_sampler', 'size_x': 2, 'size_y': 2, 'd': 10,
-      'delta': 0.0, 'boundary': 'open',
+      'sampler': 'xz_basis_sampler', 'size_x': 4, 'size_y': 2, 'd': 10,
+      'delta': 1.7, 'boundary': 'open',
   }
   config.data.filename = '_'.join([
       '0', config.data.kwargs['task_name'], 
       config.data.kwargs['sampler'], 'size_x=2', 'size_y=2',
-      'd=20', 'delta=0.000', 'open.nc']
+      'd=20', 'delta=1.7000', 'open.nc']
   )
   # Note: format of the data filename.
   # ['%JOB_ID', '%TASK_NAME', '%SAMPLER', '%SYSTEM_SIZE', '%D',
