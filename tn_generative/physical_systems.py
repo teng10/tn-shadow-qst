@@ -3,7 +3,6 @@ import abc
 from abc import abstractmethod
 import itertools
 import functools
-from typing import Callable
 
 import numpy as np
 import einops
@@ -43,21 +42,21 @@ class PhysicalSystem(abc.ABC):
     """Returns a hamiltonian MPO."""
 
   def get_sparse_operator(
-      self, 
+      self,
       terms: types.TermsTuple,
   ) -> quimb_exp_op.SparseOperatorBuilder:
     """Generates operator including `terms` using sparse operator builder."""
     if self.hilbert_space is None:
       raise ValueError(
           f'subclass {self.__name__} did not implement custom `hilbert_space`.'
-      )    
+      )
     sparse_operator = quimb_exp_op.SparseOperatorBuilder(
         hilbert_space=self.hilbert_space
-    )    
+    )
     for term in terms:  # add all terms to the operator.
       sparse_operator += term
     return sparse_operator
-  
+
   def get_ham_mpos(self) -> list[qtn.MatrixProductOperator]:
     """Returns MPOs for list of terms in the hamiltonian.
 
@@ -69,8 +68,8 @@ class PhysicalSystem(abc.ABC):
     if self.get_terms() is None:
       raise ValueError(
           f'subclass {self.__name__} did not implement custom `get_terms`.'
-          f'subclass {self.__name__} should either implement custom' 
-          '`get_ham_mpos` or provide `hilbert_space` and implement `get_terms`.'          
+          f'subclass {self.__name__} should either implement custom'
+          '`get_ham_mpos` or provide `hilbert_space` and implement `get_terms`.'
       )
     mpos = []
     terms = [(1., *term[1:]) for term in self.get_terms()]
@@ -257,8 +256,8 @@ class SurfaceCode(PhysicalSystem):
 class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
   """Implementation for ruby Rydberg hamiltonian.
 
-    Note: this constructor assumes Van der Waals interactions among neibours. 
-    The range of neibours are determined by Callable `nb_ratio_fn`, depending on 
+    Note: this constructor assumes Van der Waals interactions among neibours.
+    The range of neibours are determined by Callable `nb_ratio_fn`, depending on
     ruby lattice aspect ratio, `rho`specified in ascending order.
 
     Args:
@@ -268,7 +267,6 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       rho: aspect ratio of the ruby lattice.
       rb: Rydberg blockade radius, in units of lattice spacing.
       omega: laser Rabi frequency, `x` field.
-      nb_ratio_fn: Callable that returns a tuple of ascending neibour radii.  
 
     Returns:
       Ruby Rydberg hamiltonian Physical system.
@@ -279,12 +277,8 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      rho: float = np.sqrt(3.),  
-      rb: float = 3.8,  
+      rho: float = np.sqrt(3.),
       omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ),
       boundary: str = 'open',
   ):
     self.n_sites = int(Lx * Ly * 6)
@@ -293,36 +287,39 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     self.delta = delta
     self.a = 1. / 4.  # lattice spacing.
     self.omega = omega
-    self.rho = rho  
+    self.rho = rho
     self.epsilon = 1e-3
-    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio_fn(self.rho))
+    self.nb_ratio_fn = lambda rho: (1., rho, np.sqrt(1. + rho**2))
+    self.nb_radii = tuple(
+        r * self.a + self.epsilon for r in self.nb_ratio_fn(self.rho)
+    )
     self.ruby_lattice = lattices.RubyLattice(rho=self.rho, a=self.a)
     self._lattice = self.ruby_lattice.get_expanded_lattice(self.Lx, self.Ly)
     self.boundary = boundary
-  
+
   @property
   def vs(self) -> np.ndarray:
     return self._vs
-  
+
   @property
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
-  
+
 
   def _get_annulus_bonds(
       self,
       nb_outer: float,
       nb_inner: float = 0.,
   ) -> node_collections.NodesCollection:
-    """Constructs `NodeCollection`s for bonds between an annulus of radius 
+    """Constructs `NodeCollection`s for bonds between an annulus of radius
      `nb_outer` and `nb_inner` nearest neighbour in the PXP rydberg Hamiltonian.
-    
+
     Args:
       nb_outer: radius of outer annulus.
       nb_inner: radius of inner annulus.
-    
+
     Returns:
-      Bonds within an annulus of radius `nb_outer` and `nb_inner`. 
+      Bonds within an annulus of radius `nb_outer` and `nb_inner`.
     """
     if self.boundary == 'open':
       nn_bonds = node_collections.get_nearest_neighbors(
@@ -341,7 +338,7 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
           f'`{self.boundary=}` is not implemented.'
       )
     return nn_bonds
-  
+
   def _get_nearest_neighbour_bonds(
       self,
   ) -> list[node_collections.NodesCollection]:
@@ -355,13 +352,13 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
           raise ValueError(
               f'`nb_radii` must be in ascending order. '
               f'{self.nb_radii[i - 1]=}` is greater than {self.nb_radii[i]=}`.'
-          )        
+          )
         nn_bonds = self._get_annulus_bonds(
             self.nb_radii[i], self.nb_radii[i - 1]
         )
       all_nn_bonds.append(nn_bonds)
     return all_nn_bonds
-  
+
   def _get_nearest_neighbour_groups(self) -> list[types.TermsTuple]:
     """Constuct terms for nearest neighbour bonds between each annulus."""
     all_nn_bonds = self._get_nearest_neighbour_bonds()
@@ -389,7 +386,7 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
   def _get_all_terms_groups(self) -> list[types.TermsTuple]:
     """Get all terms in hamiltonian as list of groups."""
     return self._get_nearest_neighbour_groups() + self._get_onsite_groups()
-  
+
   def get_terms(self) -> types.TermsTuple:
     """Merge all terms from all groups into one tuple."""
     all_terms_groups = self._get_all_terms_groups()
@@ -404,14 +401,14 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     # for terms in self._get_all_terms_groups():
     #   hamiltonian_mpo_groups.append(
     #       self.get_sparse_operator(terms).build_mpo()
-    #   )  
-    # #TODO(YT): consider building state machines for bulk 
+    #   )
+    # #TODO(YT): consider building state machines for bulk
     # and boundary separately.
     hamiltonian_mpos = []
     for term in self.get_terms():
       hamiltonian_mpos.append(
           self.get_sparse_operator([term]).build_mpo()
-      )    
+      )
     ham_mpo = sum(hamiltonian_mpos[1:], start=hamiltonian_mpos[0])
     ham_mpo.compress()
     return ham_mpo
@@ -424,16 +421,14 @@ class RubyRydbergVanderwaals(RubyRydberg):
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      rho: float = np.sqrt(3.),  
-      rb: float = 3.8,  
+      rho: float = np.sqrt(3.),
+      rb: float = 3.8,
       omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ),
       boundary: str = 'open',
   ):
-    super().__init__(Lx, Ly, delta, rho, rb, omega, nb_ratio_fn, boundary)
-    self._vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
+    super().__init__(Lx, Ly, delta, rho, omega, boundary)
+    self.rb = rb
+    self._vs = np.array([(rb / r)**6 for r in self.nb_ratio_fn(self.rho)])
 
 
 class RubyRydbergPXP(RubyRydberg):
@@ -443,13 +438,12 @@ class RubyRydbergPXP(RubyRydberg):
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      rho: float = np.sqrt(3.),  
-      rb: float = 3.8,  
+      rho: float = np.sqrt(3.),
+      rb: float = 3.8,
       omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ),
       boundary: str = 'open',
   ):
-    super().__init__(Lx, Ly, delta, rho, rb, omega, nb_ratio_fn, boundary)
-    self._vs = (rb/(nb_ratio_fn(self.rho)[-1]))**6 * np.ones(len(self.nb_radii))
+    super().__init__(Lx, Ly, delta, rho, omega, boundary)
+    self.rb = rb
+    self._vs = (rb/(self.nb_ratio_fn(self.rho)[-1]))**6 * np.ones(
+      len(self.nb_radii))

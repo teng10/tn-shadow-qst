@@ -1,4 +1,8 @@
 """Main file for running data generation."""
+  # run this script with the following command in the terminal:
+  # python -m tn_generative.run_data_generation\
+  # --data_config=tn_generative/data_configs/surface_code_data_config.py\
+  # --data_config.job_id=0 --data_config.task_id=0
 from absl import app
 from absl import flags
 import functools
@@ -65,41 +69,32 @@ def generate_data(config):
       var_dims={'measurement': ['site'], 'basis': ['site']},
       var_coords={'site': np.arange(mps.L)},
   )
-  combos = {
-      'sample': np.arange(config.sampling.num_samples),
-  }
+  combos = {'sample': np.arange(config.sampling.num_samples)}
   ds = runner.run_combos(combos, parallel=False)
   target_mps_ds = mps_utils.mps_to_xarray(mps)
   ds = xr.merge([target_mps_ds, ds])
-  # ds = ds.assign_attrs(**config)  #Can't save nested dictionary to netcdf.
-  # TODO(YT): figure out how to flatten_json config using pd.json.normalize.
-  ds.attrs['convergence'] = int(convergence)
   ds['energy'] = dmrg.energy
   ds['energy_variance'] = energy_variance
-  ds = ds.assign_attrs(**config.task.kwargs)
-  ds.attrs['name'] = config.task.name
-  # Saving data  
+  ds.attrs = data_utils.physical_system_to_attrs_dict(task_system)
+  ds.attrs['convergence'] = int(convergence)
+  # Saving data
   if config.output.save_data:
     data_dir = config.output.data_dir.replace('%CURRENT_DATE', current_date)
     filename = config.output.filename.replace('%JOB_ID', str(config.job_id))
     if not os.path.exists(data_dir):
-      os.makedirs(data_dir)    
+      os.makedirs(data_dir)
     ds = data_utils.split_complex_ds(ds)
-    filepath = os.path.join(data_dir, filename)  
+    filepath = os.path.join(data_dir, filename)
     #TODO(YT): remove/add extension e.g. os.path.splitext(name)[0] + '.nc'
     ds.to_netcdf(filepath + '.nc')
     np.save(filepath, np.array(dmrg.energies))
   return ds
 
 
-def main(argv):
+def main():
   config = FLAGS.data_config
   return generate_data(config)
-  # run this script with the following command in the terminal:
-  # python -m tn_generative.run_data_generation\ 
-  # --data_config=tn_generative/data_configs/surface_code_data_config.py\ 
-  # --data_config.job_id=0 --data_config.task_id=0
+
 
 if __name__ == '__main__':
   app.run(main)
-  
