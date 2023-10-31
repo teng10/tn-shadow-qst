@@ -15,6 +15,7 @@ import tensorflow as tf
 
 
 from tn_generative import data_generation
+from tn_generative import data_utils
 from tn_generative import mps_utils
 from tn_generative import func_utils
 from tn_generative import regularizers
@@ -121,11 +122,7 @@ def run_full_batch_training(
   """
   measurements = train_ds.measurement.values
   bases = train_ds.basis.values
-  # TODO(YT): better way to reload attrs from dataset.
-  # Add utils for physical_system: `to_xarray_attrs`, `from_xarray_attrs`.
-  ds_attrs = train_ds.attrs.copy()
-  ds_attrs.pop('name')
-  physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
+  physical_system = data_utils.physical_system_from_attrs_dict(train_ds.attrs)
   get_regularization_fn = REGULARIZER_REGISTRY[training_config.reg_name]
   if get_regularization_fn is not None:
     regularization_fn = get_regularization_fn(
@@ -177,11 +174,7 @@ def run_minibatch_trainig(
     eval_df: pandas dataframe containing evaluation metrics.
     trained_mps: trained MPS state.
   """
-  # TODO(YT): better way to reload attrs from dataset.
-  # Add utils for physical_system: `to_xarray_attrs`, `from_xarray_attrs`.
-  ds_attrs = train_ds.attrs.copy()
-  ds_attrs.pop('name')
-  physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
+  physical_system = data_utils.physical_system_from_attrs_dict(train_ds.attrs)
   get_regularization_fn = REGULARIZER_REGISTRY[training_config.reg_name]
   if get_regularization_fn is not None:
     regularization_fn = get_regularization_fn(

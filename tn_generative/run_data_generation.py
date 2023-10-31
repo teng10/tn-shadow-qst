@@ -73,11 +73,10 @@ def generate_data(config):
   ds = xr.merge([target_mps_ds, ds])
   # ds = ds.assign_attrs(**config)  #Can't save nested dictionary to netcdf.
   # TODO(YT): figure out how to flatten_json config using pd.json.normalize.
-  ds.attrs['convergence'] = int(convergence)
   ds['energy'] = dmrg.energy
   ds['energy_variance'] = energy_variance
-  ds = ds.assign_attrs(**config.task.kwargs)
-  ds.attrs['name'] = config.task.name
+  ds.attrs = data_utils.physical_system_to_attrs_dict(task_system)
+  ds.attrs['convergence'] = int(convergence)
   # Saving data  
   if config.output.save_data:
     data_dir = config.output.data_dir.replace('%CURRENT_DATE', current_date)
