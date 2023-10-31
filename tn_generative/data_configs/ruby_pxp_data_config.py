@@ -15,6 +15,7 @@ def sweep_param_fn(
     size_y: int,
     d: int,
     delta: float,
+    boundary_z_field: float,
     sampler: str,
     boundary: str,
 ):
@@ -22,12 +23,13 @@ def sweep_param_fn(
   return {
       'task.kwargs.size_x': size_x,
       'task.kwargs.size_y': size_y,
-      'dmrg.bond_dims': d,
+      'task.kwargs.boundary_z_field': boundary_z_field,
       'task.kwargs.delta': delta,
       'task.kwargs.boundary': boundary,
-      'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, sampler,
-          f'{size_x=}', f'{size_y=}', f'{d=}', f'{delta=:.3f}',
-          f'boundary={boundary}',
+      'dmrg.bond_dims': d,
+      'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, 'boundary',
+          sampler, f'{size_x=}', f'{size_y=}', f'{d=}', f'{delta=:.3f}',
+          f'{boundary_z_field=}', f'boundary={boundary}',
       ]),
   }
 
@@ -41,25 +43,26 @@ def sweep_sc_nxm_fn(
         'xz_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler'
     ),
     boundary: str = 'periodic',
+    boundary_z_field: float = -0.6,
 ):
   for delta in deltas:
     for d in bond_dims:
       for sampler in samplers:
         yield sweep_param_fn(
             size_x=size_x, size_y=size_y, d=d, boundary=boundary, delta=delta,
-            sampler=sampler,
+            boundary_z_field=boundary_z_field, sampler=sampler,
         )
 
 
 SWEEP_FN_REGISTRY = {
     'sweep_sc_2x2_fn': list(sweep_sc_nxm_fn(
-        size_x=2, size_y=2, deltas=np.arange(0., 2.5, 0.05), bond_dims=(20, 40)
+        size_x=2, size_y=2, deltas=np.arange(0.5, 2.5, 0.05), bond_dims=(20, 40)
     )),
     'sweep_sc_3x2_fn': list(sweep_sc_nxm_fn(
-        size_x=3, size_y=2, deltas=np.arange(0., 2.5, 0.05), bond_dims=(20, 40)
+        size_x=3, size_y=2, deltas=np.arange(0.5, 2.5, 0.05), bond_dims=(20, 40)
     )),
     'sweep_sc_4x2_fn': list(sweep_sc_nxm_fn(
-        size_x=4, size_y=2, deltas=np.arange(0., 2.5, 0.05), bond_dims=(20, 60)
+        size_x=4, size_y=2, deltas=np.arange(0.5, 2.5, 0.05), bond_dims=(20, 60)
     )),    
 }
 
