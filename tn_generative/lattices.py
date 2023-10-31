@@ -124,7 +124,6 @@ class KagomeLattice(Lattice):
       a: float = 1.0,
   ):
     """Kagome lattice of lattice constant `a`."""
-
     unit_cell_points = a * np.array([
         [0.25, 0], [-0.25, 0.], [0., np.sqrt(3) / 4.]
         ]
