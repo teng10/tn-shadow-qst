@@ -9,7 +9,7 @@ from tn_generative import physical_systems
 
 
 class PhysicalSystemToAttrsTest(parameterized.TestCase):
-  """Tests."""
+  """Tests for conversion between physical system and its attributes."""
 
   @parameterized.named_parameters(
       {
@@ -23,16 +23,16 @@ class PhysicalSystemToAttrsTest(parameterized.TestCase):
       },
   )
   def test_roundtrip_to_attrs_and_back(self, physical_system):
-    """."""
-    with self.subTest("to_attrs_dict"):
+    """Test a roundtrip and serialization of physical system."""
+    with self.subTest('to_attrs_dict'):
       attrs_dict = data_utils.physical_system_to_attrs_dict(physical_system)
-    with self.subTest("test_serializable"):
+    with self.subTest('test_serializable'):
       json.dumps(attrs_dict)
-    with self.subTest("reconstruction"):
+    with self.subTest('reconstruction'):
       reconstructed = data_utils.physical_system_from_attrs_dict(attrs_dict)
       roundtrip_dict = data_utils.physical_system_to_attrs_dict(reconstructed)
       self.assertDictEqual(roundtrip_dict, attrs_dict)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()
