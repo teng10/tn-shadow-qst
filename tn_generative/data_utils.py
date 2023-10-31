@@ -29,7 +29,7 @@ def merge_pd_tiled_config(df, config_df):
   """Merge pandas dataframe with tiled config dataframe."""
   tiled_config_df = pd.DataFrame(
       np.tile(config_df.to_numpy(), (df.index.stop, 1)),
-      columns=config_df.columns)  
+      columns=config_df.columns)
   complete_df = pd.merge(
       df, tiled_config_df, left_index=True, right_index=True, how='outer')
   return complete_df
@@ -37,9 +37,11 @@ def merge_pd_tiled_config(df, config_df):
 
 def compute_onsite_pauli_expectations(ds, physical_system):
   """Compute the expectation value of the onsite Pauli operators.
+
   Args:
     ds: An xarray dataset containing the MPS state.
     physical_system: A task system.
+
   Returns:
     onsite_z_expectation: A list of expectation values of the onsite Pauli Z operators.
     onsite_x_expectation: A list of expectation values of the onsite Pauli X operators.
