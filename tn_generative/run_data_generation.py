@@ -69,14 +69,10 @@ def generate_data(config):
       var_dims={'measurement': ['site'], 'basis': ['site']},
       var_coords={'site': np.arange(mps.L)},
   )
-  combos = {
-      'sample': np.arange(config.sampling.num_samples),
-  }
+  combos = {'sample': np.arange(config.sampling.num_samples)}
   ds = runner.run_combos(combos, parallel=False)
   target_mps_ds = mps_utils.mps_to_xarray(mps)
   ds = xr.merge([target_mps_ds, ds])
-  # ds = ds.assign_attrs(**config)  #Can't save nested dictionary to netcdf.
-  # TODO(YT): figure out how to flatten_json config using pd.json.normalize.
   ds['energy'] = dmrg.energy
   ds['energy_variance'] = energy_variance
   ds.attrs = data_utils.physical_system_to_attrs_dict(task_system)

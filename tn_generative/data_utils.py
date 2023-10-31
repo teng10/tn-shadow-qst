@@ -13,6 +13,7 @@ _PHYSICAL_SYSTEMS = {
 
 
 def split_complex_ds(ds):
+  """Split complex dataset variables into real and imaginary parts."""
   for var in ds.data_vars:
     if np.iscomplexobj(ds[var].values):
       ds[var + '_real'] = ds[var].real
@@ -22,6 +23,7 @@ def split_complex_ds(ds):
 
 
 def combine_complex_ds(ds):
+  """Combine real and imaginary parts of complex dataset variables."""
   for var in ds.data_vars:
     if var.endswith('real'):
       var_real = var
@@ -42,7 +44,7 @@ def merge_pd_tiled_config(df, config_df):
 
 
 def physical_system_to_attrs_dict(physical_system):
-  """Extract physical system class attributes as a dictionary."""
+  """Generates serializable dict representation of physical_system."""
   attrs_dict = {}
   args = inspect.signature(physical_system.__init__).parameters
   attrs_dict['physical_system_name'] = physical_system.__class__.__name__
