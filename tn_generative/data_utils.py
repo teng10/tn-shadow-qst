@@ -1,6 +1,15 @@
 """Helper functions for data loading and processing."""
+import inspect
+
 import numpy as np
 import pandas as pd
+from tn_generative import physical_systems
+
+
+_PHYSICAL_SYSTEMS = {
+    physical_systems.SurfaceCode.__name__: physical_systems.SurfaceCode,
+    physical_systems.RubyRydbergPXP.__name__: physical_systems.RubyRydbergPXP,
+}
 
 
 def split_complex_ds(ds):
@@ -30,3 +39,37 @@ def merge_pd_tiled_config(df, config_df):
   complete_df = pd.merge(
       df, tiled_config_df, left_index=True, right_index=True, how='outer')
   return complete_df
+
+
+def physical_system_to_attrs_dict(physical_system):
+  attrs_dict = {}
+  args = inspect.signature(physical_system.__init__).parameters
+  attrs_dict['phyical_system_name'] = physical_system.__class__.__name__
+  attrs_dict['phyical_system_arg_names'] = ','.join(list(args.keys()))
+  
+  kwargs = {name: getattr(physical_system, name) for name in list(args.keys())}
+  for k, v in kwargs.items():
+    if np.issubdtype(type(v), np.integer):
+      kwargs[k] = int(v)
+    elif np.issubdtype(type(v), np.floating):
+      kwargs[k] = float(v)
+    # elif isinstance(v, np.ndarray):
+    #   assert v.ndim == 0
+    #   if np.issubdtype(v.dtype, np.integer):
+    #     kwargs[k] = int(v)
+    #   elif np.issubdtype(v.dtype, np.floating):
+    #     kwargs[k] = float(v)
+    elif isinstance(v, str):
+      kwargs[k] = v
+    else:
+      raise ValueError(f'Unrecognized argument {type(v)=} for {k=}')
+  attrs_dict.update(kwargs)
+  return attrs_dict
+
+
+def physical_system_from_attrs_dict(attrs_dict):
+  cls = _PHYSICAL_SYSTEMS[attrs_dict['phyical_system_name']]
+  kwargs = {k: attrs_dict[k]
+            for k in attrs_dict['phyical_system_arg_names'].split(',')
+  }
+  return cls(**kwargs)

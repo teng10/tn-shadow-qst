@@ -268,7 +268,6 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       rho: aspect ratio of the ruby lattice.
       rb: Rydberg blockade radius, in units of lattice spacing.
       omega: laser Rabi frequency, `x` field.
-      nb_ratio_fn: Callable that returns a tuple of ascending neibour radii.  
 
     Returns:
       Ruby Rydberg hamiltonian Physical system.
@@ -279,12 +278,8 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      rho: float = np.sqrt(3.),  
-      rb: float = 3.8,  
+      rho: float = np.sqrt(3.),
       omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ),
       boundary: str = 'open',
   ):
     self.n_sites = int(Lx * Ly * 6)
@@ -293,9 +288,12 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     self.delta = delta
     self.a = 1. / 4.  # lattice spacing.
     self.omega = omega
-    self.rho = rho  
+    self.rho = rho
     self.epsilon = 1e-3
-    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio_fn(self.rho))
+    self.nb_ratio_fn = lambda rho: (1., rho, np.sqrt(1. + rho**2))
+    self.nb_radii = tuple(
+        r * self.a + self.epsilon for r in self.nb_ratio_fn(self.rho)
+    )
     self.ruby_lattice = lattices.RubyLattice(rho=self.rho, a=self.a)
     self._lattice = self.ruby_lattice.get_expanded_lattice(self.Lx, self.Ly)
     self.boundary = boundary
@@ -427,13 +425,11 @@ class RubyRydbergVanderwaals(RubyRydberg):
       rho: float = np.sqrt(3.),  
       rb: float = 3.8,  
       omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ),
       boundary: str = 'open',
   ):
-    super().__init__(Lx, Ly, delta, rho, rb, omega, nb_ratio_fn, boundary)
-    self._vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
+    super().__init__(Lx, Ly, delta, rho, omega, boundary)
+    self.rb = rb
+    self._vs = np.array([(rb / r)**6 for r in self.nb_ratio_fn(self.rho)])
 
 
 class RubyRydbergPXP(RubyRydberg):
@@ -443,13 +439,12 @@ class RubyRydbergPXP(RubyRydberg):
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      rho: float = np.sqrt(3.),  
+      rho: float = np.sqrt(3.),
       rb: float = 3.8,  
       omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ),
       boundary: str = 'open',
   ):
-    super().__init__(Lx, Ly, delta, rho, rb, omega, nb_ratio_fn, boundary)
-    self._vs = (rb/(nb_ratio_fn(self.rho)[-1]))**6 * np.ones(len(self.nb_radii))
+    super().__init__(Lx, Ly, delta, rho, omega, boundary)
+    self.rb = rb
+    self._vs = (rb/(self.nb_ratio_fn(self.rho)[-1]))**6 * np.ones(
+      len(self.nb_radii))
