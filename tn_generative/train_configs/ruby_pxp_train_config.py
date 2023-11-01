@@ -126,9 +126,9 @@ def sweep_nxm_ruby_fn(
 
 SWEEP_FN_REGISTRY = {
     'sweep_sc_4x2_fn': list(sweep_nxm_ruby_fn(
-        4, 2, (20, 40, 60), 
+        4, 2, (20), 
         samplers=('xz_basis_sampler', 'x_or_z_basis_sampler'), 
-        deltas=(1.7, )
+        deltas=(1.7, ), train_betas=(0., )
     )),    
 }
 
