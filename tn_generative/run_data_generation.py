@@ -93,7 +93,7 @@ def generate_data(config):
   return ds
 
 
-def main():
+def main(argv):
   config = FLAGS.data_config
   return generate_data(config)
 

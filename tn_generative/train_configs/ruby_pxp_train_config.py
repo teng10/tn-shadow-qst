@@ -87,7 +87,7 @@ def sweep_param_fn(
           'delta': delta, 'boundary': boundary,
       },
       'results.filename': '_'.join(['%JOB_ID', DEFAULT_TASK_NAME,
-          sampler, f'{size_x=}', f'{size_y=}', f'{delta=:.3f}', f'{boundary=}',
+          sampler, f'{size_x=}', f'{size_y=}', f'{delta=:.3f}', f'boundary={boundary}',
           f'{train_d=}', f'{train_num_samples=}', f'{train_beta=:.3f}',
           f'{init_seed=}']
       ),
