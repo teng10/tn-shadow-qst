@@ -277,6 +277,7 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       Lx: int,
       Ly: int,
       delta: float = 5.0,
+      boundary_z_field: float = 0.,
       rho: float = np.sqrt(3.),
       omega: float = 1.,
       boundary: str = 'open',
@@ -285,6 +286,7 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     self.Lx = Lx
     self.Ly = Ly
     self.delta = delta
+    self.boundary_z_field = boundary_z_field
     self.a = 1. / 4.  # lattice spacing.
     self.omega = omega
     self.rho = rho
@@ -296,7 +298,18 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     self.ruby_lattice = lattices.RubyLattice(rho=self.rho, a=self.a)
     self._lattice = self.ruby_lattice.get_expanded_lattice(self.Lx, self.Ly)
     self.boundary = boundary
-
+    self.boundary_sites = []  # sites on the boundary.
+    if self.boundary == 'periodic':
+      total_unit_cells = self.Lx * self.Ly
+      sites_unit_cell = 6
+      self.boundary_sites = [
+          3, 5, 9, 11,
+          (total_unit_cells - 2) * sites_unit_cell,
+          (total_unit_cells - 2) * sites_unit_cell + 2,
+          (total_unit_cells - 1) * sites_unit_cell,
+          (total_unit_cells - 1) * sites_unit_cell + 2,
+      ]
+  
   @property
   def vs(self) -> np.ndarray:
     return self._vs
@@ -381,6 +394,9 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       onsite_terms_z.append((-self.delta / 2., ('I', i)))
     for i in range(self.n_sites):
       onsite_terms_x.append((self.omega / 2., ('x', i)))
+    for i in self.boundary_sites:
+      onsite_terms_z.append((-self.boundary_z_field / 2., ('z', i)))
+      onsite_terms_z.append((-self.boundary_z_field / 2., ('I', i)))
     return [onsite_terms_z, onsite_terms_x]
 
   def _get_all_terms_groups(self) -> list[types.TermsTuple]:
@@ -421,12 +437,16 @@ class RubyRydbergVanderwaals(RubyRydberg):
       Lx: int,
       Ly: int,
       delta: float = 5.0,
+      boundary_z_field: float = 0.,
       rho: float = np.sqrt(3.),
       rb: float = 3.8,
       omega: float = 1.,
       boundary: str = 'open',
   ):
-    super().__init__(Lx, Ly, delta, rho, omega, boundary)
+    super().__init__(
+        Lx=Lx, Ly=Ly, delta=delta, boundary_z_field=boundary_z_field, rho=rho,
+        omega=omega, boundary=boundary
+    )
     self.rb = rb
     self._vs = np.array([(rb / r)**6 for r in self.nb_ratio_fn(self.rho)])
 
@@ -438,12 +458,16 @@ class RubyRydbergPXP(RubyRydberg):
       Lx: int,
       Ly: int,
       delta: float = 5.0,
+      boundary_z_field: float = 0.,
       rho: float = np.sqrt(3.),
       rb: float = 3.8,
       omega: float = 1.,
       boundary: str = 'open',
   ):
-    super().__init__(Lx, Ly, delta, rho, omega, boundary)
+    super().__init__(
+        Lx=Lx, Ly=Ly, delta=delta, boundary_z_field=boundary_z_field, rho=rho,
+        omega=omega, boundary=boundary
+    )
     self.rb = rb
     self._vs = (rb/(self.nb_ratio_fn(self.rho)[-1]))**6 * np.ones(
       len(self.nb_radii))
