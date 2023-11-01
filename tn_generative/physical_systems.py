@@ -302,14 +302,17 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     if self.boundary == 'periodic':
       total_unit_cells = self.Lx * self.Ly
       sites_unit_cell = 6
-      self.boundary_sites = [
-          3, 5, 9, 11,
-          (total_unit_cells - 2) * sites_unit_cell,
-          (total_unit_cells - 2) * sites_unit_cell + 2,
-          (total_unit_cells - 1) * sites_unit_cell,
-          (total_unit_cells - 1) * sites_unit_cell + 2,
-      ]
-  
+      left_boundary_sites = np.concatenate([
+          np.array([3, 5]) + sites_unit_cell * i for i in range(self.Ly)
+      ])
+      right_boundary_sites = np.concatenate([
+          np.array([0, 2]) + (
+          total_unit_cells - 1 - i) * sites_unit_cell for i in range(self.Ly)
+      ])
+      self.boundary_sites = np.concatenate(
+          [left_boundary_sites, right_boundary_sites]
+      )
+
   @property
   def vs(self) -> np.ndarray:
     return self._vs
