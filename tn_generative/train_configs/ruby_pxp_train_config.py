@@ -25,9 +25,9 @@ def get_dataset_name(
   unique_match = 0  # Check only one dataset is found.
   for name in filenames:
     regex = '_'.join([
-        DEFAULT_TASK_NAME + '*', # some file names have extra `boundary`
+        DEFAULT_TASK_NAME + '.*', # some file names have extra `boundary`
         sampler, f'{size_x=}', f'{size_y=}', 'd=(\d+)',
-        f'{delta=:.3f}', '*'+f'boundary={boundary}']
+        f'{delta=:.3f}', '.*'+f'boundary={boundary}']
     ) + '.nc'
     if re.search(regex, name) is not None:
       unique_match += 1

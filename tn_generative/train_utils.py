@@ -15,6 +15,7 @@ import tensorflow as tf
 
 
 from tn_generative import data_generation
+from tn_generative import data_utils
 from tn_generative import mps_utils
 from tn_generative import func_utils
 from tn_generative import regularizers
@@ -46,8 +47,8 @@ def measurement_log_likelihood(
 def batched_neg_ll_loss_fn(
     mps_arrays: Sequence[jax.Array],
     measurements: jax.Array,
-    bases: jax.Array | None = None,  # Question: why is `| None` here?
-):
+    bases: jax.Array | None = None,
+) -> float:
   """Batched negative log likelihood loss function."""
   batched_ll_fn = jax.vmap(measurement_log_likelihood, in_axes=(None, 0, 0))
   mps = qtn.MatrixProductState(arrays=mps_arrays)
@@ -121,11 +122,7 @@ def run_full_batch_training(
   """
   measurements = train_ds.measurement.values
   bases = train_ds.basis.values
-  # TODO(YT): better way to reload attrs from dataset.
-  # Add utils for physical_system: `to_xarray_attrs`, `from_xarray_attrs`.
-  ds_attrs = train_ds.attrs.copy()
-  ds_attrs.pop('name')
-  physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
+  physical_system = data_utils.physical_system_from_attrs_dict(train_ds.attrs)
   get_regularization_fn = REGULARIZER_REGISTRY[training_config.reg_name]
   if get_regularization_fn is not None:
     regularization_fn = get_regularization_fn(
@@ -165,23 +162,19 @@ def run_minibatch_trainig(
     num_training_steps: int,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, qtn.MatrixProductState]:
   """Runs training using adam on mini-batches of data.
-  
+
   Args:
     mps: initial state to train.
     train_ds: default tomography dataset containing `measurement`, `basis`.
     training_config: dictionary containing training configuration.
     num_training_steps: number of training steps.
-  
+
   Returns:
     train_df: pandas dataframe containing training loss and optimization step.
     eval_df: pandas dataframe containing evaluation metrics.
     trained_mps: trained MPS state.
   """
-  # TODO(YT): better way to reload attrs from dataset.
-  # Add utils for physical_system: `to_xarray_attrs`, `from_xarray_attrs`.
-  ds_attrs = train_ds.attrs.copy()
-  ds_attrs.pop('name')
-  physical_system = TASK_REGISTRY[train_ds.name](**ds_attrs)
+  physical_system = data_utils.physical_system_from_attrs_dict(train_ds.attrs)
   get_regularization_fn = REGULARIZER_REGISTRY[training_config.reg_name]
   if get_regularization_fn is not None:
     regularization_fn = get_regularization_fn(
@@ -216,7 +209,7 @@ def run_minibatch_trainig(
       (train_ds.measurement.values, train_ds.basis.values))
   tf_dataset = tf_dataset.shuffle(buffer_size=1024 * 20)
   tf_dataset = tf_dataset.cache()
-  tf_dataset = tf_dataset.batch(training_kwargs['batch_size'])  
+  tf_dataset = tf_dataset.batch(training_kwargs['batch_size'])
   tf_dataset = tf_dataset.repeat()  # makes it infinite.
   train_iter = tf_dataset.as_numpy_iterator()
 
