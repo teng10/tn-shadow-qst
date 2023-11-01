@@ -106,7 +106,7 @@ def run_full_batch_experiment(
   return complete_train_df, complete_eval_df, mps_sequences
 
 
-def main():
+def main(argv):
   config = FLAGS.train_config
   return run_full_batch_experiment(config)
 
