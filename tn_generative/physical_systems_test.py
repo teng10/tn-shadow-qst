@@ -14,12 +14,6 @@ class RubyRydbergTests(parameterized.TestCase):
     """Set up using ruby rydberg vanderwaals hamiltonian as an example."""
     self.ruby_system = physical_systems.RubyRydbergPXP(2, 2)
 
-  @parameterized.parameters(
-    {'Lx': 2, 'Ly': 2},
-    {'Lx': 3, 'Ly': 3},
-    {'Lx': 4, 'Ly': 3},
-    {'Lx': 5, 'Ly': 3},
-  )
   def test_lattice(self):
     """Test that the lattice can be generated."""
     self.assertTrue(hasattr(self.ruby_system , '_lattice'))
@@ -42,7 +36,7 @@ class RubyRydbergTests(parameterized.TestCase):
     {'Lx': 5, 'Ly': 2},
   )
   def test_boundary_field(self, Lx, Ly):
-    """."""
+    """Tests that the boundary sites are generated correctly for `Ly=2`."""
     total_unit_cells = Lx * Ly
     sites_unit_cell = 6
     ruby_system = physical_systems.RubyRydbergPXP(Lx, Ly, boundary='periodic')
