@@ -63,7 +63,13 @@ SWEEP_FN_REGISTRY = {
     )),
     'sweep_sc_4x2_fn': list(sweep_sc_nxm_fn(
         size_x=4, size_y=2, deltas=np.arange(0.5, 2.5, 0.05), bond_dims=(20, 60)
-    )),    
+    )),
+    'sweep_sc_3x3_fn': list(sweep_sc_nxm_fn(
+        size_x=3, size_y=3, deltas=np.arange(1.5, 1.85, 0.05), bond_dims=(40, 80)
+    )),
+    'sweep_sc_3x4_fn': list(sweep_sc_nxm_fn(
+        size_x=3, size_y=4, deltas=np.arange(1.5, 1.85, 0.05), bond_dims=(80, 120)
+    )),
 }
 
 
