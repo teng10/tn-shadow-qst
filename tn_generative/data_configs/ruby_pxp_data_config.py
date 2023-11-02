@@ -27,6 +27,7 @@ def sweep_param_fn(
       'task.kwargs.delta': delta,
       'task.kwargs.boundary': boundary,
       'dmrg.bond_dims': d,
+      'sampling.sampling_method': sampler,
       'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, 'boundary',
           sampler, f'{size_x=}', f'{size_y=}', f'{d=}', f'{delta=:.3f}',
           f'{boundary_z_field=}', f'boundary={boundary}',

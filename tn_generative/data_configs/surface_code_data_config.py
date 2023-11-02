@@ -20,6 +20,7 @@ def sweep_param_fn(
       'task.kwargs.size_x': size_x,
       'task.kwargs.size_y': size_y,
       'dmrg.bond_dims': d,
+      'sampling.sampling_method': sampler,
       'task.kwargs.onsite_z_field': onsite_z_field,
       'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, sampler,
           f'{size_x=}', f'{size_y=}', f'{d=}', f'{onsite_z_field=:.3f}']),
