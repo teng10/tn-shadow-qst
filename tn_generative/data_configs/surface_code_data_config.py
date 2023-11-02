@@ -64,7 +64,9 @@ SWEEP_FN_REGISTRY = {
         ) for x in [3, 5, 7, 9, 11, 13, 15]],
         start=[]
     ),
-    'sweep_sc_33x3_fn': list(surface_code_nxm_sweep_fn(33, 3, [5, 10])),
+    'sweep_sc_33x3_fn': list(surface_code_nxm_sweep_fn(
+        33, 3, [5], samplers=('xz_basis_sampler', 'x_or_z_basis_sampler'))
+    ),
 }
 
 

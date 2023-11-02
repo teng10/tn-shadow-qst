@@ -18,9 +18,10 @@ def get_dataset_name(
   """Select the right dataset filename from available filenames."""
   # COMMENT: these lines are currently too long, but I don't know how to break.
   filenames = [
-      '6262798_ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary=periodic.nc',
-      '6262798_ruby_pxp_boundary_x_y_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary=periodic.nc',
-      '6262798_ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary=periodic.nc',
+      '6755799_ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.000_boundary_z_field=-0.6_boundary=periodic.nc',
+      '6755799_ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary_z_field=-0.6_boundary=periodic.nc',
+      '6755799_ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.000_boundary_z_field=-0.6_boundary=periodic.nc',
+      '6755799_ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary_z_field=-0.6_boundary=periodic.nc',
   ]
   unique_match = 0  # Check only one dataset is found.
   for name in filenames:
@@ -128,7 +129,7 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_4x2_fn': list(sweep_nxm_ruby_fn(
         4, 2, train_bond_dims=(20, ), 
         samplers=('xz_basis_sampler', 'x_or_z_basis_sampler'), 
-        deltas=(1.7, ), train_betas=(0., )
+        deltas=(1.7, 1.), train_betas=(0., )
     )),    
 }
 

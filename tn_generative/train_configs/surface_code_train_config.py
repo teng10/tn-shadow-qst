@@ -23,20 +23,12 @@ def get_dataset_name(
       '66324730_surface_code_x_or_z_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.000.nc',
       '66325458_surface_code_x_or_z_basis_sampler_size_x=5_size_y=5_d=40_onsite_z_field=0.000.nc',
       '66325485_surface_code_x_or_z_basis_sampler_size_x=7_size_y=7_d=60_onsite_z_field=0.000.nc',
-      '4362342_surface_code_x_y_z_basis_sampler_size_x=7_size_y=7_d=40_onsite_z_field=0.000.nc',
-      '2771105_surface_code_xz_basis_sampler_size_x=3_size_y=5_d=10_onsite_z_field=0.000.nc',
-      '2771117_surface_code_xz_basis_sampler_size_x=3_size_y=7_d=20_onsite_z_field=0.000.nc',
-      '2771128_surface_code_xz_basis_sampler_size_x=3_size_y=9_d=40_onsite_z_field=0.000.nc',
-      '2868588_surface_code_xz_basis_sampler_size_x=3_size_y=11_d=80_onsite_z_field=0.000.nc',
+
       '2771105_surface_code_x_or_z_basis_sampler_size_x=3_size_y=5_d=10_onsite_z_field=0.000.nc',
       '2771117_surface_code_x_or_z_basis_sampler_size_x=3_size_y=7_d=20_onsite_z_field=0.000.nc',
       '2771128_surface_code_x_or_z_basis_sampler_size_x=3_size_y=9_d=40_onsite_z_field=0.000.nc',
       '2868588_surface_code_x_or_z_basis_sampler_size_x=3_size_y=11_d=80_onsite_z_field=0.000.nc',
-      '2867669_surface_code_x_y_z_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.000.nc',
-      '2771105_surface_code_x_y_z_basis_sampler_size_x=3_size_y=5_d=10_onsite_z_field=0.000.nc',
-      '2771117_surface_code_x_y_z_basis_sampler_size_x=3_size_y=7_d=20_onsite_z_field=0.000.nc',
-      '2771128_surface_code_x_y_z_basis_sampler_size_x=3_size_y=9_d=40_onsite_z_field=0.000.nc',
-      '2868588_surface_code_x_y_z_basis_sampler_size_x=3_size_y=11_d=80_onsite_z_field=0.000.nc',
+
       '3527909_surface_code_x_or_z_basis_sampler_size_x=11_size_y=3_d=5_onsite_z_field=0.000.nc',
       '3527909_surface_code_x_or_z_basis_sampler_size_x=11_size_y=3_d=5_onsite_z_field=0.100.nc',
       '3527909_surface_code_x_or_z_basis_sampler_size_x=13_size_y=3_d=5_onsite_z_field=0.000.nc',
@@ -50,32 +42,20 @@ def get_dataset_name(
       '3527909_surface_code_x_or_z_basis_sampler_size_x=7_size_y=3_d=5_onsite_z_field=0.100.nc',
       '3527909_surface_code_x_or_z_basis_sampler_size_x=9_size_y=3_d=5_onsite_z_field=0.000.nc',
       '3527909_surface_code_x_or_z_basis_sampler_size_x=9_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=11_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=11_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=13_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=13_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=15_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=15_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=3_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=5_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=5_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=7_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=7_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=9_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_x_y_z_basis_sampler_size_x=9_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=11_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=11_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=13_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=13_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=15_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=15_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=3_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=5_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=5_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=7_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=7_size_y=3_d=5_onsite_z_field=0.100.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=9_size_y=3_d=5_onsite_z_field=0.000.nc',
-      '3527909_surface_code_xz_basis_sampler_size_x=9_size_y=3_d=5_onsite_z_field=0.100.nc',
+
+      '6755832_surface_code_xz_basis_sampler_size_x=5_size_y=3_d=10_onsite_z_field=0.000.nc', 
+      '6755832_surface_code_xz_basis_sampler_size_x=7_size_y=3_d=10_onsite_z_field=0.000.nc', 
+      '6755832_surface_code_xz_basis_sampler_size_x=7_size_y=3_d=10_onsite_z_field=0.100.nc', 
+      '6755832_surface_code_xz_basis_sampler_size_x=5_size_y=3_d=10_onsite_z_field=0.100.nc', 
+      '6755832_surface_code_xz_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.100.nc', 
+      '6757142_surface_code_xz_basis_sampler_size_x=9_size_y=3_d=10_onsite_z_field=0.100.nc', 
+      '6757142_surface_code_xz_basis_sampler_size_x=13_size_y=3_d=10_onsite_z_field=0.100.nc', 
+      '6757142_surface_code_xz_basis_sampler_size_x=11_size_y=3_d=10_onsite_z_field=0.100.nc', 
+      '6757142_surface_code_xz_basis_sampler_size_x=15_size_y=3_d=10_onsite_z_field=0.100.nc', 
+      '6755832_surface_code_xz_basis_sampler_size_x=9_size_y=3_d=10_onsite_z_field=0.000.nc', 
+      '6757142_surface_code_xz_basis_sampler_size_x=15_size_y=3_d=10_onsite_z_field=0.000.nc', 
+      '6757142_surface_code_xz_basis_sampler_size_x=11_size_y=3_d=10_onsite_z_field=0.000.nc', 
+      '6757142_surface_code_xz_basis_sampler_size_x=13_size_y=3_d=10_onsite_z_field=0.000.nc', 
 
   ]
   unique_match = 0  # Check only one dataset is found.
@@ -155,7 +135,7 @@ def surface_code_nxm_sweep_fn(
     train_betas: tuple[float] = (0., 1., 5.),
     onsite_z_fields: tuple[float] = (0., ),
     samplers: tuple[str] = (
-        'x_y_z_basis_sampler', 'xz_basis_sampler', 'x_or_z_basis_sampler',
+        'xz_basis_sampler', 'x_or_z_basis_sampler',
     ),
 ):
   for init_seed in range(num_seeds):
@@ -182,20 +162,22 @@ SWEEP_FN_REGISTRY = {
     ),
     'sweep_sc_7x7_fn': list(
         surface_code_nxm_sweep_fn(
-          7, 7, (20, 40), 
-          samplers=('x_y_z_basis_sampler', 'x_or_z_basis_sampler', 
-          'xz_basis_sampler')), 
+          7, 7, (20, 40),
+          samplers=('x_or_z_basis_sampler', 'xz_basis_sampler')), 
     ),
-    'sweep_sc_3x5_fn': list(surface_code_nxm_sweep_fn(3, 5, (10, 20))),
-    'sweep_sc_3x7_fn': list(surface_code_nxm_sweep_fn(3, 7, (20, 30))),
-    'sweep_sc_3x9_fn': list(surface_code_nxm_sweep_fn(3, 9, (40, 50))),
-    'sweep_sc_3x11_fn': list(surface_code_nxm_sweep_fn(3, 11, (80, 100))),
+    # 'sweep_sc_3x5_fn': list(surface_code_nxm_sweep_fn(3, 5, (10, 20))),
+    # 'sweep_sc_3x7_fn': list(surface_code_nxm_sweep_fn(3, 7, (20, 30))),
+    # 'sweep_sc_3x9_fn': list(surface_code_nxm_sweep_fn(3, 9, (40, 50))),
+    # 'sweep_sc_3x11_fn': list(surface_code_nxm_sweep_fn(3, 11, (80, 100))),
     'sweep_sc_size_y_3_fn': sum(
-        [list(surface_code_nxm_sweep_fn(x, 3, [10])) for x in [3, 5, 7, 15]],
+        [list(surface_code_nxm_sweep_fn(x, 3, [10], 
+            samplers=('xz_basis_sampler', ), onsite_z_fields=(0., 0.1), )
+        ) for x in [3, 5, 7, 9, 15]],
         start=[]
     ),
     #TODO(YT): eventually generate this dataset.
-    # 'sweep_sc_33x3_fn': list(surface_code_nxm_sweep_fn(33, 3, (5, 10))),
+    # 'sweep_sc_33x3_fn': list(surface_code_nxm_sweep_fn(33, 3, (5, ), 
+    # onsite_z_fields=(0., 0.1), )),
 }
 
 
