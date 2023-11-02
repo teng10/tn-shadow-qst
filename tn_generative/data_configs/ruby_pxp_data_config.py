@@ -86,6 +86,7 @@ def get_config():
   config.task.name = DEFAULT_TASK_NAME
   config.task.kwargs = {
       'size_x': 2, 'size_y': 2, 'delta': 0., 'boundary': 'periodic',
+      'boundary_z_field': -0.6,
   }
   # sweep parameters.
   config.sweep_name = config_dict.placeholder(str)  # Could change this in slurm script
