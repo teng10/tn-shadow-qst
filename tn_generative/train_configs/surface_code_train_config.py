@@ -12,7 +12,7 @@ def get_dataset_name(
     sampler: str,
     size_x: int,
     size_y: int,
-    onsite_z_field: float, 
+    onsite_z_field: float,
  ) -> str:
   """Select the right dataset filename from available filenames."""
   # COMMENT: these lines are currently too long, but I don't know how to break.
@@ -43,19 +43,19 @@ def get_dataset_name(
       '3527909_surface_code_x_or_z_basis_sampler_size_x=9_size_y=3_d=5_onsite_z_field=0.000.nc',
       '3527909_surface_code_x_or_z_basis_sampler_size_x=9_size_y=3_d=5_onsite_z_field=0.100.nc',
 
-      '6755832_surface_code_xz_basis_sampler_size_x=5_size_y=3_d=10_onsite_z_field=0.000.nc', 
-      '6755832_surface_code_xz_basis_sampler_size_x=7_size_y=3_d=10_onsite_z_field=0.000.nc', 
-      '6755832_surface_code_xz_basis_sampler_size_x=7_size_y=3_d=10_onsite_z_field=0.100.nc', 
-      '6755832_surface_code_xz_basis_sampler_size_x=5_size_y=3_d=10_onsite_z_field=0.100.nc', 
-      '6755832_surface_code_xz_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.100.nc', 
-      '6757142_surface_code_xz_basis_sampler_size_x=9_size_y=3_d=10_onsite_z_field=0.100.nc', 
-      '6757142_surface_code_xz_basis_sampler_size_x=13_size_y=3_d=10_onsite_z_field=0.100.nc', 
-      '6757142_surface_code_xz_basis_sampler_size_x=11_size_y=3_d=10_onsite_z_field=0.100.nc', 
-      '6757142_surface_code_xz_basis_sampler_size_x=15_size_y=3_d=10_onsite_z_field=0.100.nc', 
-      '6755832_surface_code_xz_basis_sampler_size_x=9_size_y=3_d=10_onsite_z_field=0.000.nc', 
-      '6757142_surface_code_xz_basis_sampler_size_x=15_size_y=3_d=10_onsite_z_field=0.000.nc', 
-      '6757142_surface_code_xz_basis_sampler_size_x=11_size_y=3_d=10_onsite_z_field=0.000.nc', 
-      '6757142_surface_code_xz_basis_sampler_size_x=13_size_y=3_d=10_onsite_z_field=0.000.nc', 
+      '6755832_surface_code_xz_basis_sampler_size_x=5_size_y=3_d=10_onsite_z_field=0.000.nc',
+      '6755832_surface_code_xz_basis_sampler_size_x=7_size_y=3_d=10_onsite_z_field=0.000.nc',
+      '6755832_surface_code_xz_basis_sampler_size_x=7_size_y=3_d=10_onsite_z_field=0.100.nc',
+      '6755832_surface_code_xz_basis_sampler_size_x=5_size_y=3_d=10_onsite_z_field=0.100.nc',
+      '6755832_surface_code_xz_basis_sampler_size_x=3_size_y=3_d=10_onsite_z_field=0.100.nc',
+      '6757142_surface_code_xz_basis_sampler_size_x=9_size_y=3_d=10_onsite_z_field=0.100.nc',
+      '6757142_surface_code_xz_basis_sampler_size_x=13_size_y=3_d=10_onsite_z_field=0.100.nc',
+      '6757142_surface_code_xz_basis_sampler_size_x=11_size_y=3_d=10_onsite_z_field=0.100.nc',
+      '6757142_surface_code_xz_basis_sampler_size_x=15_size_y=3_d=10_onsite_z_field=0.100.nc',
+      '6755832_surface_code_xz_basis_sampler_size_x=9_size_y=3_d=10_onsite_z_field=0.000.nc',
+      '6757142_surface_code_xz_basis_sampler_size_x=15_size_y=3_d=10_onsite_z_field=0.000.nc',
+      '6757142_surface_code_xz_basis_sampler_size_x=11_size_y=3_d=10_onsite_z_field=0.000.nc',
+      '6757142_surface_code_xz_basis_sampler_size_x=13_size_y=3_d=10_onsite_z_field=0.000.nc',
 
   ]
   unique_match = 0  # Check only one dataset is found.
@@ -157,26 +157,27 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_3x3_fn': list(surface_code_nxm_sweep_fn(3, 3, (5, 10))),
     'sweep_sc_5x5_fn': list(
         surface_code_nxm_sweep_fn(
-            5, 5, (10, 20), 
+            5, 5, (10, 20),
             samplers=('xz_basis_sampler', 'x_or_z_basis_sampler')),
     ),
     'sweep_sc_7x7_fn': list(
         surface_code_nxm_sweep_fn(
           7, 7, (20, 40),
-          samplers=('x_or_z_basis_sampler', 'xz_basis_sampler')), 
+          samplers=('x_or_z_basis_sampler', 'xz_basis_sampler')),
     ),
     # 'sweep_sc_3x5_fn': list(surface_code_nxm_sweep_fn(3, 5, (10, 20))),
     # 'sweep_sc_3x7_fn': list(surface_code_nxm_sweep_fn(3, 7, (20, 30))),
     # 'sweep_sc_3x9_fn': list(surface_code_nxm_sweep_fn(3, 9, (40, 50))),
     # 'sweep_sc_3x11_fn': list(surface_code_nxm_sweep_fn(3, 11, (80, 100))),
     'sweep_sc_size_y_3_fn': sum(
-        [list(surface_code_nxm_sweep_fn(x, 3, [10], 
-            samplers=('xz_basis_sampler', ), onsite_z_fields=(0., 0.1), )
+        [list(surface_code_nxm_sweep_fn(x, 3, [10],
+            samplers=('x_or_z_basis_sampler', 'xz_basis_sampler', ), onsite_z_fields=(0., 0.1),
+            num_seeds=5, )
         ) for x in [3, 5, 7, 9, 15]],
         start=[]
     ),
     #TODO(YT): eventually generate this dataset.
-    # 'sweep_sc_33x3_fn': list(surface_code_nxm_sweep_fn(33, 3, (5, ), 
+    # 'sweep_sc_35x3_fn': list(surface_code_nxm_sweep_fn(35, 3, (5, ),
     # onsite_z_fields=(0., 0.1), )),
 }
 
@@ -222,7 +223,7 @@ def get_config():
       'batch_size': 1024, 'record_loss_interval': 50
   }
   minibatch_pretrain_config.opt_kwargs = {'learning_rate': 1e-4}
-  minibatch_pretrain_config.reg_name = 'none'    
+  minibatch_pretrain_config.reg_name = 'none'
   # lbfgs training config.
   lbfgs_finetune_config = config_dict.ConfigDict()
   lbfgs_finetune_config.training_scheme = 'lbfgs'
