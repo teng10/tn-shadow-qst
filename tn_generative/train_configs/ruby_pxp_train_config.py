@@ -18,9 +18,10 @@ def get_dataset_name(
   """Select the right dataset filename from available filenames."""
   # COMMENT: these lines are currently too long, but I don't know how to break.
   filenames = [
-      '6262798_ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary=periodic.nc',
-      '6262798_ruby_pxp_boundary_x_y_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary=periodic.nc',
-      '6262798_ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary=periodic.nc',
+      '6755799_ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.000_boundary_z_field=-0.6_boundary=periodic.nc',
+      '6755799_ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary_z_field=-0.6_boundary=periodic.nc',
+      '6755799_ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.000_boundary_z_field=-0.6_boundary=periodic.nc',
+      '6755799_ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary_z_field=-0.6_boundary=periodic.nc',
   ]
   unique_match = 0  # Check only one dataset is found.
   for name in filenames:
@@ -71,7 +72,7 @@ def sweep_param_fn(
     dictionary of parameters for a single sweep.
   """
   if train_beta != 0. and reg_name == 'none':
-    raise ValueError(f'Not meaningful {reg_name=} for {train_beta=}')  
+    raise ValueError(f'Not meaningful {reg_name=} for {train_beta=}')
   return {
       'model.bond_dim': train_d,
       'data.num_training_samples': train_num_samples,
@@ -126,10 +127,10 @@ def sweep_nxm_ruby_fn(
 
 SWEEP_FN_REGISTRY = {
     'sweep_sc_4x2_fn': list(sweep_nxm_ruby_fn(
-        4, 2, train_bond_dims=(20, ), 
-        samplers=('xz_basis_sampler', 'x_or_z_basis_sampler'), 
-        deltas=(1.7, ), train_betas=(0., )
-    )),    
+        4, 2, train_bond_dims=(20, 40),
+        samplers=('xz_basis_sampler', 'x_or_z_basis_sampler'),
+        deltas=(1.7, 1.), train_betas=(0., )
+    )),
 }
 
 
@@ -154,7 +155,7 @@ def get_config():
       'delta': 1.7, 'boundary': 'open',
   }  # This is saved in the config dataframe.
   config.data.filename = '_'.join([
-      '0', config.data.kwargs['task_name'], 
+      '0', config.data.kwargs['task_name'],
       config.data.kwargs['sampler'], 'size_x=2', 'size_y=2',
       'd=20', 'delta=1.7000', 'open.nc']
   )
@@ -174,7 +175,7 @@ def get_config():
       'batch_size': 256, 'record_loss_interval': 50
   }
   minibatch_pretrain_config.opt_kwargs = {'learning_rate': 1e-4}
-  minibatch_pretrain_config.reg_name = 'none'    
+  minibatch_pretrain_config.reg_name = 'none'
   # lbfgs training config.
   lbfgs_finetune_config = config_dict.ConfigDict()
   lbfgs_finetune_config.training_scheme = 'lbfgs'
@@ -187,7 +188,7 @@ def get_config():
   # can be accessed via --config.training.training_schemes.
   # train through minibatch for 50 steps first, then lbfgs for 50 steps.
   config.training.training_sequence = ('minibatch_no_reg', 'lbfgs_reg')
-  config.training.steps_sequence = (15000, 300)
+  config.training.steps_sequence = (20000, 400)
   # Save options.
   config.results = config_dict.ConfigDict()
   config.results.save_results = True

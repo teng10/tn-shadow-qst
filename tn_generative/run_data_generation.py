@@ -89,7 +89,7 @@ def generate_data(config):
     filepath = os.path.join(data_dir, filename)
     #TODO(YT): remove/add extension e.g. os.path.splitext(name)[0] + '.nc'
     ds.to_netcdf(filepath + '.nc')
-    np.save(filepath, np.array(dmrg.energies))
+    # np.save(filepath, np.array(dmrg.energies))  #TODO(YT): add dmrg debug.
   return ds
 
 

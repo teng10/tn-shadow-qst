@@ -27,6 +27,7 @@ def sweep_param_fn(
       'task.kwargs.delta': delta,
       'task.kwargs.boundary': boundary,
       'dmrg.bond_dims': d,
+      'sampling.sampling_method': sampler,
       'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, 'boundary',
           sampler, f'{size_x=}', f'{size_y=}', f'{d=}', f'{delta=:.3f}',
           f'{boundary_z_field=}', f'boundary={boundary}',
@@ -62,7 +63,8 @@ SWEEP_FN_REGISTRY = {
         size_x=3, size_y=2, deltas=np.arange(0.5, 2.5, 0.05), bond_dims=(20, 40)
     )),
     'sweep_sc_4x2_fn': list(sweep_sc_nxm_fn(
-        size_x=4, size_y=2, deltas=np.arange(0.5, 2.5, 0.05), bond_dims=(20, 60)
+        size_x=4, size_y=2, deltas=np.arange(1., 2., 0.1),
+        bond_dims=(60, ), samplers=('xz_basis_sampler', 'x_or_z_basis_sampler')
     )),
     'sweep_sc_3x3_fn': list(sweep_sc_nxm_fn(
         size_x=3, size_y=3, deltas=np.arange(1.5, 1.85, 0.05), bond_dims=(40, 80)
@@ -85,6 +87,7 @@ def get_config():
   config.task.name = DEFAULT_TASK_NAME
   config.task.kwargs = {
       'size_x': 2, 'size_y': 2, 'delta': 0., 'boundary': 'periodic',
+      'boundary_z_field': -0.6,
   }
   # sweep parameters.
   config.sweep_name = config_dict.placeholder(str)  # Could change this in slurm script

@@ -20,6 +20,7 @@ def sweep_param_fn(
       'task.kwargs.size_x': size_x,
       'task.kwargs.size_y': size_y,
       'dmrg.bond_dims': d,
+      'sampling.sampling_method': sampler,
       'task.kwargs.onsite_z_field': onsite_z_field,
       'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, sampler,
           f'{size_x=}', f'{size_y=}', f'{d=}', f'{onsite_z_field=:.3f}']),
@@ -48,17 +49,24 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_3x3_fn': list(surface_code_nxm_sweep_fn(3, 3, [5, 10])),
     'sweep_sc_5x5_fn': list(surface_code_nxm_sweep_fn(5, 5, [20, 40])),
     'sweep_sc_7x7_fn': list(surface_code_nxm_sweep_fn(7, 7, [40, 60])),
-    'sweep_sc_3x5_fn': list(surface_code_nxm_sweep_fn(3, 5, [10, 20])),
-    'sweep_sc_3x7_fn': list(surface_code_nxm_sweep_fn(3, 7, [10, 20])),
-    'sweep_sc_3x9_fn': list(surface_code_nxm_sweep_fn(3, 9, [20, 40])),
-    'sweep_sc_3x11_fn': list(surface_code_nxm_sweep_fn(3, 11, [40, 60])),
+    'sweep_sc_3x5_fn': list(surface_code_nxm_sweep_fn(
+        3, 5, [10, 20], samplers=('xz_basis_sampler', ))),
+    'sweep_sc_3x7_fn': list(surface_code_nxm_sweep_fn(
+        3, 7, [10, 20], samplers=('xz_basis_sampler', ))),
+    'sweep_sc_3x9_fn': list(surface_code_nxm_sweep_fn(
+        3, 9, [20, 40], samplers=('xz_basis_sampler', ))),
+    'sweep_sc_3x11_fn': list(surface_code_nxm_sweep_fn(3, 11, [40, 60],
+        samplers=('xz_basis_sampler', ))),
     'sweep_sc_size_y_3_fn': sum(
         [list(
-            surface_code_nxm_sweep_fn(x, 3, [5, 10])
+            surface_code_nxm_sweep_fn(x, 3, [10, ],
+            samplers=('xz_basis_sampler', ))
         ) for x in [3, 5, 7, 9, 11, 13, 15]],
         start=[]
     ),
-    'sweep_sc_33x3_fn': list(surface_code_nxm_sweep_fn(33, 3, [5, 10])),
+    'sweep_sc_35x3_fn': list(surface_code_nxm_sweep_fn(
+        35, 3, [5], samplers=('xz_basis_sampler', 'x_or_z_basis_sampler'))
+    ),
 }
 
 
