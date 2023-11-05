@@ -8,64 +8,56 @@ home = os.path.expanduser('~')
 DEFAULT_TASK_NAME = 'cluster_state'
 
 
-def sweep_param_fn(system_size, d, onsite_z_field, sampler):
+def sweep_param_fn(
+    size_x: int,
+    size_y: int,
+    d: int,
+    onsite_z_field: float,
+    sampler: str,
+) -> dict:
   """Helper function for constructing sweep parameters."""
   return {
-      'task.kwargs.size_x': system_size,
-      'task.kwargs.size_y': system_size,
+      'task.kwargs.size_x': size_x,
+      'task.kwargs.size_y': size_y,
       'dmrg.bond_dims': d,
+      'sampling.sampling_method': sampler,
       'task.kwargs.onsite_z_field': onsite_z_field,
       'output.filename':  '_'.join(['%JOB_ID', DEFAULT_TASK_NAME, sampler,
-          f'{system_size=}', f'{d=}', f'{onsite_z_field=:.3f}']),
+          f'{size_x=}', f'{size_y=}', f'{d=}', f'{onsite_z_field=:.3f}']),
   }
 
 
-def sweep_sc_3x3_fn():
-  # 3x3 sites cluster state sweep
-  for system_size in [3]:
-    for d in [10, 20]:
-      for onsite_z_field in np.linspace(0., 0.2, 11):
-        for sampler in [
-            'xz_basis_sampler', 'xz_neel_basis_sampler', 'x_or_z_basis_sampler',
-            'x_y_z_basis_sampler',
-        ]:
-          yield sweep_param_fn(system_size, d, onsite_z_field, sampler)
-
-
-def sweep_sc_5x5_fn():
-  # 5x5 sites cluster state sweep
-  for system_size in [5]:
-    for d in [20, 40]:
-      for onsite_z_field in np.linspace(0., 0.2, 11):
-        for sampler in [
-            'xz_basis_sampler', 'xz_neel_basis_sampler', 'x_or_z_basis_sampler',
-            'x_y_z_basis_sampler',
-        ]:
-          yield sweep_param_fn(system_size, d, onsite_z_field, sampler)
-
-
-def sweep_sc_7x7_fn():
-  # 7x7 sites cluster state sweep
-  for system_size in [7]:
-    for d in [40, 60]:
-      for onsite_z_field in np.linspace(0., 0.2, 11):
-        for sampler in [
-            'xz_basis_sampler', 'xz_neel_basis_sampler', 'x_or_z_basis_sampler',
-            'x_y_z_basis_sampler',
-        ]:
-          yield sweep_param_fn(system_size, d, onsite_z_field, sampler)
+def cluster_state_nxm_sweep_fn(
+    size_x: int,
+    size_y: int,
+    bond_dims: list[int],
+    onsite_z_fields: np.ndarray = np.array([0., ]),
+    samplers: tuple[str] = (
+        'xz_neel_basis_sampler', 'x_or_z_basis_sampler', 'x_y_z_basis_sampler'
+    ),
+):
+  """Sweep over cluster state data configs."""
+  for d in bond_dims:
+    for onsite_z_field in onsite_z_fields:
+      for sampler in samplers:
+        yield sweep_param_fn(size_x=size_x, size_y=size_y, d=d,
+            onsite_z_field=onsite_z_field, sampler=sampler
+        )
 
 
 SWEEP_FN_REGISTRY = {
-    "sweep_sc_3x3_fn": list(sweep_sc_3x3_fn()),
-    "sweep_sc_5x5_fn": list(sweep_sc_5x5_fn()),
-    "sweep_sc_7x7_fn": list(sweep_sc_7x7_fn())
+    'sweep_sc_3x3_fn': list(cluster_state_nxm_sweep_fn(3, 3, [5, 10])),
+    'sweep_sc_5x5_fn': list(cluster_state_nxm_sweep_fn(5, 5, [10, 20])),
+    'sweep_sc_7x7_fn': list(cluster_state_nxm_sweep_fn(7, 7, [20, 30])),
 }
 
 
 def get_config():
   """config for cluster state data generation."""
   config = config_dict.ConfigDict()
+  # job properties
+  config.job_id = config_dict.placeholder(int)
+  config.task_id = config_dict.placeholder(int)
   # Task configuration.
   config.dtype = 'complex128'
   config.task = config_dict.ConfigDict()
