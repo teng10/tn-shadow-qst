@@ -77,6 +77,7 @@ def generate_data(config):
   ds = xr.merge([ds, ds_properties])
   ds['energy'] = dmrg.energy
   ds['energy_variance'] = energy_variance
+  ds['entropy'] = mps.entropy(mps.L // 2)
   ds.attrs = data_utils.physical_system_to_attrs_dict(task_system)
   ds.attrs['convergence'] = int(convergence)
   # Saving data
