@@ -18,10 +18,10 @@ def get_dataset_name(
   """Select the right dataset filename from available filenames."""
   # COMMENT: these lines are currently too long, but I don't know how to break.
   filenames = [
-      '6755799_ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.000_boundary_z_field=-0.6_boundary=periodic.nc',
-      '6755799_ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary_z_field=-0.6_boundary=periodic.nc',
-      '6755799_ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.000_boundary_z_field=-0.6_boundary=periodic.nc',
-      '6755799_ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary_z_field=-0.6_boundary=periodic.nc',
+      'ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=0.500_boundary_z_field=-0.6_boundary=periodic.nc',
+      'ruby_pxp_boundary_x_or_z_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary_z_field=-0.6_boundary=periodic.nc',
+      'ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=0.500_boundary_z_field=-0.6_boundary=periodic.nc',
+      'ruby_pxp_boundary_xz_basis_sampler_size_x=4_size_y=2_d=60_delta=1.700_boundary_z_field=-0.6_boundary=periodic.nc',
   ]
   unique_match = 0  # Check only one dataset is found.
   for name in filenames:
@@ -110,10 +110,10 @@ def sweep_nxm_ruby_fn(
     ),
     boundary: str = 'periodic',
 ):
-  for init_seed in range(num_seeds):
-    for sampler in samplers:
-      for delta in deltas:
-        for train_d in train_bond_dims:
+  for train_d in train_bond_dims:
+    for init_seed in range(num_seeds):
+      for sampler in samplers:
+        for delta in deltas:
           for train_num_samples in train_samples:
             for train_beta in train_betas:
               yield sweep_param_fn(
@@ -127,9 +127,9 @@ def sweep_nxm_ruby_fn(
 
 SWEEP_FN_REGISTRY = {
     'sweep_sc_4x2_fn': list(sweep_nxm_ruby_fn(
-        4, 2, train_bond_dims=(20, 40),
+        4, 2, train_bond_dims=(20, 40, 60),
         samplers=('xz_basis_sampler', 'x_or_z_basis_sampler'),
-        deltas=(1.7, 1.), train_betas=(0., )
+        deltas=(1.7, 0.5), train_betas=(0., ), num_seeds=5,
     )),
 }
 
@@ -188,7 +188,7 @@ def get_config():
   # can be accessed via --config.training.training_schemes.
   # train through minibatch for 50 steps first, then lbfgs for 50 steps.
   config.training.training_sequence = ('minibatch_no_reg', 'lbfgs_reg')
-  config.training.steps_sequence = (20000, 400)
+  config.training.steps_sequence = (30000, 400)
   # Save options.
   config.results = config_dict.ConfigDict()
   config.results.save_results = True
