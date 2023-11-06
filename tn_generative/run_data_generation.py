@@ -51,7 +51,7 @@ def generate_data(config):
     convergence = dmrg.solve(**config.dmrg.solve_kwargs)
     mps = dmrg.state.copy()
     mps = mps.canonize(0)  # canonicalize MPS.
-    # TODO(YT): add dmrg data analysis.
+    # TODO(YT): add dmrg data analysis module.
     energy_variance = (
         mps.H @ (task_mpo.apply(task_mpo.apply(mps))) - dmrg.energy**2
     )
@@ -61,15 +61,15 @@ def generate_data(config):
     ds_properties['entropy'] = mps.entropy(mps.L // 2)
     ds_properties['max_bond'] = mps.max_bond()
     ds_properties['convergence'] = int(convergence)
+    ds_properties.attrs = data_utils.physical_system_to_attrs_dict(task_system)
+    target_mps_ds = mps_utils.mps_to_xarray(mps)
+    ds_properties = xr.merge([target_mps_ds, ds_properties])    
   elif (not config.dmrg.run) and (config.sampling.mps_filepath is not None):
     mps_ds = xr.load_dataset(config.sampling.mps_filepath)
     mps_ds = data_utils.combine_complex_ds(mps_ds)
     mps = mps_utils.xarray_to_mps(mps_ds)
-    mps.canonize(0)
+    mps = mps.canonize(0)
     ds_properties = mps_ds.copy()
-    ds_properties = ds_properties.drop([
-        'left_tensor', 'right_tensor', 'bulk_tensor'
-    ])
   else:
     raise ValueError(f'Either run DMRG or load MPS; but {config.dmrg.run=} and \
         loading mps is {config.sampling.mps_filepath=}'
@@ -91,11 +91,7 @@ def generate_data(config):
   )
   combos = {'sample': np.arange(config.sampling.num_samples)}
   ds = runner.run_combos(combos, parallel=False)
-  target_mps_ds = mps_utils.mps_to_xarray(mps)
-  ds = xr.merge([target_mps_ds, ds])
   ds = xr.merge([ds, ds_properties])
-  ds.attrs = data_utils.physical_system_to_attrs_dict(task_system)
-  # ds.attrs['convergence'] = int(convergence)
   # Saving data
   if config.output.save_data:
     data_dir = config.output.data_dir.replace('%CURRENT_DATE', current_date)
