@@ -46,11 +46,11 @@ def merge_pd_tiled_config(df, config_df):
   return complete_df
 
 
-def compute_onsite_pauli_expectations(ds, physical_system):
+def compute_onsite_pauli_expectations(mps, physical_system):
   """Compute the expectation value of the onsite Pauli operators.
 
   Args:
-    ds: An xarray dataset containing the MPS state.
+    mps: an MPS to compute properties of.
     physical_system: A task system.
 
   Returns:
@@ -59,7 +59,6 @@ def compute_onsite_pauli_expectations(ds, physical_system):
     onsite_y_expectation: A list of expectation values of the onsite Pauli Y operators.
   """
   # COMMENT: could write dmrg_analysis_utils instead.
-  mps = mps_utils.xarray_to_mps(ds)
   onsite_z_terms = [(1., ('z', i)) for i in range(physical_system.n_sites)]
   onsite_z_mpos = physical_system.get_obs_mpos(onsite_z_terms)
   onsite_z_expectation = np.array(

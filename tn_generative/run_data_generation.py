@@ -42,18 +42,38 @@ def generate_data(config):
   dtype = DTYPES_REGISTRY[config.dtype]
   task_system = TASK_REGISTRY[config.task.name](**config.task.kwargs)
   task_mpo = task_system.get_ham()
-  # Running DMRG
-  qtn.contraction.set_tensor_linop_backend('numpy')
-  qtn.contraction.set_contract_backend('numpy')
-  mps = qtn.MPS_rand_state(task_mpo.L, config.dmrg.bond_dims, dtype=dtype)
-  dmrg = qtn.DMRG1(task_mpo, bond_dims=config.dmrg.bond_dims, p0=mps)
-  convergence = dmrg.solve(**config.dmrg.solve_kwargs)
-  mps = dmrg.state.copy()
-  mps = mps.canonize(0)  # canonicalize MPS.
-  # TODO(YT): add dmrg data analysis.
-  energy_variance = (
-      mps.H @ (task_mpo.apply(task_mpo.apply(mps))) - dmrg.energy**2
-  )
+  if config.dmrg.run and (config.sampling.mps_filepath is None):
+    # Running DMRG
+    qtn.contraction.set_tensor_linop_backend('numpy')
+    qtn.contraction.set_contract_backend('numpy')
+    mps = qtn.MPS_rand_state(task_mpo.L, config.dmrg.bond_dims, dtype=dtype)
+    dmrg = qtn.DMRG1(task_mpo, bond_dims=config.dmrg.bond_dims, p0=mps)
+    convergence = dmrg.solve(**config.dmrg.solve_kwargs)
+    mps = dmrg.state.copy()
+    mps = mps.canonize(0)  # canonicalize MPS.
+    # TODO(YT): add dmrg data analysis.
+    energy_variance = (
+        mps.H @ (task_mpo.apply(task_mpo.apply(mps))) - dmrg.energy**2
+    )
+    ds_properties = data_utils.compute_onsite_pauli_expectations(mps, task_system)
+    ds_properties['energy'] = dmrg.energy
+    ds_properties['energy_variance'] = energy_variance
+    ds_properties['entropy'] = mps.entropy(mps.L // 2)
+    ds_properties['max_bond'] = mps.max_bond()
+    ds_properties['convergence'] = int(convergence)
+  elif (not config.dmrg.run) and (config.sampling.mps_filepath is not None):
+    mps_ds = xr.load_dataset(config.sampling.mps_filepath)
+    mps_ds = data_utils.combine_complex_ds(mps_ds)
+    mps = mps_utils.xarray_to_mps(mps_ds)
+    mps.canonize(0)
+    ds_properties = mps_ds.copy()
+    ds_properties = ds_properties.drop([
+        'left_tensor', 'right_tensor', 'bulk_tensor'
+    ])
+  else:
+    raise ValueError(f'Either run DMRG or load MPS; but {config.dmrg.run=} and \
+        loading mps is {config.sampling.mps_filepath=}'
+    )
   # Running data generation
   qtn.contraction.set_tensor_linop_backend('jax')
   qtn.contraction.set_contract_backend('jax')
@@ -73,13 +93,9 @@ def generate_data(config):
   ds = runner.run_combos(combos, parallel=False)
   target_mps_ds = mps_utils.mps_to_xarray(mps)
   ds = xr.merge([target_mps_ds, ds])
-  ds_properties = data_utils.compute_onsite_pauli_expectations(ds, task_system)
   ds = xr.merge([ds, ds_properties])
-  ds['energy'] = dmrg.energy
-  ds['energy_variance'] = energy_variance
-  ds['entropy'] = mps.entropy(mps.L // 2)
   ds.attrs = data_utils.physical_system_to_attrs_dict(task_system)
-  ds.attrs['convergence'] = int(convergence)
+  # ds.attrs['convergence'] = int(convergence)
   # Saving data
   if config.output.save_data:
     data_dir = config.output.data_dir.replace('%CURRENT_DATE', current_date)
