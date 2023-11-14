@@ -55,21 +55,21 @@ def generate_data(config):
     energy_variance = (
         mps.H @ (task_mpo.apply(task_mpo.apply(mps))) - dmrg.energy**2
     )
-    ds_properties = data_utils.compute_onsite_pauli_expectations(mps, task_system)
-    ds_properties['energy'] = dmrg.energy
-    ds_properties['energy_variance'] = energy_variance
-    ds_properties['entropy'] = mps.entropy(mps.L // 2)
-    ds_properties['max_bond'] = mps.max_bond()
-    ds_properties['convergence'] = int(convergence)
-    ds_properties.attrs = data_utils.physical_system_to_attrs_dict(task_system)
+    mps_properties = data_utils.compute_onsite_pauli_expectations(mps, task_system)
+    mps_properties['energy'] = dmrg.energy
+    mps_properties['energy_variance'] = energy_variance
+    mps_properties['entropy'] = mps.entropy(mps.L // 2)
+    mps_properties['max_bond'] = mps.max_bond()
+    mps_properties['convergence'] = int(convergence)
+    mps_properties.attrs = data_utils.physical_system_to_attrs_dict(task_system)
     target_mps_ds = mps_utils.mps_to_xarray(mps)
-    ds_properties = xr.merge([target_mps_ds, ds_properties])    
+    mps_properties = xr.merge([target_mps_ds, mps_properties])    
   elif (not config.dmrg.run) and (config.sampling.mps_filepath is not None):
     mps_ds = xr.load_dataset(config.sampling.mps_filepath)
     mps_ds = data_utils.combine_complex_ds(mps_ds)
     mps = mps_utils.xarray_to_mps(mps_ds)
     mps = mps.canonize(0)
-    ds_properties = mps_ds.copy()
+    mps_properties = mps_ds.copy()
   else:
     raise ValueError(f'Either run DMRG or load MPS; but {config.dmrg.run=} and \
         loading mps is {config.sampling.mps_filepath=}'
@@ -91,7 +91,7 @@ def generate_data(config):
   )
   combos = {'sample': np.arange(config.sampling.num_samples)}
   ds = runner.run_combos(combos, parallel=False)
-  ds = xr.merge([ds, ds_properties])
+  ds = xr.merge([ds, mps_properties])
   # Saving data
   if config.output.save_data:
     data_dir = config.output.data_dir.replace('%CURRENT_DATE', current_date)
