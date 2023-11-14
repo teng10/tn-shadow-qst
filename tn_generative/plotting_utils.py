@@ -4,8 +4,8 @@ from tn_generative import lattices
 from tn_generative import node_collections
 
 
-def plot_lattice(la: lattices.Lattice, ax, annotate: bool = False):
-  ax.scatter(*la.points.T)
+def plot_lattice(la: lattices.Lattice, ax, annotate: bool = False, c='k'):
+  ax.scatter(*la.points.T, c=c)
   if annotate:
     for i in range(la.n_sites):
       ax.annotate(str(i), la.points[i])
