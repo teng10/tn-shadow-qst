@@ -138,16 +138,16 @@ def estimate_observable(
     raise ValueError(f'Unexpected estimation method {method}.')
 
 
-def estimate_density_matrices(
+def estimate_density_matrix(
   mps: qtn.MatrixProductState,
   subsystem: Sequence[int],
   method: str = 'mps',
 ) -> qtn.MatrixProductOperator:
-  """Estimates reduced density matrices as `mpo` from `mps` using `method`.
+  """Estimates reduced density matrix as `mpo` from `mps` using `method`.
 
   Args:
-    mps: MPS for which to estimate reduce density matrices.
-    subsystem: subsystem indices for which to estimate reduced density matrices.
+    mps: MPS for which to estimate reduce density matrix.
+    subsystem: subsystem indices for which to estimate reduced density matrix.
     method: method to use for estimation. Should we either `mps`, `shadow` or
     `placeholder`. Default is exact computation using 'mps'.
 

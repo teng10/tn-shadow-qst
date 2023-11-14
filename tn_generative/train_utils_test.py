@@ -44,5 +44,6 @@ class RunTrainingTests(absltest.TestCase):
     config.update_from_flattened_dict(self.default_options)
     run_training.run_full_batch_experiment(config)
 
+
   if __name__ == '__main__':
     absltest.main()

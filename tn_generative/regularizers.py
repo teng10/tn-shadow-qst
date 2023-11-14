@@ -92,7 +92,7 @@ def get_pauli_z_reg_fn(
   )
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
-    )  
+    )
   pauli_z_estimates = np.array(
       [estimator_fn(ds, pauli_z) for pauli_z in pauli_z_mpos]
   )
@@ -107,15 +107,49 @@ def get_pauli_z_reg_fn(
   return reg_fn
 
 
-@register_reg_fn('density_matrix')
-def get_hamiltonian_reg_fn(
+def _get_subsystems(
+    physical_system: PhysicalSystem,
+    method: Optional[str] = None,
+    explicit_subsystems: Optional[list[Sequence[int]]] = None,
+) -> list[Sequence[int]]:
+  """Wrapper function to get subsystem indices.
+
+  Args:
+    physical_system: physical system where the dataset is generated from.
+    method: method used to get subsystem indices.
+    explicit_subsystems: explicit subsystem indices to use.
+
+  Returns:
+    list of subsystem indices.
+  """
+  if method == 'hamiltonian':
+    try:
+      subsystems = physical_system.get_subsystems(method=method)
+    except NotImplementedError:
+      raise (f'{method=} is not implemented for {physical_system}.')
+  elif method == 'explicit':
+    if explicit_subsystems is not None:
+      subsystems = explicit_subsystems
+      if np.max(subsystems) >= physical_system.n_sites:
+        raise ValueError(f'{subsystems=} exceeds {physical_system.n_sites}.')
+    else:
+      raise ValueError(f'{method=} requires {explicit_subsystems=}.')
+  else:
+    raise ValueError(f'Unexpected {method=} is not implemented.')
+  return subsystems
+
+
+@register_reg_fn('subsystems')
+def get_density_reg_fn(
     system: PhysicalSystem,
     train_ds: xr.Dataset,
     estimator: str = 'mps',
     beta: Optional[Union[np.ndarray, float]] = 1.,
-    subsystem_kwargs: Optional[dict] = {},
+    subsystem_kwargs: Optional[dict] = {
+        'method': 'hamiltonian', 'explicit_subsystems': None
+    },
 ) -> Callable[[Sequence[jax.Array]], float]:
-  """Returns regularization function for terms in a hamiltonian.
+  """Returns regularization function using mpos of reduced density matrices.
 
   Args:
     system: physical system where the dataset is generated from.
@@ -128,20 +162,33 @@ def get_hamiltonian_reg_fn(
   Return:
     reg_fn: regularization function takes MPS arrays.
   """
-  subsystems = system.get_subsystems(**subsystem_kwargs)  #TODO(YT): implement this in physical systems.
-  mps_train = mps_utils.xarray_to_mps(train_ds)
+  #TODO(YT): implement this in physical systems.
+  subsystems = _get_subsystems(system, **subsystem_kwargs)
+  target_mps = mps_utils.xarray_to_mps(train_ds)
   estimator_fn = functools.partial(
-        mps_utils.estimate_density_matrices, method=estimator
-    )
+      mps_utils.estimate_density_matrix, method=estimator
+  )
   reduced_density_matrices_estimates = [
-      estimator_fn(mps_train, subsystem) for subsystem in subsystems
+      estimator_fn(target_mps, subsystem) for subsystem in subsystems
   ]
-  def reg_fn(mps_arrays: Sequence[jax.Array]):
+  def reg_fn(mps_arrays: Sequence[jax.Array]) -> float:
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     reduced_density_matrices = [
         mps.partial_trace(subsystem, rescale_sites=False)
         for subsystem in subsystems
     ]
+    # COMMENT(YT): Frobenius norm between the reduced density matrices.
+    # Could also consider trace/nuclear distance, which upper bounds trace distance.
+    # Right now explicitly build reduced density matrices and use linear algebra
+    # to compute Frobenius norm.
+    # Could also use MPOs to compute the trace distance, but slower.
+    return beta * jnp.mean(
+        [jnp.linalg.norm((rho_1 - rho_2).to_dense(), ord='fro') for rho_1, rho_2
+         in zip(reduced_density_matrices, reduced_density_matrices_estimates)
+        ]
+    )
+    # The following is only trace of the difference, which is not a norm.
+    # TODO(YT): remove.
     return jnp.mean(
         beta * (
             [(rho1 - rho2).trace() for rho1, rho2 in zip(
