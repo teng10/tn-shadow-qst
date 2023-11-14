@@ -57,6 +57,10 @@ def get_dataset_name(
       '6757142_surface_code_xz_basis_sampler_size_x=11_size_y=3_d=10_onsite_z_field=0.000.nc',
       '6757142_surface_code_xz_basis_sampler_size_x=13_size_y=3_d=10_onsite_z_field=0.000.nc',
 
+      '7069311_surface_code_x_or_z_basis_sampler_size_x=35_size_y=3_d=5_onsite_z_field=0.000.nc',
+      '7069311_surface_code_xz_basis_sampler_size_x=35_size_y=3_d=5_onsite_z_field=0.000.nc',
+      '7069311_surface_code_xz_basis_sampler_size_x=35_size_y=3_d=5_onsite_z_field=0.100.nc',
+      '7069311_surface_code_x_or_z_basis_sampler_size_x=35_size_y=3_d=5_onsite_z_field=0.100.nc',
   ]
   unique_match = 0  # Check only one dataset is found.
   for name in filenames:

@@ -86,12 +86,14 @@ def get_config():
   config.sweep_fn_registry = SWEEP_FN_REGISTRY
   # DMRG configuration.
   config.dmrg = config_dict.ConfigDict()
+  config.dmrg.run = True
   config.dmrg.bond_dims = 10
   config.dmrg.solve_kwargs = {
       'max_sweeps': 40, 'cutoffs': 1e-6, 'verbosity': 1
   }
   # Sampler configuration.
   config.sampling = config_dict.ConfigDict()
+  config.sampling.mps_filepath = config_dict.placeholder(str)  # mps directory.
   config.sampling.sampling_method = 'x_or_z_basis_sampler'
   config.sampling.init_seed = 42
   config.sampling.num_samples = 100_000
