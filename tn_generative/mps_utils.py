@@ -13,7 +13,7 @@ from tn_generative import types
 Array = types.Array
 
 HADAMARD = qmb.gen.operators.hadamard()
-Y_HADAMARD = np.array([[0.0, -1.0j], [1.0j, 0.0]])
+Y_HADAMARD = 1./ np.sqrt(2.) * np.array([[0.0, -1.0j], [1.0j, 0.0]])
 EYE = qmb.gen.operators.eye(2)
 
 
