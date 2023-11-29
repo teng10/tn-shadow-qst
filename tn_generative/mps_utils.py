@@ -156,8 +156,7 @@ def estimate_density_matrix(
   """
   if method == 'mps':
     mps = mps.copy()
-    reduced_density_mat = mps.partial_trace(subsystem, rescale_sites=False)
-    return reduced_density_mat
+    return mps.partial_trace(subsystem, rescale_sites=True)
   elif method == 'shadow':
     raise NotImplementedError(f'{method=} not implemented.')
   else:
