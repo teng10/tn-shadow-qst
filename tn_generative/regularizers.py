@@ -16,9 +16,6 @@ PhysicalSystem = physical_systems.PhysicalSystem
 REGULARIZER_REGISTRY = {}  # define registry for regularization functions.
 
 
-REGULARIZER_REGISTRY['none'] = None  # default regularizer is None.
-
-
 def _register_reg_fn(get_reg_fn, name: str):
   """Registers `get_reg_fn` in global `REGULARIZER_REGISTRY`."""
   registered_fn = REGULARIZER_REGISTRY.get(name, None)
@@ -45,9 +42,9 @@ def get_hamiltonian_reg_fn(
 
   Args:
     system: physical system where the dataset is generated from.
-    train_ds: dataset containing `measurement`, `basis`.
+    ds: dataset containing `measurement`, `basis`.
     estimator: method used to compute expectation value of the regularization
-        mpos and dataset `train_ds`.
+        mpos and dataset `ds`.
     beta: regularization strength. Default is 1.
 
   Return:
@@ -57,16 +54,15 @@ def get_hamiltonian_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
     )
-  target_mps = mps_utils.xarray_to_mps(train_ds)
   stabilizer_estimates = np.array([
-      estimator_fn(target_mps, ham_mpo) for ham_mpo in ham_mpos
+      estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_mpos
   ])
   def reg_fn(mps_arrays: Sequence[jax.Array]):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     stabilizer_expectations = jnp.array([
         (mps.H @ (s.apply(mps))) for s in ham_mpos
     ])
-    return jnp.mean(
+    return jnp.sum(
         beta * jnp.abs(stabilizer_expectations - stabilizer_estimates)**2
     )
   return reg_fn
@@ -75,7 +71,7 @@ def get_hamiltonian_reg_fn(
 @register_reg_fn('pauli_z')
 def get_pauli_z_reg_fn(
   system: PhysicalSystem,
-  train_ds: xr.Dataset,
+  ds: xr.Dataset,
   estimator: str = 'mps',
   beta: Optional[Union[np.ndarray, float]] = 1.,
 ) -> Callable[[Sequence[jax.Array]], float]:
@@ -83,9 +79,9 @@ def get_pauli_z_reg_fn(
 
   Args:
     system: physical system where the dataset is generated from.
-    train_ds: dataset containing `measurement`, `basis`.
+    ds: dataset containing `measurement`, `basis`.
     estimator: method used to compute expectation value of the regularization
-        mpos and dataset `train_ds`.
+        mpos and dataset `ds`.
     beta: regularization strength. Default is 1.
 
   Return:
@@ -97,16 +93,15 @@ def get_pauli_z_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
   )
-  target_mps = mps_utils.xarray_to_mps(train_ds)
   pauli_z_estimates = np.array(
-      [estimator_fn(target_mps, pauli_z) for pauli_z in pauli_z_mpos]
+      [estimator_fn(ds, pauli_z) for pauli_z in pauli_z_mpos]
   )
   def reg_fn(mps_arrays):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     pauli_z_expectations = jnp.array([
         (mps.H @ (sz.apply(mps))) for sz in pauli_z_mpos
     ])
-    return jnp.mean(
+    return jnp.sum(
         beta * jnp.abs(pauli_z_expectations - pauli_z_estimates)**2
     )
   return reg_fn
@@ -114,7 +109,7 @@ def get_pauli_z_reg_fn(
 
 def _get_subsystems(
     physical_system: PhysicalSystem,
-    method: str, 
+    method: str,
     explicit_subsystems: Optional[list[Sequence[int]]] = None,
 ) -> list[Sequence[int]]:
   """Wrapper function to get subsystem indices.
@@ -127,11 +122,11 @@ def _get_subsystems(
   Returns:
     list of subsystem indices.
   """
-  if method == 'hamiltonian':
+  if method == 'default':
     try:
-      subsystems = physical_system.get_subsystems(method=method)
+      subsystems = physical_system.get_subsystems()
     except NotImplementedError:
-      raise (f'{method=} is not implemented for {physical_system}.')
+      raise f'{method=} is not implemented for {physical_system}.'
   elif method == 'explicit':
     if explicit_subsystems is not None:
       subsystems = explicit_subsystems
@@ -151,7 +146,7 @@ def get_density_reg_fn(
     estimator: str = 'mps',
     beta: Optional[Union[np.ndarray, float]] = 1.,
     subsystem_kwargs: Optional[dict] = {
-        'method': 'hamiltonian', 'explicit_subsystems': None
+        'method': 'default', 'explicit_subsystems': None
     },
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function using mpos of reduced density matrices.
@@ -193,14 +188,5 @@ def get_density_reg_fn(
         [jnp.linalg.norm((rho_1 - rho_2).to_dense(), ord='fro') for rho_1, rho_2
             in zip(reduced_density_matrices, reduced_density_matrices_estimates)
         ])
-    )
-    # The following is only trace of the difference, which is not a norm.
-    # TODO(YT): remove.
-    return jnp.mean(
-        beta * (
-            [(rho1 - rho2).trace() for rho1, rho2 in zip(
-                reduced_density_matrices, reduced_density_matrices_estimates)
-            ]
-        )
     )
   return reg_fn
