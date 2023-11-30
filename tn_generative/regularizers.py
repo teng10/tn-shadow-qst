@@ -16,6 +16,9 @@ PhysicalSystem = physical_systems.PhysicalSystem
 REGULARIZER_REGISTRY = {}  # define registry for regularization functions.
 
 
+REGULARIZER_REGISTRY['none'] = None  # default regularizer is None.
+
+
 def _register_reg_fn(get_reg_fn, name: str):
   """Registers `get_reg_fn` in global `REGULARIZER_REGISTRY`."""
   registered_fn = REGULARIZER_REGISTRY.get(name, None)
@@ -42,9 +45,9 @@ def get_hamiltonian_reg_fn(
 
   Args:
     system: physical system where the dataset is generated from.
-    ds: dataset containing `measurement`, `basis`.
+    train_ds: dataset containing `measurement`, `basis`.
     estimator: method used to compute expectation value of the regularization
-        mpos and dataset `ds`.
+        mpos and dataset `train_ds`.
     beta: regularization strength. Default is 1.
 
   Return:
@@ -54,15 +57,16 @@ def get_hamiltonian_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
     )
+  target_mps = mps_utils.xarray_to_mps(train_ds)
   stabilizer_estimates = np.array([
-      estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_mpos
+      estimator_fn(target_mps, ham_mpo) for ham_mpo in ham_mpos
   ])
   def reg_fn(mps_arrays: Sequence[jax.Array]):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     stabilizer_expectations = jnp.array([
         (mps.H @ (s.apply(mps))) for s in ham_mpos
     ])
-    return jnp.sum(
+    return jnp.mean(
         beta * jnp.abs(stabilizer_expectations - stabilizer_estimates)**2
     )
   return reg_fn
@@ -71,7 +75,7 @@ def get_hamiltonian_reg_fn(
 @register_reg_fn('pauli_z')
 def get_pauli_z_reg_fn(
   system: PhysicalSystem,
-  ds: xr.Dataset,
+  train_ds: xr.Dataset,
   estimator: str = 'mps',
   beta: Optional[Union[np.ndarray, float]] = 1.,
 ) -> Callable[[Sequence[jax.Array]], float]:
@@ -79,9 +83,9 @@ def get_pauli_z_reg_fn(
 
   Args:
     system: physical system where the dataset is generated from.
-    ds: dataset containing `measurement`, `basis`.
+    train_ds: dataset containing `measurement`, `basis`.
     estimator: method used to compute expectation value of the regularization
-        mpos and dataset `ds`.
+        mpos and dataset `train_ds`.
     beta: regularization strength. Default is 1.
 
   Return:
@@ -93,15 +97,16 @@ def get_pauli_z_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
   )
+  target_mps = mps_utils.xarray_to_mps(train_ds)
   pauli_z_estimates = np.array(
-      [estimator_fn(ds, pauli_z) for pauli_z in pauli_z_mpos]
+      [estimator_fn(target_mps, pauli_z) for pauli_z in pauli_z_mpos]
   )
   def reg_fn(mps_arrays):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     pauli_z_expectations = jnp.array([
         (mps.H @ (sz.apply(mps))) for sz in pauli_z_mpos
     ])
-    return jnp.sum(
+    return jnp.mean(
         beta * jnp.abs(pauli_z_expectations - pauli_z_estimates)**2
     )
   return reg_fn

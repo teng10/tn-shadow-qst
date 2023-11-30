@@ -13,7 +13,7 @@ from tn_generative import types
 Array = types.Array
 
 HADAMARD = qmb.gen.operators.hadamard()
-Y_HADAMARD = np.array([[0.0, -1.0j], [1.0j, 0.0]])
+Y_HADAMARD = 1./ np.sqrt(2.) * np.array([[-1.j, -1.], [1, 1.j]])
 EYE = qmb.gen.operators.eye(2)
 
 
@@ -107,14 +107,14 @@ def xarray_to_mps(ds: xr.Dataset) -> qtn.MatrixProductState:
 
 
 def estimate_observable(
-  ds: xr.Dataset,
+  mps: qtn.MatrixProductState,
   mpo: qtn.MatrixProductOperator,
   method: str = 'mps',
 ) -> float:
-  """Estimates expectation value of `mpo` with `ds` using `method`.
+  """Estimates expectation value of `mpo` with `mps` using `method`.
 
   Args:
-    ds: xarray.Dataset containing MPS parameters.
+    mps: matrix product state.
     mpo: MPO to estimate expectation value.
     method: method to use for estimation. Should we either `mps`, `shadow` or
     `placeholder`. Default is exact computation using 'mps'.
@@ -127,7 +127,6 @@ def estimate_observable(
   if method == 'placeholder':
     return 1.
   elif method == 'mps':
-    mps = xarray_to_mps(ds)
     expectation_val = (mps.H @ (mpo.apply(mps)))
     if not is_approximately_real(expectation_val):
       raise ValueError(f'{expectation_val=} is not real.')

@@ -41,9 +41,10 @@ def get_ruby_vanderwaals(
     size_x: int,
     size_y: int,
     delta: float = 5.,
-):
+) -> PhysicalSystem:
   """Generates ruby rydberg physical system for `[size_x, size_y]` domain
   with specification of detuning `delta` parameter."""
+  #TODO(YT): remove this or complete docstring.
   return physical_systems.RubyRydbergVanderwaals(size_x, size_y, delta)
 
 
@@ -52,7 +53,25 @@ def get_ruby_pxp(
     size_x: int,
     size_y: int,
     delta: float = 5.,
-):
+    boundary_z_field: float = 0.,
+    boundary: str = 'open',
+) -> PhysicalSystem:
   """Generates ruby PXP physical system for `[size_x, size_y]` domain
-  with specification of detuning `delta` parameter."""
-  return physical_systems.RubyRydbergPXP(size_x, size_y, delta)
+  with specification of detuning `delta` parameter with `boundary`.
+
+  Args:
+    size_x: system size in x direction.
+    size_y: system size in y direction.
+    delta: detuning parameter.
+    boundary_z_field: boundary z field for boundary corrections.
+    boundary: boundary condition: `periodic` or `open`.
+  Returns:
+    physical system.
+  """
+  # COMMENT: `boundary_z_field` is a hack to offset boundary effects.
+  # Rather than only adding delta, try mean-field balue
+  # boundary_z_field= 3 * <n> ~ -0.6  
+  return physical_systems.RubyRydbergPXP(
+      size_x, size_y, delta, boundary=boundary,
+      boundary_z_field=boundary_z_field
+  )
