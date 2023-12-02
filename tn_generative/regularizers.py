@@ -114,7 +114,7 @@ def get_pauli_z_reg_fn(
 
 def _get_subsystems(
     physical_system: PhysicalSystem,
-    method: str, 
+    method: str,
     explicit_subsystems: Optional[list[Sequence[int]]] = None,
 ) -> list[Sequence[int]]:
   """Wrapper function to get subsystem indices.
@@ -168,7 +168,6 @@ def get_density_reg_fn(
   Return:
     reg_fn: regularization function takes MPS arrays.
   """
-  #TODO(YT): implement this in physical systems.
   subsystems = _get_subsystems(system, **subsystem_kwargs)
   target_mps = mps_utils.xarray_to_mps(train_ds)
   estimator_fn = functools.partial(
@@ -185,7 +184,7 @@ def get_density_reg_fn(
     ]
     # Note: rescale_sites=True ensures physical tags are the same.
     # COMMENT(YT): Frobenius norm between the reduced density matrices.
-    # Could also consider trace/nuclear distance, which upper bounds trace distance.
+    # Could also consider trace/nuclear distance.
     # Right now explicitly build reduced density matrices and use linear algebra
     # to compute Frobenius norm.
     # Could also use MPOs to compute the trace distance, but slower.
@@ -193,14 +192,5 @@ def get_density_reg_fn(
         [jnp.linalg.norm((rho_1 - rho_2).to_dense(), ord='fro') for rho_1, rho_2
             in zip(reduced_density_matrices, reduced_density_matrices_estimates)
         ])
-    )
-    # The following is only trace of the difference, which is not a norm.
-    # TODO(YT): remove.
-    return jnp.mean(
-        beta * (
-            [(rho1 - rho2).trace() for rho1, rho2 in zip(
-                reduced_density_matrices, reduced_density_matrices_estimates)
-            ]
-        )
     )
   return reg_fn
