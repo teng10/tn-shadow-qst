@@ -81,6 +81,70 @@ class Lattice:
             and np.array_equal(self.points, other.points))
 
 
+class RubyLattice(Lattice):
+  def __init__(
+      self,
+      rho: float = np.sqrt(3.),
+      a: float = 1. / 4., 
+  ):
+    """Ruby lattice of lattice constant `a` and rectangular ratio `rho`.
+    
+    Args:
+      rho: aspect ratio of the ruby lattice.
+      a: lattice spacing.
+    """
+    unit_cell_points = a * np.array(
+        [[1., 0.], [1. / 2., np.sqrt(3) / 2.], [3. / 2., np.sqrt(3) / 2.],
+        [1. / 2., np.sqrt(3) / 2. + rho], [3. / 2., np.sqrt(3) / 2. + rho], 
+        [1., np.sqrt(3) + rho]]
+    )
+    self.unit_cell = Lattice(unit_cell_points)
+    self.a1 = np.array([2 * a * rho * np.sqrt(3) / 2. + a, 0.0])
+    self.a2 = np.array([
+        a * rho * np.sqrt(3) / 2. + a / 2., 
+        a * rho * 1. / 2. + a * np.sqrt(3) / 2 + a * rho
+    ])
+
+  def get_expanded_lattice(
+      self,
+      size_x: int,
+      size_y: int,        
+  ) -> Lattice:
+    """Returns a lattice of size `size_x` x `size_y`."""
+    expanded_lattice = sum(
+        self.unit_cell.shift(self.a1 * i + self.a2 * j)
+        for i, j in itertools.product(range(size_x), range(size_y))
+    )
+    return expanded_lattice  
+
+
+class KagomeLattice(Lattice):
+  def __init__(
+      self,
+      a: float = 1.0,
+  ):
+    """Kagome lattice of lattice constant `a`."""
+    unit_cell_points = a * np.array([
+        [0.25, 0], [-0.25, 0.], [0., np.sqrt(3) / 4.]
+        ]
+    ) 
+    self.unit_cell = Lattice(unit_cell_points)
+    self.a1 = a * np.array([1.0, 0.0])
+    self.a2 = a * np.array([1. / 2., np.sqrt(3.0) / 2.])
+
+  def get_expanded_lattice(
+      self,
+      size_x: int,
+      size_y: int,        
+  ) -> Lattice:
+    """Returns a lattice of size `size_x` x `size_y`."""
+    expanded_lattice = sum(
+        self.unit_cell.shift(self.a1 * i + self.a2 * j)
+        for i, j in itertools.product(range(size_x), range(size_y))
+    )
+    return expanded_lattice  
+  
+
 def get_restricted(
     lattice: Lattice,
     polygon: shapely.geometry.Polygon,

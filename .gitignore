@@ -6,3 +6,5 @@ __pycache__/
 # notebooks
 *.ipynb
 old_notebooks/
+old*/
+old*.py

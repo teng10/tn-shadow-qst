@@ -1,5 +1,6 @@
 """Integration tests for train_utils.py."""
 from absl.testing import absltest
+from absl.testing import parameterized
 import os
 
 from jax import config as jax_config
@@ -10,8 +11,10 @@ from tn_generative.train_configs import ruby_pxp_train_config
 from tn_generative import run_training
 
 
-class RunTrainingTests(absltest.TestCase):
+class RunTrainingTests(parameterized.TestCase):
   """Tests data generation."""
+  #TODO(YT): currently sweep is tested only at the level of config file.
+  # The example_dataset.nc is fixed. We should add a test for sweep.
 
   def setUp(self): 
     jax_config.update('jax_enable_x64', True)
@@ -28,20 +31,24 @@ class RunTrainingTests(absltest.TestCase):
         'data.dir': os.path.join(current_file_dir, 'test_data'),
         'data.filename': 'example_dataset.nc',
         'data.num_training_samples': 1000,
-        'training.num_training_steps': 10,
-        'model.bond_dim': 5,
+        'training.steps_sequence': (10, 2),
+        'model.bond_dim': 2,
     }
 
-  def test_surface_code(self):
+  @parameterized.parameters('lbfgs', 'minibatch')
+  def test_surface_code(self, optimizer):
     """Tests training for surface code."""
     config = surface_code_train_config.get_config()
     config.update_from_flattened_dict(self.default_options)
+    config.training.optimizer = optimizer
     run_training.run_full_batch_experiment(config)
 
-  def test_ruby_pxp(self):
+  @parameterized.parameters('lbfgs', 'minibatch')
+  def test_ruby_pxp(self, optimizer):
     """Tests training for ruby PXP model."""
     config = ruby_pxp_train_config.get_config()
     config.update_from_flattened_dict(self.default_options)
+    config.training.optimizer = optimizer    
     run_training.run_full_batch_experiment(config)
 
 

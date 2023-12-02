@@ -3,7 +3,6 @@ import abc
 from abc import abstractmethod
 import itertools
 import functools
-from typing import Callable
 
 import numpy as np
 import einops
@@ -13,6 +12,16 @@ import quimb.experimental.operatorbuilder as quimb_exp_op
 from tn_generative import node_collections
 from tn_generative import lattices
 from tn_generative import types
+
+
+def _distance_fn_mod(
+    x: np.ndarray , y: np.ndarray, mod_vector: np.ndarray
+) -> float:
+  """Distance function for periodic boundary conditions."""
+  shifted_distances = [
+      np.sqrt(((x - y + i * mod_vector)**2).sum()) for i in range(-1, 2)
+  ]
+  return min(shifted_distances)
 
 
 class PhysicalSystem(abc.ABC):
@@ -33,21 +42,21 @@ class PhysicalSystem(abc.ABC):
     """Returns a hamiltonian MPO."""
 
   def get_sparse_operator(
-      self, 
+      self,
       terms: types.TermsTuple,
   ) -> quimb_exp_op.SparseOperatorBuilder:
     """Generates operator including `terms` using sparse operator builder."""
     if self.hilbert_space is None:
       raise ValueError(
           f'subclass {self.__name__} did not implement custom `hilbert_space`.'
-      )    
+      )
     sparse_operator = quimb_exp_op.SparseOperatorBuilder(
         hilbert_space=self.hilbert_space
-    )    
+    )
     for term in terms:  # add all terms to the operator.
       sparse_operator += term
     return sparse_operator
-  
+
   def get_ham_mpos(self) -> list[qtn.MatrixProductOperator]:
     """Returns MPOs for list of terms in the hamiltonian.
 
@@ -59,8 +68,8 @@ class PhysicalSystem(abc.ABC):
     if self.get_terms() is None:
       raise ValueError(
           f'subclass {self.__name__} did not implement custom `get_terms`.'
-          f'subclass {self.__name__} should either implement custom' 
-          '`get_ham_mpos` or provide `hilbert_space` and implement `get_terms`.'          
+          f'subclass {self.__name__} should either implement custom'
+          '`get_ham_mpos` or provide `hilbert_space` and implement `get_terms`.'
       )
     mpos = []
     terms = [(1., *term[1:]) for term in self.get_terms()]
@@ -247,8 +256,8 @@ class SurfaceCode(PhysicalSystem):
 class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
   """Implementation for ruby Rydberg hamiltonian.
 
-    Note: this constructor assumes Van der Waals interactions among neibours. 
-    The range of neibours are determined by Callable `nb_ratio_fn`, depending on 
+    Note: this constructor assumes Van der Waals interactions among neibours.
+    The range of neibours are determined by Callable `nb_ratio_fn`, depending on
     ruby lattice aspect ratio, `rho`specified in ascending order.
 
     Args:
@@ -258,7 +267,6 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       rho: aspect ratio of the ruby lattice.
       rb: Rydberg blockade radius, in units of lattice spacing.
       omega: laser Rabi frequency, `x` field.
-      nb_ratio_fn: Callable that returns a tuple of ascending neibour radii.  
 
     Returns:
       Ruby Rydberg hamiltonian Physical system.
@@ -269,87 +277,84 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      rho: float = np.sqrt(3.),  
-      rb: float = 3.8,  
+      boundary_z_field: float = 0.,
+      rho: float = np.sqrt(3.),
       omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ), 
+      boundary: str = 'open',
   ):
     self.n_sites = int(Lx * Ly * 6)
     self.Lx = Lx
     self.Ly = Ly
     self.delta = delta
+    self.boundary_z_field = boundary_z_field
     self.a = 1. / 4.  # lattice spacing.
     self.omega = omega
-    self.rho = rho  
+    self.rho = rho
     self.epsilon = 1e-3
-    self.nb_radii = tuple(r * self.a + self.epsilon for r in nb_ratio_fn(self.rho))
-    self._lattice = self._get_expanded_lattice(
-        self.rho, self.Lx, self.Ly, self.a
+    self.nb_ratio_fn = lambda rho: (1., rho, np.sqrt(1. + rho**2))
+    self.nb_radii = tuple(
+        r * self.a + self.epsilon for r in self.nb_ratio_fn(self.rho)
     )
-  
+    self.ruby_lattice = lattices.RubyLattice(rho=self.rho, a=self.a)
+    self._lattice = self.ruby_lattice.get_expanded_lattice(self.Lx, self.Ly)
+    self.boundary = boundary
+    self.boundary_sites = []  # sites on the boundary.
+    if self.boundary == 'periodic':
+      total_unit_cells = self.Lx * self.Ly
+      sites_unit_cell = 6
+      left_boundary_sites = np.concatenate([
+          np.array([3, 5]) + sites_unit_cell * i for i in range(self.Ly)
+      ])
+      right_boundary_sites = np.concatenate([
+          np.array([0, 2]) + (
+          total_unit_cells - 1 - i) * sites_unit_cell for i in range(self.Ly)
+      ])
+      self.boundary_sites = np.concatenate(
+          [left_boundary_sites, right_boundary_sites]
+      )
+
   @property
   def vs(self) -> np.ndarray:
     return self._vs
-  
+
   @property
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
-  
-  def _get_expanded_lattice(
-      self,
-      rho: float, 
-      Lx: int, 
-      Ly: int,
-      a: float,    
-  ) -> lattices.Lattice:
-    """Constructs lattice for rydberg Hamiltonian.
-    Args:
-      rho: aspect ratio of the ruby lattice.
-      Lx: number of unit cells in x direction.
-      Ly: number of unit cells in y direction.
-      a: lattice spacing.
-    
-    Returns: Expanded lattice. 
-    """
-    unit_cell_points = a * np.array(
-        [[1., 0.], [1. / 2., np.sqrt(3) / 2.], [3. / 2., np.sqrt(3) / 2.],
-        [1. / 2., np.sqrt(3) / 2. + rho], [3. / 2., np.sqrt(3) / 2. + rho], 
-        [1., np.sqrt(3) + rho]]
-    )
-    unit_cell = lattices.Lattice(unit_cell_points)
-    a1 = np.array([2 * a * self.rho * np.sqrt(3) / 2. + a, 0.0])
-    a2 = np.array([
-        a * rho * np.sqrt(3) / 2. + a / 2., 
-        a * rho * 1. / 2. + a * np.sqrt(3) / 2 + a * rho
-    ])
-    expanded_lattice = sum(
-        unit_cell.shift(a1 * i + a2 * j)
-        for i, j in itertools.product(range(Lx), range(Ly))
-    )
-    return expanded_lattice
+
 
   def _get_annulus_bonds(
       self,
       nb_outer: float,
       nb_inner: float = 0.,
   ) -> node_collections.NodesCollection:
-    """Constructs `NodeCollection`s for bonds between an annulus of radius 
+    """Constructs `NodeCollection`s for bonds between an annulus of radius
      `nb_outer` and `nb_inner` nearest neighbour in the PXP rydberg Hamiltonian.
-    
+
     Args:
       nb_outer: radius of outer annulus.
       nb_inner: radius of inner annulus.
-    
+
     Returns:
-      Bonds within an annulus of radius `nb_outer` and `nb_inner`. 
+      Bonds within an annulus of radius `nb_outer` and `nb_inner`.
     """
-    nn_bonds = node_collections.get_nearest_neighbors(
-        self._lattice, nb_outer, nb_inner
-    )
+    if self.boundary == 'open':
+      nn_bonds = node_collections.get_nearest_neighbors(
+          self._lattice, nb_outer, nb_inner
+      )
+    elif self.boundary == 'periodic':
+      arity_fn = functools.partial(
+          _distance_fn_mod, mod_vector=self.Ly * self.ruby_lattice.a2
+      )
+      nn_bonds = node_collections.get_nearest_neighbors(
+          self._lattice, nb_outer, nb_inner, arity_fn
+      )
+    else:
+      raise ValueError(
+          f'`boundary` must be either `open` or `periodic`. '
+          f'`{self.boundary=}` is not implemented.'
+      )
     return nn_bonds
-  
+
   def _get_nearest_neighbour_bonds(
       self,
   ) -> list[node_collections.NodesCollection]:
@@ -363,13 +368,13 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
           raise ValueError(
               f'`nb_radii` must be in ascending order. '
               f'{self.nb_radii[i - 1]=}` is greater than {self.nb_radii[i]=}`.'
-          )        
+          )
         nn_bonds = self._get_annulus_bonds(
             self.nb_radii[i], self.nb_radii[i - 1]
         )
       all_nn_bonds.append(nn_bonds)
     return all_nn_bonds
-  
+
   def _get_nearest_neighbour_groups(self) -> list[types.TermsTuple]:
     """Constuct terms for nearest neighbour bonds between each annulus."""
     all_nn_bonds = self._get_nearest_neighbour_bonds()
@@ -378,8 +383,9 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       terms = []
       for node in bonds.nodes:
         terms.append((self.vs[i] / 4., ('z', node[0]), ('z', node[1])))
-        terms.append((-self.vs[i] / 4., ('z', node[0])))
-        terms.append((-self.vs[i] / 4., ('z', node[1])))
+        terms.append((+self.vs[i] / 4., ('z', node[0])))
+        terms.append((+self.vs[i] / 4., ('z', node[1])))
+        terms.append((+self.vs[i] / 4., ('I', node[0])))
       all_nn_groups.append(terms)
     return all_nn_groups
 
@@ -387,15 +393,19 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     onsite_terms_z = []
     onsite_terms_x = []
     for i in range(self.n_sites):
-      onsite_terms_z.append((self.delta / 2., ('z', i)))
+      onsite_terms_z.append((-self.delta / 2., ('z', i)))
+      onsite_terms_z.append((-self.delta / 2., ('I', i)))
     for i in range(self.n_sites):
       onsite_terms_x.append((self.omega / 2., ('x', i)))
+    for i in self.boundary_sites:
+      onsite_terms_z.append((-self.boundary_z_field / 2., ('z', i)))
+      onsite_terms_z.append((-self.boundary_z_field / 2., ('I', i)))
     return [onsite_terms_z, onsite_terms_x]
 
   def _get_all_terms_groups(self) -> list[types.TermsTuple]:
     """Get all terms in hamiltonian as list of groups."""
     return self._get_nearest_neighbour_groups() + self._get_onsite_groups()
-  
+
   def get_terms(self) -> types.TermsTuple:
     """Merge all terms from all groups into one tuple."""
     all_terms_groups = self._get_all_terms_groups()
@@ -406,12 +416,21 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
 
   def get_ham(self) -> qtn.MatrixProductOperator:
     """Get hamiltonian as MPO."""
-    hamiltonian_mpo_groups = []
-    for terms in self._get_all_terms_groups():
-      hamiltonian_mpo_groups.append(
-          self.get_sparse_operator(terms).build_mpo()
+    # hamiltonian_mpo_groups = []
+    # for terms in self._get_all_terms_groups():
+    #   hamiltonian_mpo_groups.append(
+    #       self.get_sparse_operator(terms).build_mpo()
+    #   )
+    # #TODO(YT): consider building state machines for bulk
+    # and boundary separately.
+    hamiltonian_mpos = []
+    for term in self.get_terms():
+      hamiltonian_mpos.append(
+          self.get_sparse_operator([term]).build_mpo()
       )
-    return sum(hamiltonian_mpo_groups[1:], start=hamiltonian_mpo_groups[0])
+    ham_mpo = sum(hamiltonian_mpos[1:], start=hamiltonian_mpos[0])
+    ham_mpo.compress()
+    return ham_mpo
 
 
 class RubyRydbergVanderwaals(RubyRydberg):
@@ -421,15 +440,18 @@ class RubyRydbergVanderwaals(RubyRydberg):
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      rho: float = np.sqrt(3.),  
-      rb: float = 3.8,  
+      boundary_z_field: float = 0.,
+      rho: float = np.sqrt(3.),
+      rb: float = 3.8,
       omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ), 
+      boundary: str = 'open',
   ):
-    super().__init__(Lx, Ly, delta, rho, rb, omega, nb_ratio_fn)
-    self._vs = np.array([(rb / r)**6 for r in nb_ratio_fn(self.rho)])
+    super().__init__(
+        Lx=Lx, Ly=Ly, delta=delta, boundary_z_field=boundary_z_field, rho=rho,
+        omega=omega, boundary=boundary
+    )
+    self.rb = rb
+    self._vs = np.array([(rb / r)**6 for r in self.nb_ratio_fn(self.rho)])
 
 
 class RubyRydbergPXP(RubyRydberg):
@@ -439,12 +461,16 @@ class RubyRydbergPXP(RubyRydberg):
       Lx: int,
       Ly: int,
       delta: float = 5.0,
-      rho: float = np.sqrt(3.),  
-      rb: float = 3.8,  
+      boundary_z_field: float = 0.,
+      rho: float = np.sqrt(3.),
+      rb: float = 3.8,
       omega: float = 1.,
-      nb_ratio_fn: Callable[[float], tuple[float, ...]] = lambda rho: (
-          1., rho, np.sqrt(1. + rho**2)
-      ), 
+      boundary: str = 'open',
   ):
-    super().__init__(Lx, Ly, delta, rho, rb, omega, nb_ratio_fn)
-    self._vs = (rb/(nb_ratio_fn(self.rho)[-1]))**6 * np.ones(len(self.nb_radii))
+    super().__init__(
+        Lx=Lx, Ly=Ly, delta=delta, boundary_z_field=boundary_z_field, rho=rho,
+        omega=omega, boundary=boundary
+    )
+    self.rb = rb
+    self._vs = (rb/(self.nb_ratio_fn(self.rho)[-1]))**6 * np.ones(
+      len(self.nb_radii))
