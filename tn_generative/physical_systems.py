@@ -3,6 +3,7 @@ import abc
 from abc import abstractmethod
 import itertools
 import functools
+from typing import Sequence
 
 import numpy as np
 import einops
@@ -40,6 +41,12 @@ class PhysicalSystem(abc.ABC):
   @abstractmethod
   def get_ham(self) -> qtn.MatrixProductOperator:
     """Returns a hamiltonian MPO."""
+
+  def get_subsystems(self) -> list[Sequence[int]]:
+    """Returns list of subsystems for computing reduced density matrices."""
+    raise NotImplementedError(
+        f'subclass {self.__name__} did not implement custom `get_subsystems`.'
+    )
 
   def get_sparse_operator(
       self,
@@ -299,15 +306,15 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     self._lattice = self.ruby_lattice.get_expanded_lattice(self.Lx, self.Ly)
     self.boundary = boundary
     self.boundary_sites = []  # sites on the boundary.
+    self.n_unit_cell = 6  # number of sites in a unit cell.
     if self.boundary == 'periodic':
       total_unit_cells = self.Lx * self.Ly
-      sites_unit_cell = 6
       left_boundary_sites = np.concatenate([
-          np.array([3, 5]) + sites_unit_cell * i for i in range(self.Ly)
+          np.array([3, 5]) + self.n_unit_cell * i for i in range(self.Ly)
       ])
       right_boundary_sites = np.concatenate([
           np.array([0, 2]) + (
-          total_unit_cells - 1 - i) * sites_unit_cell for i in range(self.Ly)
+          total_unit_cells - 1 - i) * self.n_unit_cell for i in range(self.Ly)
       ])
       self.boundary_sites = np.concatenate(
           [left_boundary_sites, right_boundary_sites]
@@ -321,6 +328,11 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
   def hilbert_space(self) -> types.HilbertSpace:
     return quimb_exp_op.HilbertSpace(self.n_sites)
 
+  def get_subsystems(self) -> list[Sequence[int]]:
+    return [
+        list(range(i * self.n_unit_cell, (i + 1) * self.n_unit_cell))
+        for i in range(self.Lx * self.Ly)
+    ]
 
   def _get_annulus_bonds(
       self,

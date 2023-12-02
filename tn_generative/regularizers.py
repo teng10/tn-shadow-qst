@@ -127,9 +127,9 @@ def _get_subsystems(
   Returns:
     list of subsystem indices.
   """
-  if method == 'hamiltonian':
+  if method == 'default':
     try:
-      subsystems = physical_system.get_subsystems(method=method)
+      subsystems = physical_system.get_subsystems()
     except NotImplementedError:
       raise (f'{method=} is not implemented for {physical_system}.')
   elif method == 'explicit':
@@ -151,7 +151,7 @@ def get_density_reg_fn(
     estimator: str = 'mps',
     beta: Optional[Union[np.ndarray, float]] = 1.,
     subsystem_kwargs: Optional[dict] = {
-        'method': 'hamiltonian', 'explicit_subsystems': None
+        'method': 'default', 'explicit_subsystems': None
     },
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function using mpos of reduced density matrices.
