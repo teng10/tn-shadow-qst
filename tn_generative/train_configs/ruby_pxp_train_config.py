@@ -127,9 +127,9 @@ def sweep_nxm_ruby_fn(
 
 SWEEP_FN_REGISTRY = {
     'sweep_sc_4x2_fn': list(sweep_nxm_ruby_fn(
-        4, 2, train_bond_dims=(20, 40, 60),
+        4, 2, train_bond_dims=(20, 40), reg_name='reduced_density_matrices',
         samplers=('xz_basis_sampler', 'x_or_z_basis_sampler'),
-        deltas=(1.7, 0.5), train_betas=(0., ), num_seeds=5,
+        deltas=(1.7, 0.5), train_betas=(1., 5.), num_seeds=5,
     )),
 }
 
