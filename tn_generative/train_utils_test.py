@@ -16,40 +16,50 @@ class RunTrainingTests(parameterized.TestCase):
   #TODO(YT): currently sweep is tested only at the level of config file.
   # The example_dataset.nc is fixed. We should add a test for sweep.
 
-  def setUp(self): 
+  def setUp(self):
     jax_config.update('jax_enable_x64', True)
-    qtn.contraction.contract_backend('jax')  # set backend for current thread 
+    qtn.contraction.contract_backend('jax')  # set backend for current thread
     # Get the path of the currently executing script
     script_path = os.path.abspath(__file__)
     # Extract the directory containing the script
-    current_file_dir = os.path.dirname(script_path)    
-    
+    current_file_dir = os.path.dirname(script_path)
+
     self.default_options = {
         'results.save_results': False,
         'job_id': 0,
         'task_id': 0,
         'data.dir': os.path.join(current_file_dir, 'test_data'),
-        'data.filename': 'example_dataset.nc',
         'data.num_training_samples': 1000,
         'training.steps_sequence': (10, 2),
         'model.bond_dim': 2,
     }
 
-  @parameterized.parameters('lbfgs', 'minibatch')
-  def test_surface_code(self, optimizer):
-    """Tests training for surface code."""
+  def test_surface_code(self):
+    """Tests training for surface code using default training sequence."""
     config = surface_code_train_config.get_config()
     config.update_from_flattened_dict(self.default_options)
-    config.training.optimizer = optimizer
+    config.data.filename = 'example_dataset.nc'
     run_training.run_full_batch_experiment(config)
 
-  @parameterized.parameters('lbfgs', 'minibatch')
-  def test_ruby_pxp(self, optimizer):
-    """Tests training for ruby PXP model."""
+  def test_ruby_pxp(self):
+    """Tests training for ruby PXP model  using default training sequence."""
     config = ruby_pxp_train_config.get_config()
     config.update_from_flattened_dict(self.default_options)
-    config.training.optimizer = optimizer    
+    config.data.filename = 'ruby_pxp_data.nc'
     run_training.run_full_batch_experiment(config)
+
+  def test_ruby_pxp_density_regularization(self):
+    """Tests training for ruby PXP model with density matirx regularization."""
+    config = ruby_pxp_train_config.get_config()
+    config.update_from_flattened_dict(self.default_options)
+    config.data.filename = 'ruby_pxp_data.nc'
+    reg_name = 'reduced_density_matrices'
+    config.training.training_schemes.lbfgs_reg.reg_name = reg_name
+    config.training.training_schemes.lbfgs_reg.reg_kwargs = {
+        'beta': 1., 'estimator': 'mps'
+    }
+    run_training.run_full_batch_experiment(config)
+
 
   if __name__ == '__main__':
     absltest.main()
