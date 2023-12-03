@@ -45,7 +45,8 @@ class PhysicalSystem(abc.ABC):
   def get_subsystems(self) -> list[Sequence[int]]:
     """Returns list of subsystems for computing reduced density matrices."""
     raise NotImplementedError(
-        f'subclass {self.__name__} did not implement custom `get_subsystems`.'
+        f'subclass {self.__class__.__name__} did not implement \
+        custom `get_subsystems`.'
     )
 
   def get_sparse_operator(
@@ -55,7 +56,8 @@ class PhysicalSystem(abc.ABC):
     """Generates operator including `terms` using sparse operator builder."""
     if self.hilbert_space is None:
       raise ValueError(
-          f'subclass {self.__name__} did not implement custom `hilbert_space`.'
+          f'subclass {self.__class__.__name__} did not implement \
+          custom `hilbert_space`.'
       )
     sparse_operator = quimb_exp_op.SparseOperatorBuilder(
         hilbert_space=self.hilbert_space
@@ -74,8 +76,9 @@ class PhysicalSystem(abc.ABC):
     """
     if self.get_terms() is None:
       raise ValueError(
-          f'subclass {self.__name__} did not implement custom `get_terms`.'
-          f'subclass {self.__name__} should either implement custom'
+          f'subclass {self.__class__.__name__} did not implement \
+          custom `get_terms`.'
+          f'subclass {self.__class__.__name__} should either implement custom' \
           '`get_ham_mpos` or provide `hilbert_space` and implement `get_terms`.'
       )
     mpos = []

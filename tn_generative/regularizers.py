@@ -130,8 +130,8 @@ def _get_subsystems(
   if method == 'default':
     try:
       subsystems = physical_system.get_subsystems()
-    except NotImplementedError:
-      raise (f'{method=} is not implemented for {physical_system}.')
+    except NotImplementedError as x:
+      raise x
   elif method == 'explicit':
     if explicit_subsystems is not None:
       subsystems = explicit_subsystems
