@@ -63,7 +63,9 @@ def generate_data(config):
     mps_properties['convergence'] = int(convergence)
     mps_properties.attrs = data_utils.physical_system_to_attrs_dict(task_system)
     target_mps_ds = mps_utils.mps_to_xarray(mps)
-    mps_properties = xr.merge([target_mps_ds, mps_properties])    
+    mps_properties = xr.merge([target_mps_ds, mps_properties],
+        combine_attrs='no_conflicts'
+    )
   elif (not config.dmrg.run) and (config.sampling.mps_filepath is not None):
     mps_ds = xr.load_dataset(config.sampling.mps_filepath)
     mps_ds = data_utils.combine_complex_ds(mps_ds)
@@ -91,7 +93,7 @@ def generate_data(config):
   )
   combos = {'sample': np.arange(config.sampling.num_samples)}
   ds = runner.run_combos(combos, parallel=False)
-  ds = xr.merge([ds, mps_properties])
+  ds = xr.merge([ds, mps_properties], combine_attrs='no_conflicts')
   # Saving data
   if config.output.save_data:
     data_dir = config.output.data_dir.replace('%CURRENT_DATE', current_date)
