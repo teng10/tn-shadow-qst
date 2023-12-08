@@ -25,10 +25,7 @@ class MpoUtilsTests(parameterized.TestCase):
     # build ED vector
     random_vector = random_mps.to_dense()
     rotation_options = [mps_utils.HADAMARD, mps_utils.Y_HADAMARD, mps_utils.EYE]
-    rotation_matrices = [
-        np.conjugate(rotation_options[i]).T
-        for i in random_basis
-    ]
+    rotation_matrices = [rotation_options[i] for i in random_basis]
     rotation_matrix = functools.reduce(np.kron, rotation_matrices)
     expected_rotated_vector = np.dot(rotation_matrix, random_vector)
     np.testing.assert_allclose(

@@ -57,9 +57,8 @@ def get_hamiltonian_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
     )
-  target_mps = mps_utils.xarray_to_mps(train_ds)
   stabilizer_estimates = np.array([
-      estimator_fn(target_mps, ham_mpo) for ham_mpo in ham_mpos
+      estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_mpos
   ])
   def reg_fn(mps_arrays: Sequence[jax.Array]):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
@@ -97,9 +96,8 @@ def get_pauli_z_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
     )
-  target_mps = mps_utils.xarray_to_mps(train_ds)
   pauli_z_estimates = np.array(
-      [estimator_fn(target_mps, pauli_z) for pauli_z in pauli_z_mpos]
+      [estimator_fn(train_ds, pauli_z) for pauli_z in pauli_z_mpos]
   )
   def reg_fn(mps_arrays):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
@@ -169,12 +167,11 @@ def get_density_reg_fn(
     reg_fn: regularization function takes MPS arrays.
   """
   subsystems = _get_subsystems(system, **subsystem_kwargs)
-  target_mps = mps_utils.xarray_to_mps(train_ds)
   estimator_fn = functools.partial(
       mps_utils.estimate_density_matrix, method=estimator
   )
   reduced_density_matrices_estimates = [
-      estimator_fn(target_mps, subsystem) for subsystem in subsystems
+      estimator_fn(train_ds, subsystem) for subsystem in subsystems
   ]
   def reg_fn(mps_arrays: Sequence[jax.Array]) -> float:
     mps = qtn.MatrixProductState(arrays=mps_arrays)

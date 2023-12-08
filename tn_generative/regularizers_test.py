@@ -42,6 +42,7 @@ class SubsystemsRegularizerTest(parameterized.TestCase):
     with self.subTest('assert_positive'):
       mps_rand = qtn.MPS_rand_state(physical_system.n_sites, 2, seed=42)
       reg_val = reg_fn(mps_rand.arrays)
+      # Consider remove this test as this depends on the random seed.
       np.testing.assert_allclose(reg_val, 0.835518269281676, atol=1e-6)
 
     with self.subTest('assert_zero'):
