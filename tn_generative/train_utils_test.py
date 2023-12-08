@@ -12,9 +12,12 @@ from tn_generative import run_training
 
 
 class RunTrainingTests(parameterized.TestCase):
-  """Tests data generation."""
+  """Tests training pipeline. """
   #TODO(YT): currently sweep is tested only at the level of config file.
-  # The example_dataset.nc is fixed. We should add a test for sweep.
+  # TODO (YT): consider separatly testing the training schemes. 
+  # Default `run_training`` uses a schedule with 
+  # 1) minibatch sgd (regularization free) and
+  # 2) full batch optimization.
 
   def setUp(self):
     jax_config.update('jax_enable_x64', True)
