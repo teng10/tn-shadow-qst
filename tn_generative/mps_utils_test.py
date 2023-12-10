@@ -15,7 +15,10 @@ class MpoUtilsTests(parameterized.TestCase):
 
   @parameterized.parameters(2, 3, 4, 6, 9)
   def test_z_to_basis_mpo(self, size, seed=42):
-    """Tests the rotation MPO by building an explicit vector rotation."""
+    """Tests the rotation MPO by building an explicit vector rotation.
+    $\psi^\prime = U \psi$, where $U = \bigotimes_i U_i$ and $U_i$ is 
+    the rotation matrix for the $i$-th site.
+    """
     qugen.rand.seed_rand(seed)
     random_mps = qtn.MPS_rand_state(size, bond_dim=5)
     random_basis = np.random.randint(0, 2, size)
