@@ -107,14 +107,14 @@ def xarray_to_mps(ds: xr.Dataset) -> qtn.MatrixProductState:
 
 
 def estimate_observable(
-  mps: qtn.MatrixProductState,
+  train_ds: xr.Dataset,
   mpo: qtn.MatrixProductOperator,
   method: str = 'mps',
 ) -> float:
-  """Estimates expectation value of `mpo` with `mps` using `method`.
+  """Estimates expectation value of `mpo` with `train_ds` using `method`.
 
   Args:
-    mps: matrix product state.
+    train_ds: dataset from which to estimate expectation value.
     mpo: MPO to estimate expectation value.
     method: method to use for estimation. Should we either `mps`, `shadow` or
     `placeholder`. Default is exact computation using 'mps'.
@@ -127,10 +127,36 @@ def estimate_observable(
   if method == 'placeholder':
     return 1.
   elif method == 'mps':
+    mps = xarray_to_mps(train_ds)
     expectation_val = (mps.H @ (mpo.apply(mps)))
     if not is_approximately_real(expectation_val):
       raise ValueError(f'{expectation_val=} is not real.')
     return expectation_val.real
+  elif method == 'shadow':
+    raise NotImplementedError(f'{method=} not implemented.')
+  else:
+    raise ValueError(f'Unexpected estimation method {method}.')
+
+
+def estimate_density_matrix(
+  train_ds: xr.Dataset,
+  subsystem: Sequence[int],
+  method: str = 'mps',
+) -> qtn.MatrixProductOperator:
+  """Estimates reduced density matrix as `mpo` from `train_ds` using `method`.
+
+  Args:
+    trains_ds: dataset from which to estimate reduce density matrix.
+    subsystem: subsystem indices for which to estimate reduced density matrix.
+    method: method to use for estimation. Should we either `mps`, `shadow` or
+    `placeholder`. Default is exact computation using 'mps'.
+
+  Return:
+    Reduced density matrix MPO.
+  """
+  if method == 'mps':
+    mps = xarray_to_mps(train_ds)
+    return mps.partial_trace(subsystem, rescale_sites=True)
   elif method == 'shadow':
     raise NotImplementedError(f'{method=} not implemented.')
   else:

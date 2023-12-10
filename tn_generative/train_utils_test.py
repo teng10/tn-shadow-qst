@@ -32,8 +32,8 @@ class RunTrainingTests(parameterized.TestCase):
         'job_id': 0,
         'task_id': 0,
         'data.dir': os.path.join(current_file_dir, 'test_data'),
-        'data.num_training_samples': 1000,
-        'training.steps_sequence': (10, 2),
+        'data.num_training_samples': 100,
+        'training.steps_sequence': (5, 2),
         'model.bond_dim': 2,
     }
 
@@ -62,7 +62,6 @@ class RunTrainingTests(parameterized.TestCase):
         'beta': 1., 'estimator': 'mps'
     }
     run_training.run_full_batch_experiment(config)
-
 
   if __name__ == '__main__':
     absltest.main()

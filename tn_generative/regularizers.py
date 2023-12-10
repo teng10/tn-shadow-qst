@@ -57,9 +57,8 @@ def get_hamiltonian_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
     )
-  target_mps = mps_utils.xarray_to_mps(train_ds)
   stabilizer_estimates = np.array([
-      estimator_fn(target_mps, ham_mpo) for ham_mpo in ham_mpos
+      estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_mpos
   ])
   def reg_fn(mps_arrays: Sequence[jax.Array]):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
@@ -97,9 +96,8 @@ def get_pauli_z_reg_fn(
   estimator_fn = functools.partial(
         mps_utils.estimate_observable, method=estimator
     )
-  target_mps = mps_utils.xarray_to_mps(train_ds)
   pauli_z_estimates = np.array(
-      [estimator_fn(target_mps, pauli_z) for pauli_z in pauli_z_mpos]
+      [estimator_fn(train_ds, pauli_z) for pauli_z in pauli_z_mpos]
   )
   def reg_fn(mps_arrays):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
@@ -108,5 +106,88 @@ def get_pauli_z_reg_fn(
     ])
     return jnp.mean(
         beta * jnp.abs(pauli_z_expectations - pauli_z_estimates)**2
+    )
+  return reg_fn
+
+
+def _get_subsystems(
+    physical_system: PhysicalSystem,
+    method: str,
+    explicit_subsystems: Optional[list[Sequence[int]]] = None,
+) -> list[Sequence[int]]:
+  """Wrapper function to get subsystem indices.
+
+  Args:
+    physical_system: physical system where the dataset is generated from.
+    method: method used to get subsystem indices.
+    explicit_subsystems: subsystem indices returned if `method`=='explicit'.
+
+  Returns:
+    list of subsystem indices.
+  """
+  if method == 'default':
+    try:
+      subsystems = physical_system.get_subsystems()
+    except NotImplementedError as x:
+      raise x
+  elif method == 'explicit':
+    if explicit_subsystems is not None:
+      subsystems = explicit_subsystems
+      if np.max(subsystems) >= physical_system.n_sites:
+        raise ValueError(f'{subsystems=} exceeds {physical_system.n_sites}.')
+    else:
+      raise ValueError(f'{method=} requires {explicit_subsystems=}.')
+  else:
+    raise ValueError(f'Unexpected {method=} is not implemented.')
+  return subsystems
+
+
+@register_reg_fn('reduced_density_matrices')
+def get_density_reg_fn(
+    system: PhysicalSystem,
+    train_ds: xr.Dataset,
+    estimator: str = 'mps',
+    beta: Optional[Union[np.ndarray, float]] = 1.,
+    subsystem_kwargs: Optional[dict] = {
+        'method': 'default', 'explicit_subsystems': None
+    },
+) -> Callable[[Sequence[jax.Array]], float]:
+  """Returns regularization function using mpos of reduced density matrices.
+  |\rho_target - \rho_model|_2
+
+  Args:
+    system: physical system where the dataset is generated from.
+    ds: dataset containing `measurement`, `basis`.
+    estimator: method used to compute expectation value of the regularization
+        mpos and dataset `ds`.
+    beta: regularization strength. Default is 1.
+    subsystem_kwargs: kwargs for `system.get_subsystems`.
+
+  Return:
+    reg_fn: regularization function takes MPS arrays.
+  """
+  subsystems = _get_subsystems(system, **subsystem_kwargs)
+  estimator_fn = functools.partial(
+      mps_utils.estimate_density_matrix, method=estimator
+  )
+  reduced_density_matrices_estimates = [
+      estimator_fn(train_ds, subsystem) for subsystem in subsystems
+  ]
+  def reg_fn(mps_arrays: Sequence[jax.Array]) -> float:
+    mps = qtn.MatrixProductState(arrays=mps_arrays)
+    reduced_density_matrices = [
+        mps.partial_trace(subsystem, rescale_sites=True)
+        for subsystem in subsystems
+    ]
+    # Note: rescale_sites=True ensures physical tags are the same.
+    # COMMENT(YT): Frobenius norm between the reduced density matrices.
+    # Could also consider trace/nuclear distance.
+    # Right now explicitly build reduced density matrices and use linear algebra
+    # to compute Frobenius norm.
+    # Could also use MPOs to compute the trace distance, but slower.
+    return beta * jnp.mean(jnp.array(
+        [jnp.linalg.norm((rho_1 - rho_2).to_dense(), ord='fro') for rho_1, rho_2
+            in zip(reduced_density_matrices, reduced_density_matrices_estimates)
+        ])
     )
   return reg_fn
