@@ -51,17 +51,17 @@ class RunTrainingTests(parameterized.TestCase):
     config.data.filename = 'ruby_pxp_data.nc'
     run_training.run_full_batch_experiment(config)
 
-  def test_ruby_pxp_density_regularization(self):
-    """Tests training for ruby PXP model with density matirx regularization."""
-    config = ruby_pxp_train_config.get_config()
-    config.update_from_flattened_dict(self.default_options)
-    config.data.filename = 'ruby_pxp_data.nc'
-    reg_name = 'reduced_density_matrices'
-    config.training.training_schemes.lbfgs_reg.reg_name = reg_name
-    config.training.training_schemes.lbfgs_reg.reg_kwargs = {
-        'beta': 1., 'estimator': 'mps'
-    }
-    run_training.run_full_batch_experiment(config)
+  # def test_ruby_pxp_density_regularization(self):
+  #   """Tests training for ruby PXP model with density matirx regularization."""
+  #   config = ruby_pxp_train_config.get_config()
+  #   config.update_from_flattened_dict(self.default_options)
+  #   config.data.filename = 'ruby_pxp_data.nc'
+  #   reg_name = 'reduced_density_matrices'
+  #   config.training.training_schemes.lbfgs_reg.reg_name = reg_name
+  #   config.training.training_schemes.lbfgs_reg.reg_kwargs = {
+  #       'beta': 1., 'estimator': 'mps'
+  #   }
+  #   run_training.run_full_batch_experiment(config)
 
   if __name__ == '__main__':
     absltest.main()

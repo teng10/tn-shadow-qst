@@ -8,6 +8,7 @@ import jax
 import jax.numpy as jnp
 import quimb.tensor as qtn
 
+from tn_generative import estimates_utils
 from tn_generative import mps_utils
 from tn_generative import physical_systems
 
@@ -55,7 +56,7 @@ def get_hamiltonian_reg_fn(
   """
   ham_mpos = system.get_ham_mpos()
   estimator_fn = functools.partial(
-        mps_utils.estimate_observable, method=estimator
+        estimates_utils.estimate_observable, method=estimator
     )
   stabilizer_estimates = np.array([
       estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_mpos
@@ -94,7 +95,7 @@ def get_pauli_z_reg_fn(
       [(1., ('z', i)) for i in range(system.n_sites)]
   )
   estimator_fn = functools.partial(
-        mps_utils.estimate_observable, method=estimator
+        estimates_utils.estimate_observable, method=estimator
     )
   pauli_z_estimates = np.array(
       [estimator_fn(train_ds, pauli_z) for pauli_z in pauli_z_mpos]
@@ -168,7 +169,7 @@ def get_density_reg_fn(
   """
   subsystems = _get_subsystems(system, **subsystem_kwargs)
   estimator_fn = functools.partial(
-      mps_utils.estimate_density_matrix, method=estimator
+      estimates_utils.estimate_density_matrix, method=estimator
   )
   reduced_density_matrices_estimates = [
       estimator_fn(train_ds, subsystem) for subsystem in subsystems
