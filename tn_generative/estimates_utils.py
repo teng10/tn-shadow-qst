@@ -33,6 +33,7 @@ def estimate_observable(
   train_ds: xr.Dataset,
   system: PhysicalSystem,
   method: str = 'mps',
+  tolerance: float = 1e-6,
 ) -> float:
   """Estimates expectation value of `mpo` with `train_ds` using `method`.
 
@@ -45,7 +46,7 @@ def estimate_observable(
   Return:
     estimated expectation value.
   """
-  def is_approximately_real(number, tolerance=1e-6):
+  def is_approximately_real(number):
     return abs(number.imag).all() < tolerance
   if method == 'placeholder':
     return 1.
