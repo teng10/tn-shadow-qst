@@ -6,10 +6,10 @@ import numpy as np
 import xarray as xr
 import jax
 import jax.numpy as jnp
+import quimb as qu
 import quimb.tensor as qtn
 
 from tn_generative import estimates_utils
-from tn_generative import mps_utils
 from tn_generative import physical_systems
 
 PhysicalSystem = physical_systems.PhysicalSystem
@@ -59,11 +59,20 @@ def get_hamiltonian_reg_fn(
   ):
     """Returns only multisite mpos from a list of mpos."""
     def _is_multisite(mpo: qtn.MatrixProductOperator):
+      """Returns True if `mpo` is multisite."""
       subsystem_indices = [i for i in range(mpo.L) if not np.allclose(
             mpo.arrays[i], np.array([[1., 0.], [0., 1.]])
         )]
       return len(subsystem_indices) != 1
-    return [mpo for mpo in mpos if _is_multisite(mpo)]
+
+    def _is_identity(mpo: qtn.MatrixProductOperator):
+      """Returns True if `mpo` is identity."""
+      return all([np.allclose(x.data, qu.pauli('I')) for x in mpo])
+        
+    return [
+        mpo for mpo in mpos if (_is_multisite(mpo) and not _is_identity(mpo))
+    ]
+
   
   ham_mpos = system.get_ham_mpos()
   ham_multisite_mpos = _get_multisite_mpos(ham_mpos)

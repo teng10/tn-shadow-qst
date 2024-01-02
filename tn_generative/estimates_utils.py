@@ -1,10 +1,12 @@
 """Utilities for estimating physical quantities from dataset or mps."""
 
-from typing import Sequence
+from typing import Callable, Sequence
+import functools
 
 import numpy as np
 import xarray as xr
 import quimb.tensor as qtn
+import quimb as qu
 
 from tn_generative import mps_utils
 from tn_generative import physical_systems
@@ -24,38 +26,86 @@ def _extract_non_identity_mpo(
   Returns:
     an MPO of the non-identity acting on a subsystem.
   """
-  if len(np.unique(mpo.bond_sizes())) != 1:
-    raise ValueError(f'MPO of {mpo.bond_sizes()=} is not a product state, \
-        can not slice.'
-    )
-  subsystem_indices = [i for i in range(mpo.L) if not np.allclose(
-      mpo.arrays[i], np.array([[1., 0.], [0., 1.]])
-  )]  # indices of non-identity subsystem.
-  mpo_arrays_subsystem = [mpo.arrays[i] for i in subsystem_indices]
-  # TODO: this is a hacky way to deal with the case where the subsystem is.
-  if len(mpo_arrays_subsystem[0].shape) == 4:
-    first_array = mpo_arrays_subsystem[0][0, ...]
-    mpo_arrays_subsystem = [first_array, ] + mpo_arrays_subsystem[1:]
-  if len(mpo_arrays_subsystem[-1].shape) == 4:
-    last_array = mpo_arrays_subsystem[-1][:, 0, ...]
-    mpo_arrays_subsystem = mpo_arrays_subsystem[:-1] + [last_array, ]
+  def add_identity_tags(mpo, tag='I_like'):
+    """Returns mpo with operators that are exactly identity tagged."""
+    [x.add_tag(tag) for x in mpo if np.allclose(x.data, qu.pauli('I'))]
+    return mpo
+  non_identity = add_identity_tags(mpo).select(
+      'I_like', which='!all'
+  ).squeeze() # Select non-identity tensors
+  indices = [int(tag[1:]) for tag in non_identity.tags] # Extract indices
   if return_indices:
-    return qtn.MatrixProductOperator(mpo_arrays_subsystem), subsystem_indices
+    return non_identity, indices
   else:
-    return qtn.MatrixProductOperator(mpo_arrays_subsystem)
+    return non_identity
   
 
+def stream_avg(ds: xr.Dataset, fn: Callable, batch_size: int=50):
+  """Compute the streaming average of a function fn over a dataset ds.
+  """
+  # Compute the number of batches
+  num_batches = ds.sizes['sample'] // batch_size
+  # Compute the streaming average
+  first_batch = ds.isel(sample=slice(0, batch_size))
+  avg = fn(first_batch)
+  for i in range(1, num_batches):
+    # Compute the batch average
+    batch = ds.isel(sample=slice(i*batch_size, (i+1)*batch_size))
+    avg += fn(batch)
+  # Compute the average of the remainder
+  remainder = ds.isel(sample=slice(num_batches*batch_size, None))
+  avg += fn(remainder)
+  avg /= num_batches + 1
+  return avg
+
+
+# def _construct_reduced_density_matrix(
+#     ds: xr.Dataset,
+#     subsystem: Sequence[int],
+# ) -> qtn.MatrixProductOperator:
+#   """Constructs reduced density matrix for `subsystem` from `ds`."""
+#   bitstrings = ds['measurement'].sel(site=subsystem).values
+#   bases = ds['basis'].sel(site=subsystem).values
+#   # TODO: reconstruct reduced density matrix from `bitstrings` and `basis`.
+#   # need something like \sum U|b><b|U^\dagger.
+#   # TODO: add streaming option for large datasets.
+#   state_single_shots = []
+#   for bitstring, basis in zip(bitstrings, bases):
+#     mps_from_bitstring = qtn.MPS_computational_state(bitstring)
+#     bitstring_dense = mps_from_bitstring.to_dense()
+#     bitstring_dm = np.outer(bitstring_dense, np.conj(bitstring_dense))
+#     # convert basis to MPO dense.
+#     basis_unitary = (mps_utils.z_to_basis_mpo(basis)).to_dense()
+#     state_dm = basis_unitary @ bitstring_dm @ basis_unitary.conj().T
+#     state_single_shots.append(state_dm)
+#   return np.mean(state_single_shots, axis=0)
+
+# TODO: currently raises error...
 def _construct_reduced_density_matrix(
-    ds: xr.Dataset,
-    subsystem: Sequence[int],
+    full_ds: xr.Dataset, subsystem: Sequence[int],
 ) -> qtn.MatrixProductOperator:
-  """Constructs reduced density matrix for `subsystem` from `ds`."""
-  bitstrings = ds['measurement'].sel(site=subsystem).values
-  basis = ds['basis'].sel(site=subsystem).values
-  # TODO: reconstruct reduced density matrix from `bitstrings` and `basis`.
-  # need something like \sum U|b><b|U^\dagger.
-  # TODO: convert reduced density matrix to MPO.
-  raise NotImplementedError('TODO: reconstruct reduced density matrix.') 
+  """Constructs reduced density matrix for `subsystem` from `full_ds`."""
+  def _reconstruction_dm_batch(
+      ds: xr.Dataset, subsystem: Sequence[int]
+    ) -> np.ndarray:
+    """Reconstruct the density matrix from batched single shot data."""
+    bitstrings = ds['measurement'].sel(site=subsystem).values
+    bases = ds['basis'].sel(site=subsystem).values
+    state_single_shots = []
+    for bitstring, basis in zip(bitstrings, bases):
+      mps_from_bitstring = qtn.MPS_computational_state(bitstring)
+      bitstring_dense = mps_from_bitstring.to_dense()
+      bitstring_dm = np.outer(bitstring_dense, np.conj(bitstring_dense))
+      # convert basis to MPO dense.
+      basis_unitary = (mps_utils.z_to_basis_mpo(basis)).to_dense()
+      state_dm = basis_unitary @ bitstring_dm @ basis_unitary.conj().T
+      state_single_shots.append(state_dm)
+    return np.mean(state_single_shots, axis=0)
+  
+  _reconstruction_dm_batch_fn = functools.partial(
+      _reconstruction_dm_batch, subsystem=subsystem
+  )
+  return stream_avg(full_ds, _reconstruction_dm_batch_fn)
 
 
 def estimate_from_dataset(
