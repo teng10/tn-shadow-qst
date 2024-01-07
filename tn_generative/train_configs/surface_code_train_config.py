@@ -163,7 +163,11 @@ def surface_code_nxm_sweep_fn(
 
 
 SWEEP_FN_REGISTRY = {
-    'sweep_sc_3x3_fn': list(surface_code_nxm_sweep_fn(3, 3, (5, 10))),
+    'sweep_sc_3x3_fn': list(
+        surface_code_nxm_sweep_fn(3, 3, (10,), estimator='shadow', 
+        num_seeds=1, onsite_z_fields=(0.1,), samplers=('x_or_z_basis_sampler',), 
+        )
+    ),
     'sweep_sc_5x5_fn': list(
         surface_code_nxm_sweep_fn(
             5, 5, (10, 20),
@@ -185,6 +189,13 @@ SWEEP_FN_REGISTRY = {
         ) for x in [3, 5, 7, 9, 15]],
         start=[]
     ),
+    'sweep_sc_size_y_3_shadow_fn': sum(
+        [list(surface_code_nxm_sweep_fn(x, 3, [10],
+            samplers=('x_or_z_basis_sampler', ), onsite_z_fields=(0., 0.1),
+            num_seeds=5, estimator='shadow', )
+        ) for x in [3, 5, 7, 9, 15]],
+        start=[]
+    ),    
     #TODO(YT): eventually generate this dataset.
     # 'sweep_sc_35x3_fn': list(surface_code_nxm_sweep_fn(35, 3, (5, ),
     # onsite_z_fields=(0., 0.1), )),

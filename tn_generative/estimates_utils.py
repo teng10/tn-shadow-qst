@@ -1,6 +1,6 @@
 """Utilities for estimating physical quantities from dataset or mps."""
 
-from typing import Callable, Sequence
+from typing import Sequence
 import functools
 
 import numpy as np
@@ -41,12 +41,12 @@ def _extract_non_identity_mpo(
     return non_identity
 
 
-def estimate_mpo_from_dataset(
+def estimate_expval_mpo_from_dataset(
     ds: xr.Dataset,
     mpo: qtn.MatrixProductOperator,
     method: str,
 ) -> float:
-  """Estimates physical quantities from `ds`.
+  """Estimates expectation values of physical quantities from `ds`.
   Note: the `shadow` is in geneal not a true reduced density matrix but used for
   estimating expectation values.
 
@@ -104,7 +104,7 @@ def estimate_observable(
       raise ValueError(f'{expectation_val=} is not real.')
     return expectation_val.real
   elif method == 'shadow':
-    return estimate_mpo_from_dataset(train_ds, mpo, method)
+    return estimate_expval_mpo_from_dataset(train_ds, mpo, method)
   else:
     raise ValueError(f'Unexpected estimation method {method}.')
 

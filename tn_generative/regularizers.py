@@ -56,7 +56,7 @@ def get_hamiltonian_reg_fn(
   """
   def _get_multisite_mpos(
       mpos: Sequence[qtn.MatrixProductOperator],
-  ):
+  ): # Note: added 01/07/2024, could have led to different results.
     """Returns only multisite mpos from a list of mpos."""
     def _is_multisite(mpo: qtn.MatrixProductOperator):
       """Returns True if `mpo` is multisite."""

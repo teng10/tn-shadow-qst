@@ -17,16 +17,18 @@ ALLUS = np.array([HADAMARD, Y_HADAMARD, EYE])
 ALLSTATES = np.array([UP, DOWN])
 
 
-def shadow_real_pauli_single_shot_vectorized(bits: np.ndarray, ids: np.ndarray
+def shadow_real_pauli_single_shot_vectorized(
+    bits: np.ndarray,
+    ids: np.ndarray
 ) -> np.ndarray:
   """Computes the single shot shadow for real states.
 
   Args:
-    bits: bitstring or measurement (array of bits).
-    us: basis (array of ids corresponding unitaries).
+    bits: bitstring or measurement (1d array of bits) of size (system, ).
+    us: basis (1d array of ids corresponding unitaries) of size (system, ).
 
   Returns:
-    local_shadows: array of local shadows.
+    local_shadows: array of local shadows of size (system, 2, 2).
   """
   local_states = ALLSTATES[bits]
   b_unitaries = ALLUS[ids]
@@ -40,16 +42,18 @@ def shadow_real_pauli_single_shot_vectorized(bits: np.ndarray, ids: np.ndarray
   return local_shadows
 
 
-def shadow_pauli_single_shot_vectorized(bits: np.ndarray, ids: np.ndarray
+def shadow_pauli_single_shot_vectorized(
+    bits: np.ndarray,
+    ids: np.ndarray
 ) -> np.ndarray:
   """Computes the single shot shadow for arbitrary states.
 
   Args:
-    bits: bitstring or measurement (array of bits).
-    us: basis (array of ids corresponding unitaries).
+    bits: bitstring or measurement (1d array of bits) of size (system, ).
+    us: basis (1d array of ids corresponding unitaries) of size (system, ).
 
   Returns:
-    local_shadows: array of local shadows.
+    local_shadows: array of local shadows of size (system, 2, 2).
   """
   local_states = ALLSTATES[bits]
   b_unitaries = ALLUS[ids]
@@ -76,12 +80,26 @@ def _get_shadow_single_shot_fn(ds: xr.Dataset
     raise NotImplementedError('Only random XZ measurements are supported.')
 
 
+def get_precomputed_single_shadows(n_sites, shadow_single_shot_fn):
+  """Precompute all possible single shot shadows."""
+  # TODO(YT): consider having this as a global function for all shadows?
+  # TODO(YT): add tests.
+  shadows_dict = {}
+  for bits in itertools.product(*[tuple(range(2))] * n_sites):
+    for ids in itertools.product(*[tuple(range(3))] * n_sites):
+      bitstring = np.array(bits)
+      basis = np.array(ids)
+      shadow = shadow_single_shot_fn(bitstring, basis)
+      shadows_dict[bits + ids] = functools.reduce(np.kron, list(shadow))
+  return shadows_dict
+
+
 def construct_subsystem_shadows(
     full_ds: xr.Dataset,
     subsystem: Sequence[int],
     shadow_single_shot_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
 ) -> np.ndarray:
-  """Stream to compute shadow states for `subsystem` from `full_ds`.
+  """Compute shadow states for `subsystem` from measurements in `full_ds`.
 
   Args:
     full_ds: dataset containing `measurement`, `basis`.
@@ -92,17 +110,6 @@ def construct_subsystem_shadows(
   Returns:
     `subsystem` shadow state.
   """
-  def get_precomputed_single_shadows(n_sites):
-    """Precompute all possible single shot shadows."""
-    shadows_dict = {}
-    for bits in itertools.product(*[tuple(range(2))] * n_sites):
-      for ids in itertools.product(*[tuple(range(3))] * n_sites):
-        bitstring = np.array(bits)
-        basis = np.array(ids)
-        shadow = shadow_single_shot_fn(bitstring, basis)
-        shadows_dict[bits + ids] = functools.reduce(np.kron, list(shadow))
-    return shadows_dict
-
   def _construct_shadow_mean(ds: xr.Dataset, precomputed_shadows: dict,
   ) -> np.ndarray:
     """Compute average shadow from single shot data.
@@ -123,7 +130,7 @@ def construct_subsystem_shadows(
 
   subsystem_ds = full_ds.sel(site=subsystem)
   precomputed_shadows = get_precomputed_single_shadows(
-      len(subsystem)
+      len(subsystem), shadow_single_shot_fn
   ) # Precompute all possible single shot shadows.
   return _construct_shadow_mean(subsystem_ds, precomputed_shadows)
   # Compute the streaming mean over `sample` dimension.
