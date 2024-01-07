@@ -88,6 +88,7 @@ def sweep_param_fn(
     train_beta: float,
     init_seed: int,
     reg_name: str,
+    estimator: str,
 ) -> dict:
   """Helper function for formatting sweep parameters.
 
@@ -103,6 +104,7 @@ def sweep_param_fn(
     train_beta: regularization strength.
     init_seed: random seed number for initializing mps.
     reg_name: name of regularization.
+    estimator: method for estimating regularization.
 
   Returns:
     dictionary of parameters for a single sweep.
@@ -114,6 +116,7 @@ def sweep_param_fn(
       'data.num_training_samples': train_num_samples,
       'training.training_schemes.lbfgs_reg.reg_name': reg_name,
       'training.training_schemes.lbfgs_reg.reg_kwargs.beta': train_beta,
+      'training.training_schemes.lbfgs_reg.reg_kwargs.estimator': estimator,
       'data.filename': get_dataset_name(sampler, size_x, size_y, onsite_z_field),
       'data.kwargs': {
           'task_name': DEFAULT_TASK_NAME,
@@ -133,6 +136,7 @@ def surface_code_nxm_sweep_fn(
     size_x: int,
     size_y: int,
     train_bond_dims: tuple[int],
+    estimator: str = 'mps',
     reg_name: str = 'hamiltonian',
     num_seeds: int = 10,
     train_samples: tuple[int] = (100, 500, 3_000, 20_000, 100_000),
@@ -154,6 +158,7 @@ def surface_code_nxm_sweep_fn(
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
                   reg_name=(reg_name if train_beta > 0 else 'none'),
+                  estimator=estimator,
               )
 
 

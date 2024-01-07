@@ -10,6 +10,7 @@ import quimb as qu
 
 from tn_generative import mps_utils
 from tn_generative import physical_systems
+from tn_generative import shadow_utils
 
 PhysicalSystem = physical_systems.PhysicalSystem
 
@@ -19,7 +20,7 @@ def _extract_non_identity_mpo(
     return_indices: bool=False,
 ):
   """Extract the non-identity subsystem of an MPO.
-  
+
   Args:
     mpo: an MPO of full system.
 
@@ -38,93 +39,41 @@ def _extract_non_identity_mpo(
     return non_identity, indices
   else:
     return non_identity
-  
-
-def stream_avg(ds: xr.Dataset, fn: Callable, batch_size: int=50):
-  """Compute the streaming average of a function fn over a dataset ds.
-  """
-  # Compute the number of batches
-  num_batches = ds.sizes['sample'] // batch_size
-  # Compute the streaming average
-  first_batch = ds.isel(sample=slice(0, batch_size))
-  avg = fn(first_batch)
-  for i in range(1, num_batches):
-    # Compute the batch average
-    batch = ds.isel(sample=slice(i*batch_size, (i+1)*batch_size))
-    avg += fn(batch)
-  # Compute the average of the remainder
-  remainder = ds.isel(sample=slice(num_batches*batch_size, None))
-  avg += fn(remainder)
-  avg /= num_batches + 1
-  return avg
 
 
-# def _construct_reduced_density_matrix(
-#     ds: xr.Dataset,
-#     subsystem: Sequence[int],
-# ) -> qtn.MatrixProductOperator:
-#   """Constructs reduced density matrix for `subsystem` from `ds`."""
-#   bitstrings = ds['measurement'].sel(site=subsystem).values
-#   bases = ds['basis'].sel(site=subsystem).values
-#   # TODO: reconstruct reduced density matrix from `bitstrings` and `basis`.
-#   # need something like \sum U|b><b|U^\dagger.
-#   # TODO: add streaming option for large datasets.
-#   state_single_shots = []
-#   for bitstring, basis in zip(bitstrings, bases):
-#     mps_from_bitstring = qtn.MPS_computational_state(bitstring)
-#     bitstring_dense = mps_from_bitstring.to_dense()
-#     bitstring_dm = np.outer(bitstring_dense, np.conj(bitstring_dense))
-#     # convert basis to MPO dense.
-#     basis_unitary = (mps_utils.z_to_basis_mpo(basis)).to_dense()
-#     state_dm = basis_unitary @ bitstring_dm @ basis_unitary.conj().T
-#     state_single_shots.append(state_dm)
-#   return np.mean(state_single_shots, axis=0)
-
-# TODO: currently raises error...
-def _construct_reduced_density_matrix(
-    full_ds: xr.Dataset, subsystem: Sequence[int],
-) -> qtn.MatrixProductOperator:
-  """Constructs reduced density matrix for `subsystem` from `full_ds`."""
-  def _reconstruction_dm_batch(
-      ds: xr.Dataset, subsystem: Sequence[int]
-    ) -> np.ndarray:
-    """Reconstruct the density matrix from batched single shot data."""
-    bitstrings = ds['measurement'].sel(site=subsystem).values
-    bases = ds['basis'].sel(site=subsystem).values
-    state_single_shots = []
-    for bitstring, basis in zip(bitstrings, bases):
-      mps_from_bitstring = qtn.MPS_computational_state(bitstring)
-      bitstring_dense = mps_from_bitstring.to_dense()
-      bitstring_dm = np.outer(bitstring_dense, np.conj(bitstring_dense))
-      # convert basis to MPO dense.
-      basis_unitary = (mps_utils.z_to_basis_mpo(basis)).to_dense()
-      state_dm = basis_unitary @ bitstring_dm @ basis_unitary.conj().T
-      state_single_shots.append(state_dm)
-    return np.mean(state_single_shots, axis=0)
-  
-  _reconstruction_dm_batch_fn = functools.partial(
-      _reconstruction_dm_batch, subsystem=subsystem
-  )
-  return stream_avg(full_ds, _reconstruction_dm_batch_fn)
-
-
-def estimate_from_dataset(
+def estimate_mpo_from_dataset(
     ds: xr.Dataset,
     mpo: qtn.MatrixProductOperator,
-):
+    method: str,
+) -> float:
   """Estimates physical quantities from `ds`.
-  
+  Note: the `shadow` is in geneal not a true reduced density matrix but used for
+  estimating expectation values.
+
   Args:
     ds: dataset containing `measurement`, `basis`.
     mpo: MPO to estimate expectation value.
+    method: method (`shadow` or `measurement`) to estimate expectation value.
+
+  Returns:
+    Expectation value of `mpo` estimated from `ds`.
   """
   # STEP 0: extract indices of subsystems from `mpos`.
   sub_mpo, sub_indices = _extract_non_identity_mpo(mpo, return_indices=True)
-  # ISSUE: this is not trivial, since `mpo` is not necessarily a product state.
-  # STEP 1: estimate reduced density matrix for each subsystem from `ds`.
-  rdm_mpo = _construct_reduced_density_matrix(ds, sub_indices)
-  # STEP 2: estimate expectation value of `mpo` from `ds`.
-  return (sub_mpo.apply(rdm_mpo)).trace()
+  if method == 'shadow':
+    # STEP 1: estimate reduced density matrix for each subsystem from `ds`.
+    shadow_single_shot_fn = shadow_utils._get_shadow_single_shot_fn(ds)
+    estimate_shadow_fn = functools.partial(
+        shadow_utils.construct_subsystem_shadows,
+        shadow_single_shot_fn=shadow_single_shot_fn
+    )
+    subsystem_shadow = estimate_shadow_fn(ds, sub_indices)
+    # STEP 2: estimate expectation value of `mpo` from `subsystem_shadow`.
+    return (sub_mpo.to_dense() @ subsystem_shadow).trace()
+  elif method == 'measurement':
+    raise NotImplementedError(f'Measurement {method=} not implemented.')
+  else:
+    raise NotImplementedError(f'Estimation method {method} not implemented.')
 
 
 def estimate_observable(
@@ -155,7 +104,7 @@ def estimate_observable(
       raise ValueError(f'{expectation_val=} is not real.')
     return expectation_val.real
   elif method == 'shadow':
-    raise NotImplementedError(f'{method=} not implemented.')
+    return estimate_mpo_from_dataset(train_ds, mpo, method)
   else:
     raise ValueError(f'Unexpected estimation method {method}.')
 
