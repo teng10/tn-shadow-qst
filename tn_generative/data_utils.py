@@ -41,7 +41,7 @@ def make_iterator_over_ds(ds, dim, batch_size):
   """Creates iterator over `ds` with `batch_size` slices along `dim`."""
   buckets = math.ceil(ds.sizes[dim] / batch_size)
   for i in range(buckets):
-    yield ds.isel({dim: slice(i * batch_size, (i+1) * batch_size)}, drop=True)
+    yield ds.isel({dim: slice(i * batch_size, (i+1) * batch_size)})
 
 
 def stream_mean_over_dim(ds, fn, dim, batch_size=500):
@@ -54,9 +54,7 @@ def stream_mean_over_dim(ds, fn, dim, batch_size=500):
         fn(x).mean(dim=dim) * new_count / (count + new_count), count + new_count
     )
 
-  ds_iterator = functools.partial(
-      make_iterator_over_ds, batch_size=batch_size
-  )(ds, dim)
+  ds_iterator = make_iterator_over_ds(ds, dim, batch_size)
   return functools.reduce(_stream_mean_fn, ds_iterator, (0, 0))[0]
 
 

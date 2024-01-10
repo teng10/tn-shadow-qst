@@ -47,7 +47,7 @@ class DatasetComputationTest(absltest.TestCase):
           'var1': xr.DataArray(np.arange(10), dims=['x']),
       })
       mean = data_utils.stream_mean_over_dim(ds, lambda x: x.var1, 'x')
-      self.assertEqual(mean.values, np.mean(ds.var1.values))
+      np.testing.assert_allclose(mean.values, np.mean(ds.var1.values))
 
     with self.subTest('computation with two variables and dims'):
       np.random.seed(41)
