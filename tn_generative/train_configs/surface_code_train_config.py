@@ -88,6 +88,7 @@ def sweep_param_fn(
     train_beta: float,
     init_seed: int,
     reg_name: str,
+    estimator: str,
 ) -> dict:
   """Helper function for formatting sweep parameters.
 
@@ -103,6 +104,7 @@ def sweep_param_fn(
     train_beta: regularization strength.
     init_seed: random seed number for initializing mps.
     reg_name: name of regularization.
+    estimator: method for estimating regularization.
 
   Returns:
     dictionary of parameters for a single sweep.
@@ -114,6 +116,7 @@ def sweep_param_fn(
       'data.num_training_samples': train_num_samples,
       'training.training_schemes.lbfgs_reg.reg_name': reg_name,
       'training.training_schemes.lbfgs_reg.reg_kwargs.beta': train_beta,
+      'training.training_schemes.lbfgs_reg.reg_kwargs.estimator': estimator,
       'data.filename': get_dataset_name(sampler, size_x, size_y, onsite_z_field),
       'data.kwargs': {
           'task_name': DEFAULT_TASK_NAME,
@@ -133,6 +136,7 @@ def surface_code_nxm_sweep_fn(
     size_x: int,
     size_y: int,
     train_bond_dims: tuple[int],
+    estimator: str = 'mps',
     reg_name: str = 'hamiltonian',
     num_seeds: int = 10,
     train_samples: tuple[int] = (100, 500, 3_000, 20_000, 100_000),
@@ -154,11 +158,16 @@ def surface_code_nxm_sweep_fn(
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
                   reg_name=(reg_name if train_beta > 0 else 'none'),
+                  estimator=estimator,
               )
 
 
 SWEEP_FN_REGISTRY = {
-    'sweep_sc_3x3_fn': list(surface_code_nxm_sweep_fn(3, 3, (5, 10))),
+    'sweep_sc_3x3_fn': list(
+        surface_code_nxm_sweep_fn(3, 3, (10,), estimator='shadow', 
+        num_seeds=10, onsite_z_fields=(0.1,), samplers=('x_or_z_basis_sampler',), 
+        )
+    ),
     'sweep_sc_5x5_fn': list(
         surface_code_nxm_sweep_fn(
             5, 5, (10, 20),
@@ -180,6 +189,13 @@ SWEEP_FN_REGISTRY = {
         ) for x in [3, 5, 7, 9, 15]],
         start=[]
     ),
+    'sweep_sc_size_y_3_shadow_fn': sum(
+        [list(surface_code_nxm_sweep_fn(x, 3, [10],
+            samplers=('x_or_z_basis_sampler', ), onsite_z_fields=(0., 0.1),
+            num_seeds=5, estimator='shadow', )
+        ) for x in [3, 5, 7, 9, 15]],
+        start=[]
+    ),    
     #TODO(YT): eventually generate this dataset.
     # 'sweep_sc_35x3_fn': list(surface_code_nxm_sweep_fn(35, 3, (5, ),
     # onsite_z_fields=(0., 0.1), )),

@@ -6,10 +6,10 @@ import numpy as np
 import xarray as xr
 import jax
 import jax.numpy as jnp
+import quimb as qu
 import quimb.tensor as qtn
 
 from tn_generative import estimates_utils
-from tn_generative import mps_utils
 from tn_generative import physical_systems
 
 PhysicalSystem = physical_systems.PhysicalSystem
@@ -42,7 +42,7 @@ def get_hamiltonian_reg_fn(
     estimator: str = 'mps',
     beta: Optional[Union[np.ndarray, float]] = 1.,
 ) -> Callable[[Sequence[jax.Array]], float]:
-  """Returns regularization function for terms in a hamiltonian.
+  """Returns regularization function for non-onsite terms in a hamiltonian.
 
   Args:
     system: physical system where the dataset is generated from.
@@ -54,17 +54,38 @@ def get_hamiltonian_reg_fn(
   Return:
     reg_fn: regularization function takes MPS arrays.
   """
+  def _get_multisite_mpos(
+      mpos: Sequence[qtn.MatrixProductOperator],
+  ): # Note: added 01/07/2024, could have led to different results.
+    """Returns only multisite mpos from a list of mpos."""
+    def _is_multisite(mpo: qtn.MatrixProductOperator):
+      """Returns True if `mpo` is multisite."""
+      subsystem_indices = [i for i in range(mpo.L) if not np.allclose(
+            mpo.arrays[i], np.array([[1., 0.], [0., 1.]])
+        )]
+      return len(subsystem_indices) != 1
+
+    def _is_identity(mpo: qtn.MatrixProductOperator):
+      """Returns True if `mpo` is identity."""
+      return all([np.allclose(x.data, qu.pauli('I')) for x in mpo])
+        
+    return [
+        mpo for mpo in mpos if (_is_multisite(mpo) and not _is_identity(mpo))
+    ]
+
+  
   ham_mpos = system.get_ham_mpos()
+  ham_multisite_mpos = _get_multisite_mpos(ham_mpos)
   estimator_fn = functools.partial(
         estimates_utils.estimate_observable, method=estimator
     )
   stabilizer_estimates = np.array([
-      estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_mpos
+      estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_multisite_mpos
   ])
   def reg_fn(mps_arrays: Sequence[jax.Array]):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     stabilizer_expectations = jnp.array([
-        (mps.H @ (s.apply(mps))) for s in ham_mpos
+        (mps.H @ (s.apply(mps))) for s in ham_multisite_mpos
     ])
     return jnp.mean(
         beta * jnp.abs(stabilizer_expectations - stabilizer_estimates)**2
