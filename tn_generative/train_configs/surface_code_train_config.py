@@ -165,7 +165,7 @@ def surface_code_nxm_sweep_fn(
 SWEEP_FN_REGISTRY = {
     'sweep_sc_3x3_fn': list(
         surface_code_nxm_sweep_fn(3, 3, (10,), estimator='shadow', 
-        num_seeds=1, onsite_z_fields=(0.1,), samplers=('x_or_z_basis_sampler',), 
+        num_seeds=10, onsite_z_fields=(0.1,), samplers=('x_or_z_basis_sampler',), 
         )
     ),
     'sweep_sc_5x5_fn': list(

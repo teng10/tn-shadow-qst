@@ -80,10 +80,23 @@ def _get_shadow_single_shot_fn(ds: xr.Dataset
     raise NotImplementedError('Only random XZ measurements are supported.')
 
 
-def get_precomputed_single_shadows(n_sites, shadow_single_shot_fn):
-  """Precompute all possible single shot shadows."""
-  # TODO(YT): consider having this as a global function for all shadows?
-  # TODO(YT): add tests.
+@functools.lru_cache
+def get_precomputed_single_shadows(
+    n_sites: int,
+    shadow_single_shot_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
+) -> dict[tuple[int], np.ndarray]:
+  """Precompute all possible single shot shadows given a size.
+
+  Args:
+    n_sites: number of sites (bodyness) to construct shadows for.
+    shadow_single_shot_fn: function to compute single shot shadow given
+        two arrays: measurement outcome `bitstring` and unitary ids `basis`.
+
+  Returns:
+    dictionary of all possible single shot shadows of size `n_sites`.
+  """
+  # Use this print to test whether caching works.
+  # print(f'Precomputing all possible single shot shadows for {n_sites=}.')
   shadows_dict = {}
   for bits in itertools.product(*[tuple(range(2))] * n_sites):
     for ids in itertools.product(*[tuple(range(3))] * n_sites):
