@@ -98,6 +98,23 @@ class MpsUtilsTests(parameterized.TestCase):
     mps_qu = mps_utils.xarray_to_mps(mps_xr)
     np.testing.assert_equal(mps.arrays, mps_qu.arrays)
 
+  @parameterized.parameters(3, 4, 5)
+  def test_mps_fix_gauge_same(self, size):
+    """Test mps is the same after gauge fixing."""
+    qugen.rand.seed_rand(42)
+    mps = qtn.MPS_rand_state(size, bond_dim=5)
+    fixed_arrays = mps_utils.fix_gauge_arrays(mps)
+    fixed_mps = qtn.MatrixProductState(fixed_arrays)
+    np.testing.assert_allclose(fixed_mps.H @ mps, 1.)
+
+  @parameterized.parameters(3, 4, 5)
+  def test_mps_tensors_round_trip(self, size):
+    """Test conversion between mps and expanded tensors."""
+    qugen.rand.seed_rand(42)
+    mps = qtn.MPS_rand_state(size, bond_dim=5)
+    tensors = mps_utils._mps_to_expanded_tensors(mps)
+    mps_from_tesors = mps_utils._mps_from_extended_tensors(tensors)
+    np.allclose(mps_from_tesors.H @ mps, 1.0)  
 
   if __name__ == "__main__":
     absltest.main()
