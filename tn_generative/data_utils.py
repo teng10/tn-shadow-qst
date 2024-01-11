@@ -1,11 +1,12 @@
 """Helper functions for data loading and processing."""
+import functools
+import math
 import inspect
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
-from tn_generative import mps_utils
 from tn_generative import physical_systems
 
 
@@ -36,6 +37,27 @@ def combine_complex_ds(ds):
   return ds
 
 
+def make_iterator_over_ds(ds, dim, batch_size):
+  """Creates iterator over `ds` with `batch_size` slices along `dim`."""
+  buckets = math.ceil(ds.sizes[dim] / batch_size)
+  for i in range(buckets):
+    yield ds.isel({dim: slice(i * batch_size, (i+1) * batch_size)})
+
+
+def stream_mean_over_dim(ds, fn, dim, batch_size=500):
+  """Compute the streamed mean of `fn` applied to `ds` along `dim`."""
+  def _stream_mean_fn(c, x):
+    mean, count = c
+    new_count = x.sizes[dim]
+    return (
+        mean * count / (count + new_count) +
+        fn(x).mean(dim=dim) * new_count / (count + new_count), count + new_count
+    )
+
+  ds_iterator = make_iterator_over_ds(ds, dim, batch_size)
+  return functools.reduce(_stream_mean_fn, ds_iterator, (0, 0))[0]
+
+
 def merge_pd_tiled_config(df, config_df):
   """Merge pandas dataframe with tiled config dataframe."""
   tiled_config_df = pd.DataFrame(
@@ -54,9 +76,9 @@ def compute_onsite_pauli_expectations(mps, physical_system):
     physical_system: A task system.
 
   Returns:
-    onsite_z_expectation: A list of expectation values of the onsite Pauli Z operators.
-    onsite_x_expectation: A list of expectation values of the onsite Pauli X operators.
-    onsite_y_expectation: A list of expectation values of the onsite Pauli Y operators.
+    onsite_z_expectation: list of expectation values of onsite Pauli Z.
+    onsite_x_expectation: list of expectation values of onsite Pauli X.
+    onsite_y_expectation: list of expectation values of onsite Pauli Y.
   """
   # COMMENT: could write dmrg_analysis_utils instead.
   onsite_z_terms = [(1., ('z', i)) for i in range(physical_system.n_sites)]
