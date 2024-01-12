@@ -1,5 +1,5 @@
 """Helper functions for manipulating MPS objects."""
-from typing import Sequence
+from typing import Sequence, Callable
 
 import jax
 import jax.numpy as jnp
@@ -104,3 +104,159 @@ def xarray_to_mps(ds: xr.Dataset) -> qtn.MatrixProductState:
   bulk_arrays = [x[0, ...] for x in bulk_arrays]
   mps_arrays = [ds.left_tensor.values] + bulk_arrays + [ds.right_tensor.values]
   return qtn.MatrixProductState(mps_arrays)
+
+
+def _mps_to_expanded_tensors(mps: qtn.MatrixProductState) -> tuple[np.ndarray]:
+  """
+  Extract and expand tensors at the first and last sites of the MPS to 3-legs.
+
+  Args:
+    mps: MPS state.
+
+  Returns:
+    MPS arrays after expanding the first and last sites to 3-legs with
+    indices (left virtual, right virtual, physical).
+  """
+  mps_tensors = mps.arrays
+  # first tensor has indices (right virtual, physical)
+  first_tensor = mps_tensors[0][np.newaxis, ...] # (1, right virtual, physical)
+  # last tensor has indices (left virtual, physical)
+  last_tensor = mps_tensors[-1][:, np.newaxis, :] # (left virtual, 1, physical)
+  return (first_tensor, ) + mps_tensors[1:-1] + (last_tensor, )
+
+
+def _mps_from_extended_tensors(
+    mps_tensors: tuple[np.ndarray]
+) -> qtn.MatrixProductState:
+  """Convert the expanded tensors to MPS.
+
+  Args:
+    mps_tensors: MPS tensors after expanding the first and last sites to 3-legs.
+
+  Returns:
+    MPS state.
+  """
+  # Squeeze the first and last tensors
+  # first tensor has indices (1, right virtual, physical)
+  first_tensor_squeezed = mps_tensors[0][0, ...] # (right virtual, physical)
+  # last tensor has indices (left virtual, 1, physical)
+  last_tensor_squeezed = mps_tensors[-1][:, 0, :] # (left virtual, physical)
+  return qtn.MatrixProductState(
+      (first_tensor_squeezed,) + mps_tensors[1:-1] + (last_tensor_squeezed,)
+  )
+
+
+def transfer_matrices_adag_a(mps: qtn.MatrixProductState) -> list[np.ndarray]:
+  """Compute the transfer matrices partially contracted of the MPS.
+
+  Args:
+    mps: MPS state.
+
+  Returns:
+    Transfer matrices of the MPS.
+  """
+  mps_tensors = _mps_to_expanded_tensors(mps)
+  # Compute the transfer matrices
+  return [np.einsum('ijk,lrk->jilr', a.conj(), a) for a in mps_tensors]
+
+
+def contracted_transfer_matrices_left(
+    mps: qtn.MatrixProductState
+) -> list[np.ndarray]:
+  """Compute the contracted transfer matrices from the left of the MPS.
+
+  Args:
+    mps: MPS state.
+
+  Returns:
+    Contracted transfer matrices of the MPS.
+  """
+  # sum over left bond of transfer matrices
+  # TODO(YT): consider combine the einsum with `transfer_matrices_adag_a`.
+  return [
+    np.einsum('jklr, kl->jr', x, np.eye(x.shape[1]))
+    for x in transfer_matrices_adag_a(mps)
+  ]
+
+
+def fix_gauge_arrays(mps: qtn.MatrixProductState):
+  """Gauge fixing after canonicalization of the MPS.
+
+  Args:
+    mps: MPS state.
+
+  Returns:
+    MPS arrays after fixing the gauge.
+  """
+  def _unitary_gauge_fix(mps_tensors):
+    """Fix the unitary gauge of A matrices at all sites."""
+    unitaries = []
+    tesnors_transformed = []
+    tensors_transformed_rhs = []
+    # Step 1: compute the unitaries that fix the gauge from RHS
+    for a in mps_tensors:
+      # Compute A^\dagger A contracted from left
+      adag_a_left_contracted = np.einsum('jik,jlk->il', a.conj(), a)
+      # Compute the eigenvectors of sum_i A_i^\dagger A_i
+      # these are the unitaries that fix the gauge from RHS
+      _, eigvecs = np.linalg.eigh(adag_a_left_contracted)
+      unitaries.append(eigvecs)
+      # Fix the gauge of A matrices
+      # transform A matrices from RHS
+      a_gauge_fixed_right = np.einsum('ijk,jl->ilk', a, eigvecs)
+      tensors_transformed_rhs.append(a_gauge_fixed_right)
+    # COMMENT: the following steps are not needed if we only want to compute the
+    # schatten norm of contracted A^\dagger A matrices using the function
+    # `compute_schatten_norm_Adag_A`,
+    #  because A^\dagger A is invariant from the left unitaries.
+    # Step 2: Fix the gauge of A matrices from LHS
+    # the leftmost A matrix do not get transformed from LHS
+    tesnors_transformed.append(tensors_transformed_rhs[0])
+    for unitary, a in zip(unitaries[:-1], tensors_transformed_rhs[1:]):
+      a_gauge_fixed_left = np.einsum('ji,jlk->ilk', unitary.conj(), a)
+      tesnors_transformed.append(a_gauge_fixed_left)
+    return tuple(tesnors_transformed)
+
+  mps = mps.copy()
+  mps = mps.canonize(0, cur_orthog=None) # right canonical form
+  # Make all tensors 3-legs
+  mps_tensors = _mps_to_expanded_tensors(mps)
+  # for each physical sites, compute A matrix after fixing the gauge
+  return _unitary_gauge_fix(mps_tensors)
+
+
+def compute_schatten_norm_adag_a(
+    mps_target: qtn.MatrixProductState,
+    mps_result: qtn.MatrixProductState,
+    distance_fn: Callable[[np.ndarray, np.ndarray], float],
+) -> float:
+  """Schatten p-norm of the contracted transfer matrices.
+  
+  Compute Schatten p-norm between the \sum_sigma A+ A matrices 
+  of the target and result MPS. TODO (YT): add reference.
+  p is determined by `distance_fn`.
+
+  Args:
+    mps_target: Target MPS.
+    mps_result: Result MPS.
+    distance_fn: Distance function.
+
+  Returns:
+    Schatten p-norm of the difference between the \sum_sigma A+ A matrices of
+    the target and result MPS.
+  """
+  contracted_transfer_target = contracted_transfer_matrices_left(mps_target)
+  contracted_transfer_result = contracted_transfer_matrices_left(mps_result)
+  contracted_transfer_eigvals_target = [
+      np.sort(np.linalg.eigvals(x)) for x in contracted_transfer_target
+  ]
+  contracted_transfer_eigvals_result = [
+      np.sort(np.linalg.eigvals(x)) for x in contracted_transfer_result
+  ]
+  total_dim = sum([len(x) for x in contracted_transfer_eigvals_target])
+  error_canonical_sites = jax.tree_util.tree_map(
+      distance_fn,
+      contracted_transfer_eigvals_target,
+      contracted_transfer_eigvals_result
+  )
+  return sum(error_canonical_sites) / total_dim
