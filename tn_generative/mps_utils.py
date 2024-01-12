@@ -124,6 +124,7 @@ def _mps_to_expanded_tensors(mps: qtn.MatrixProductState) -> tuple[np.ndarray]:
   last_tensor = mps_tensors[-1][:, np.newaxis, :] # (left virtual, 1, physical)
   return (first_tensor, ) + mps_tensors[1:-1] + (last_tensor, )
 
+
 def _mps_from_extended_tensors(
     mps_tensors: tuple[np.ndarray]
 ) -> qtn.MatrixProductState:
@@ -156,7 +157,8 @@ def transfer_matrices_adag_a(mps: qtn.MatrixProductState) -> list[np.ndarray]:
   """
   mps_tensors = _mps_to_expanded_tensors(mps)
   # Compute the transfer matrices
-  return [np.einsum('ijk,lrk->jilr', A.conj(), A) for A in mps_tensors]
+  return [np.einsum('ijk,lrk->jilr', a.conj(), a) for a in mps_tensors]
+
 
 def contracted_transfer_matrices_left(
     mps: qtn.MatrixProductState
@@ -170,6 +172,7 @@ def contracted_transfer_matrices_left(
     Contracted transfer matrices of the MPS.
   """
   # sum over left bond of transfer matrices
+  # TODO(YT): consider combine the einsum with `transfer_matrices_adag_a`.
   return [
     np.einsum('jklr, kl->jr', x, np.eye(x.shape[1]))
     for x in transfer_matrices_adag_a(mps)
@@ -227,8 +230,11 @@ def compute_schatten_norm_adag_a(
     mps_result: qtn.MatrixProductState,
     distance_fn: Callable[[np.ndarray, np.ndarray], float],
 ) -> float:
-  """Compute the Schatten norm of the difference between the \sum_sigma A+ A
-  matrices of the target and result MPS.
+  """Schatten p-norm of the contracted transfer matrices.
+  
+  Compute Schatten p-norm between the \sum_sigma A+ A matrices 
+  of the target and result MPS. TODO (YT): add reference.
+  p is determined by `distance_fn`.
 
   Args:
     mps_target: Target MPS.
@@ -236,12 +242,11 @@ def compute_schatten_norm_adag_a(
     distance_fn: Distance function.
 
   Returns:
-    Schatten norm of the difference between the \sum_sigma A+ A matrices of the
-    target and result MPS.
+    Schatten p-norm of the difference between the \sum_sigma A+ A matrices of
+    the target and result MPS.
   """
   contracted_transfer_target = contracted_transfer_matrices_left(mps_target)
   contracted_transfer_result = contracted_transfer_matrices_left(mps_result)
-
   contracted_transfer_eigvals_target = [
       np.sort(np.linalg.eigvals(x)) for x in contracted_transfer_target
   ]
@@ -249,8 +254,9 @@ def compute_schatten_norm_adag_a(
       np.sort(np.linalg.eigvals(x)) for x in contracted_transfer_result
   ]
   total_dim = sum([len(x) for x in contracted_transfer_eigvals_target])
-  error_canonical_sites = jax.tree_map(
-      distance_fn, contracted_transfer_eigvals_target,
+  error_canonical_sites = jax.tree_util.tree_map(
+      distance_fn,
+      contracted_transfer_eigvals_target,
       contracted_transfer_eigvals_result
   )
   return sum(error_canonical_sites) / total_dim

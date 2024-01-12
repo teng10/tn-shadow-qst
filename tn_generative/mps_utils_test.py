@@ -114,7 +114,7 @@ class MpsUtilsTests(parameterized.TestCase):
     mps = qtn.MPS_rand_state(size, bond_dim=5)
     tensors = mps_utils._mps_to_expanded_tensors(mps)
     mps_from_tesors = mps_utils._mps_from_extended_tensors(tensors)
-    np.allclose(mps_from_tesors.H @ mps, 1.0)  
+    np.testing.assert_allclose(mps_from_tesors.H @ mps, 1.0)  
 
   if __name__ == "__main__":
     absltest.main()
