@@ -106,7 +106,7 @@ def sweep_nxm_ruby_fn(
     reg_name: str = 'hamiltonian',
     estimator: str = 'shadow',
     num_seeds: int = 10,
-    train_samples: tuple[int] = (100, 500, 3_000, 20_000, 100_000),
+    train_samples: tuple[int] = (3_000, 7_000, 20_000, 40_000, 90_000),
     train_betas: tuple[float] = (0., 1., 5.),
     deltas: tuple[float] = (0., ),
     samplers: tuple[str] = (
@@ -131,11 +131,16 @@ def sweep_nxm_ruby_fn(
 
 
 SWEEP_FN_REGISTRY = {
-    'sweep_sc_4x2_fn': list(sweep_nxm_ruby_fn(
+    'sweep_sc_4x2_fn_mps': list(sweep_nxm_ruby_fn(
+        4, 2, train_bond_dims=(20, 40), reg_name='none',
+        samplers=('x_or_z_basis_sampler', 'xz_basis_sampler', ),
+        deltas=(1.7, 0.5), train_betas=(0., ), 
+    )),
+    'sweep_sc_4x2_fn_shadow': list(sweep_nxm_ruby_fn(
         4, 2, train_bond_dims=(20, 40), reg_name='hamiltonian',
         estimator='shadow', 
         samplers=('x_or_z_basis_sampler', ), #'xz_basis_sampler', 
-        deltas=(1.7, 0.5), train_betas=(1., 5.), num_seeds=5,
+        deltas=(1.7, 0.5), train_betas=(1., 5.), 
     )),
 }
 
