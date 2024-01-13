@@ -60,7 +60,7 @@ def run_full_batch_experiment(
   ds = data_utils.combine_complex_ds(ds)
   train_ds = ds.isel(sample=slice(0, config.data.num_training_samples))
   # partition the dataset into training and test.
-  test_ds = ds.isel(sample=slice(config.data.num_test_samples, None))
+  test_ds = ds.isel(sample=slice(-config.data.num_test_samples, None))
   if (config.data.num_training_samples + config.data.num_test_samples
       > ds.sizes['sample']
   ):
