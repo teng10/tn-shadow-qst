@@ -33,6 +33,7 @@ class RunTrainingTests(parameterized.TestCase):
         'task_id': 0,
         'data.dir': os.path.join(current_file_dir, 'test_data'),
         'data.num_training_samples': 100,
+        'data.num_test_samples': 200,
         'training.steps_sequence': (5, 2),
         'model.bond_dim': 2,
     }

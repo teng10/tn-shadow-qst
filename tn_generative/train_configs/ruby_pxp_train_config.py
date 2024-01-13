@@ -153,6 +153,7 @@ def get_config():
   # data.
   config.data = config_dict.ConfigDict()
   config.data.num_training_samples = 1000
+  config.data.num_test_samples = 10_000
   # CLUSTER: needs to be changed
   config.data.dir = f'{HOME}/tn_shadow_dir/Data/{DEFAULT_TASK_NAME}'
   config.data.kwargs = {
