@@ -7,12 +7,14 @@ import numpy as np
 import xarray as xr
 import quimb.tensor as qtn
 import quimb as qu
+from pennylane.pauli import pauli_decompose, pauli_word_to_string
 
 from tn_generative import mps_utils
 from tn_generative import physical_systems
 from tn_generative import shadow_utils
 
 PhysicalSystem = physical_systems.PhysicalSystem
+PAULIMAP = {'X': 0, 'Y': 1, 'Z': 2} # Mapping from pauli string to index.
 
 
 def _extract_non_identity_mpo(
@@ -39,6 +41,55 @@ def _extract_non_identity_mpo(
     return non_identity, indices
   else:
     return non_identity
+
+
+def estimate_expval_pauli_from_measurements(
+    ds: xr.Dataset,
+    pauli: np.ndarray,
+    indices: Sequence[int],
+    estimator: str = 'empirical',
+    return_err: bool = False,
+) -> float:
+  """Estimate expectations of a pauli word from `ds` using direct measurements.
+
+  Note: this function direclty computes the average of measurement outcomes.
+  It should be used when the number of measurements in pauli is large enough.
+  `estimator` can be one of: `empirical`, `median of means`, etc.
+  Errorbar is standard deviation / sqrt(number of samples).
+  
+  Args:
+    ds: dataset containing `measurement`, `basis`.
+    pauli: pauli word to estimate expectation value.
+    indices: indices of subsystems of the pauli word.
+    estimator: method for estimating expectation value.
+    return_err: whether to return the errorbar of the estimator.
+  
+  Returns:
+    Expectation value of `mpo` by selecting correct measurements from `ds`.
+  """
+  # Step 0: extract measurements from `ds` for `indices` and `pauli`.
+  ds_subsystem = ds.sel(site=indices)
+  ds_pauli = ds_subsystem.where(ds_subsystem.basis == pauli, drop=True)
+  # Step 1: compute the product of measurements for each sample.
+  def _pauli_prod(array, axis):
+    return np.prod(-2. * array + 1, axis=axis) # 0->1, 1->-1
+  pauli_prod = xr.apply_ufunc(
+      _pauli_prod, ds_pauli.measurement,
+      input_core_dims=[['site']], kwargs={'axis': -1}
+  )
+  pauli_prod = pauli_prod.dropna(dim='sample')
+  # Step 2: compute the average of the product of measurements.
+  if estimator == 'empirical':
+    mean = pauli_prod.mean(dim='sample').values
+    std = pauli_prod.std(dim='sample').values
+  elif estimator == 'median of means':
+    raise NotImplementedError(f'Pauli {estimator=} not implemented.')
+  else:
+    raise ValueError(f'Unknown pauli {estimator=}.')
+  if return_err:
+    return mean, std / np.sqrt(pauli_prod.shape[0])
+  else:
+    return mean
 
 
 def estimate_expval_mpo_from_dataset(
@@ -71,7 +122,14 @@ def estimate_expval_mpo_from_dataset(
     # STEP 2: estimate expectation value of `mpo` from `subsystem_shadow`.
     return (sub_mpo.to_dense() @ subsystem_shadow).trace()
   elif method == 'measurement':
-    raise NotImplementedError(f'Measurement {method=} not implemented.')
+    # STEP 1: compute the pauli word for `sub_mpo`
+    paulis_from_mpo = pauli_decompose(sub_mpo.to_dense())
+    pauli_string = pauli_word_to_string(paulis_from_mpo)
+    pauli = np.array([PAULIMAP[pauli] for pauli in pauli_string])
+    # STEP 2: estimate expectation value of `pauli` from `ds`.
+    return estimate_expval_pauli_from_measurements(
+        ds, pauli, sub_indices, estimator='empirical'
+    )
   else:
     raise NotImplementedError(f'Estimation method {method} not implemented.')
 
@@ -95,7 +153,7 @@ def estimate_observable(
   """
   def is_approximately_real(number):
     return abs(number.imag) < tolerance
-  if method == 'placeholder':
+  if method == 'measurement':
     return 1.
   elif method == 'mps':
     mps = mps_utils.xarray_to_mps(train_ds)
