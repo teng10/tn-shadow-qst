@@ -139,7 +139,7 @@ def surface_code_nxm_sweep_fn(
     estimator: str = 'mps',
     reg_name: str = 'hamiltonian',
     num_seeds: int = 10,
-    train_samples: tuple[int] = (100, 500, 3_000, 20_000, 100_000),
+    train_samples: tuple[int] = (100, 500, 3_000, 20_000, 90_000),
     train_betas: tuple[float] = (0., 1., 5.),
     onsite_z_fields: tuple[float] = (0., ),
     samplers: tuple[str] = (
@@ -192,7 +192,7 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_size_y_3_shadow_fn': sum(
         [list(surface_code_nxm_sweep_fn(x, 3, [10],
             samplers=('x_or_z_basis_sampler', ), onsite_z_fields=(0., 0.1),
-            num_seeds=5, estimator='shadow', )
+            num_seeds=10, estimator='shadow', train_betas=(0., 1., 5.))
         ) for x in [3, 5, 7, 9, 15]],
         start=[]
     ),    
@@ -215,6 +215,7 @@ def get_config():
   # data.
   config.data = config_dict.ConfigDict()
   config.data.num_training_samples = 1000
+  config.data.num_test_samples = 10_000
   # CLUSTER: needs to be changed
   config.data.dir = f'{HOME}/tn_shadow_dir/Data/{DEFAULT_TASK_NAME}'
   config.data.kwargs = {
