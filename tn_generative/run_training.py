@@ -65,9 +65,8 @@ def run_full_batch_experiment(
       > ds.sizes['sample']
   ):
     raise ValueError(
-        f'Train samples {config.data.num_training_samples} + \
-        test samples {config.data.num_test_samples} \
-          > total samples {ds.sizes["sample"]}.'
+        f'Train samples {config.data.num_training_samples} + test samples \
+        {config.data.num_test_samples} > total samples {ds.sizes["sample"]}.'
     )
   qugen.rand.seed_rand(model_config.init_seed)
   model_mps = qtn.MPS_rand_state(
@@ -96,8 +95,8 @@ def run_full_batch_experiment(
   eval_df = pd.concat(eval_dfs, ignore_index=True)
   # massaging configs to store all experiment parameters.
   config_df = pd.json_normalize(config.to_dict(), sep='_')
-  complete_eval_df = data_utils.merge_pd_tiled_config(eval_df, config_df)    
-  complete_train_df = data_utils.merge_pd_tiled_config(train_df, config_df)  
+  complete_eval_df = data_utils.merge_pd_tiled_config(eval_df, config_df)
+  complete_train_df = data_utils.merge_pd_tiled_config(train_df, config_df)
   if config.results.save_results:
     results_dir = config.results.experiment_dir.replace(
         '%CURRENT_DATE', current_date

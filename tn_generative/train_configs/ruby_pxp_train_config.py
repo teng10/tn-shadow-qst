@@ -134,13 +134,13 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_4x2_fn_mps': list(sweep_nxm_ruby_fn(
         4, 2, train_bond_dims=(20, 40), reg_name='none',
         samplers=('x_or_z_basis_sampler', 'xz_basis_sampler', ),
-        deltas=(1.7, 0.5), train_betas=(0., ), 
+        deltas=(1.7, 0.5), train_betas=(0., ),
     )),
     'sweep_sc_4x2_fn_shadow': list(sweep_nxm_ruby_fn(
-        4, 2, train_bond_dims=(20, 40), reg_name='hamiltonian',
-        estimator='shadow', 
-        samplers=('x_or_z_basis_sampler', ), #'xz_basis_sampler', 
-        deltas=(1.7, 0.5), train_betas=(1., 5.), 
+        4, 2, train_bond_dims=(20, 10), reg_name='hamiltonian',
+        estimator='shadow',
+        samplers=('x_or_z_basis_sampler', ), #'xz_basis_sampler',
+        deltas=(1.7, ), train_betas=(0., 1., 5.),
     )),
 }
 

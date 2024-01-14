@@ -89,7 +89,7 @@ def evaluate_model(mps, train_ds, test_ds, regularization_fn):
   bases = train_ds.basis.values
   model_ll = batched_neg_ll_loss_fn(mps.arrays, measurements, bases)
   target_ll = batched_neg_ll_loss_fn(target_mps.arrays, measurements, bases)
-  # Evaluate on test dataset if provided.
+  # Evaluate on test dataset.
   test_measurements = test_ds.measurement.values
   test_bases = test_ds.basis.values
   test_ll = batched_neg_ll_loss_fn(mps.arrays, test_measurements, test_bases)  
