@@ -59,7 +59,7 @@ def batched_neg_ll_loss_fn(
   return loss_fn(mps, measurements, bases)
 
 
-def evaluate_model(mps, train_ds, regularization_fn):
+def evaluate_model(mps, train_ds, test_ds, regularization_fn):
   """Evaluates `mps` wrt learning the state in `train_ds`.
 
   This function computes: (1) fieldlity - how well the ground truth state is
@@ -75,19 +75,24 @@ def evaluate_model(mps, train_ds, regularization_fn):
     train_ds: default tomography dataset containing `measurement`, `basis` vars
       on which `mps` was trained on, as well as parameters of the ground truth
       state which are used to reconstruct the state and compute fidelity.
+    test_ds: test dataset to evaluate the model on.  
     regularization_fn: function that computes regularization term.
 
   Returns:
     Dictionary containing evaluation summary: fildelity, model_ll, target_ll,
-    and regularization (if not None).
+    regularization (if not None) and test_ll.
   """
   target_mps = mps_utils.xarray_to_mps(train_ds)
   fidelity = (mps.H | target_mps) ^ ...
-
+  # Evaluate log-likelihood on training dataset.
   measurements = train_ds.measurement.values
   bases = train_ds.basis.values
   model_ll = batched_neg_ll_loss_fn(mps.arrays, measurements, bases)
   target_ll = batched_neg_ll_loss_fn(target_mps.arrays, measurements, bases)
+  # Evaluate on test dataset.
+  test_measurements = test_ds.measurement.values
+  test_bases = test_ds.basis.values
+  test_ll = batched_neg_ll_loss_fn(mps.arrays, test_measurements, test_bases)  
   if regularization_fn is not None:
     regularization = regularization_fn(mps.arrays)
   else:
@@ -97,6 +102,7 @@ def evaluate_model(mps, train_ds, regularization_fn):
       'model_ll': [model_ll],
       'target_ll': [target_ll],
       'regularization': [regularization],
+      'test_ll': [test_ll],
   })
 
 
@@ -104,6 +110,7 @@ def evaluate_model(mps, train_ds, regularization_fn):
 def run_full_batch_training(
     mps: qtn.MatrixProductState,
     train_ds: xr.Dataset,
+    test_ds: xr.Dataset,
     training_config: Dict[str, Any],
     num_training_steps: int,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, qtn.MatrixProductState]:
@@ -112,6 +119,7 @@ def run_full_batch_training(
   Args:
     mps: initial state to train.
     train_ds: default tomography dataset containing `measurement`, `basis`.
+    test_ds: test dataset to evaluate the model on.
     training_config: dictionary containing training configuration.
     num_training_steps: number of training steps.
 
@@ -150,7 +158,7 @@ def run_full_batch_training(
   })
   train_df['training_time'] = end_training_time - start_training_time
   train_df = train_df.astype(np.float32)
-  eval_df = evaluate_model(trained_mps, train_ds, regularization_fn)
+  eval_df = evaluate_model(trained_mps, train_ds, test_ds, regularization_fn)
   return train_df, eval_df, trained_mps
 
 
@@ -158,6 +166,7 @@ def run_full_batch_training(
 def run_minibatch_trainig(
     mps: qtn.MatrixProductState,
     train_ds: xr.Dataset,
+    test_ds: xr.Dataset,
     training_config: Dict[str, Any],
     num_training_steps: int,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, qtn.MatrixProductState]:
@@ -166,6 +175,7 @@ def run_minibatch_trainig(
   Args:
     mps: initial state to train.
     train_ds: default tomography dataset containing `measurement`, `basis`.
+    test_ds: test dataset to evaluate the model on.
     training_config: dictionary containing training configuration.
     num_training_steps: number of training steps.
 
@@ -232,5 +242,5 @@ def run_minibatch_trainig(
   train_df = pd.DataFrame(jax.device_get(results))
   train_df['training_time'] = end_training_time - start_training_time
   train_df = train_df.astype(np.float32)
-  eval_df = evaluate_model(trained_mps, train_ds, regularization_fn)
+  eval_df = evaluate_model(trained_mps, train_ds, test_ds, regularization_fn)
   return train_df, eval_df, trained_mps

@@ -59,6 +59,15 @@ def run_full_batch_experiment(
   # Load dataset by combining real&imag fields into complex fields.
   ds = data_utils.combine_complex_ds(ds)
   train_ds = ds.isel(sample=slice(0, config.data.num_training_samples))
+  # partition the dataset into training and test.
+  test_ds = ds.isel(sample=slice(-config.data.num_test_samples, None))
+  if (config.data.num_training_samples + config.data.num_test_samples
+      > ds.sizes['sample']
+  ):
+    raise ValueError(
+        f'Train samples {config.data.num_training_samples} + test samples \
+        {config.data.num_test_samples} > total samples {ds.sizes["sample"]}.'
+    )
   qugen.rand.seed_rand(model_config.init_seed)
   model_mps = qtn.MPS_rand_state(
       train_ds.sizes['site'], model_config.bond_dim, dtype=model_config.dtype)
@@ -74,7 +83,7 @@ def run_full_batch_experiment(
     train_scheme_config = train_config.training_schemes[train_schedule_name]
     train_scheme = TRAIN_SCHEME_REGISTRY[train_scheme_config.training_scheme]
     train_df, eval_df, model_mps = train_scheme(
-        model_mps, train_ds, train_scheme_config, schedule_step
+        model_mps, train_ds, test_ds, train_scheme_config, schedule_step
     )  # Choose to leave step as a separate argument from the config.
     current_sequence = '_'.join([train_scheme_config.training_scheme, str(i)])
     train_df['current_sequence'] = current_sequence
@@ -86,8 +95,8 @@ def run_full_batch_experiment(
   eval_df = pd.concat(eval_dfs, ignore_index=True)
   # massaging configs to store all experiment parameters.
   config_df = pd.json_normalize(config.to_dict(), sep='_')
-  complete_eval_df = data_utils.merge_pd_tiled_config(eval_df, config_df)    
-  complete_train_df = data_utils.merge_pd_tiled_config(train_df, config_df)  
+  complete_eval_df = data_utils.merge_pd_tiled_config(eval_df, config_df)
+  complete_train_df = data_utils.merge_pd_tiled_config(train_df, config_df)
   if config.results.save_results:
     results_dir = config.results.experiment_dir.replace(
         '%CURRENT_DATE', current_date
