@@ -10,7 +10,9 @@ import quimb as qu
 import quimb.tensor as qtn
 
 from tn_generative import estimates_utils
+from tn_generative import mps_utils
 from tn_generative import physical_systems
+from tn_generative import shadow_utils
 
 PhysicalSystem = physical_systems.PhysicalSystem
 
@@ -164,6 +166,7 @@ def _get_subsystems(
   return subsystems
 
 
+# TODO(YT): currently runs out of memory for ruby subsystem of size 6.
 @register_reg_fn('reduced_density_matrices')
 def get_density_reg_fn(
     system: PhysicalSystem,
@@ -213,3 +216,52 @@ def get_density_reg_fn(
         ])
     )
   return reg_fn
+
+
+@register_reg_fn('subsystem_xz_operators')
+def get_subsystem_pauli_reg_fn(
+    system: PhysicalSystem,
+    train_ds: xr.Dataset,
+    estimator: str = 'mps',
+    beta: Optional[Union[np.ndarray, float]] = 1.,
+    subsystem_kwargs: Optional[dict] = {
+        'method': 'default', 'explicit_subsystems': None
+    },
+    paulis: Optional[list[str]] = ['X', 'Z', 'I'],
+) -> Callable[[Sequence[jax.Array]], float]:
+  """Returns regularization function using shadow of the subsystems.
+
+  Using operator norm |\rho_{shadow} - \rho_{model, xz}|_2 (or schatten-2 norm).
+
+  Args:
+    system: physical system where the dataset is generated from.
+    ds: dataset containing `measurement`, `basis`.
+    estimator: method used to compute expectation value of the regularization.
+        Options are `mps` or `shadow`.
+    beta: regularization strength. Default is 1.
+    subsystem_kwargs: kwargs for `system.get_subsystems`.
+
+  Return:
+    reg_fn: regularization function takes MPS arrays.
+  """
+  subsystems = _get_subsystems(system, **subsystem_kwargs)
+  estimator_fn = functools.partial(
+      shadow_utils.construct_subsystem_shadows, method=estimator, 
+      shadow_single_shot_fn=shadow_utils._get_shadow_single_shot_fn(train_ds)
+  )
+  xz_estimates = [
+      estimator_fn(train_ds, subsystem) for subsystem in subsystems
+  ]  
+  def reg_fn(mps_arrays: Sequence[jax.Array]) -> float:
+    mps = qtn.MatrixProductState(arrays=mps_arrays)
+    xz_estimates_model = [
+        mps_utils.construct_subsystem_operators(mps, subsystem, paulis) # DONE: add method for estimating subsystem xz components.
+        for subsystem in subsystems
+    ]
+    # COMMENT(YT): Frobenius norm between the projected rdm.
+    return beta * jnp.mean(jnp.array(
+        [jnp.linalg.norm((rho_1 - rho_2).to_dense(), ord='fro') for rho_1, rho_2
+            in zip(xz_estimates_model, xz_estimates)
+        ])
+    )
+  return reg_fn  
