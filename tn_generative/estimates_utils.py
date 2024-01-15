@@ -14,7 +14,7 @@ from tn_generative import physical_systems
 from tn_generative import shadow_utils
 
 PhysicalSystem = physical_systems.PhysicalSystem
-PAULIMAP = {'X': 0, 'Y': 1, 'Z': 2} # Mapping from pauli string to index.
+PAULIMAP = {'X': 0, 'Y': 1, 'Z': 2, 'I': 3} # Mapping from pauli string to index.
 
 
 def _extract_non_identity_mpo(
@@ -22,6 +22,7 @@ def _extract_non_identity_mpo(
     return_indices: bool=False,
 ):
   """Extract the non-identity subsystem of an MPO.
+  # TODO(YT): move to MPS utils.
 
   Args:
     mpo: an MPO of full system.
@@ -78,21 +79,16 @@ def estimate_expval_pauli_from_measurements(
     pauli: np.ndarray,
     indices: Sequence[int],
     estimator: str = 'empirical',
-    return_err: bool = False,
+    return_errbar: bool = False,
 ) -> float:
   """Estimate expectations of a pauli word from `ds` using direct measurements.
-
-  Note: this function direclty computes the average of measurement outcomes.
-  It should be used when the number of measurements in pauli is large enough.
-  `estimator` can be one of: `empirical`, `mom`(median of means), etc.
-  Errorbar is standard deviation / sqrt(number of samples).
 
   Args:
     ds: dataset containing `measurement`, `basis`.
     pauli: pauli word to estimate expectation value.
     indices: indices of subsystems of the pauli word.
     estimator: method for estimating expectation value.
-    return_err: whether to return the errorbar of the estimator.
+    return_errbar: whether to return the errorbar of the estimator.
 
   Returns:
     Expectation value of `mpo` by selecting correct measurements from `ds`.
@@ -106,54 +102,91 @@ def estimate_expval_pauli_from_measurements(
     raise NotImplementedError(f'Pauli {estimator=} not implemented.')
   else:
     raise ValueError(f'Unknown pauli {estimator=}.')
-  if return_err:
+  if return_errbar:
     return mean, std / np.sqrt(pauli_prod.sizes['sample'])
   else:
     return mean
 
 
-def estimate_expval_mpo_from_dataset(
+def estimate_expval_mpo_from_shadow(
     ds: xr.Dataset,
     mpo: qtn.MatrixProductOperator,
-    method: str,
     estimator: str = 'empirical',
 ) -> float:
-  """Estimates expectation values of physical quantities from `ds`.
+  """Estimates expectation values of mpo operator from `ds` via shadow.
+
   Note: the `shadow` is in geneal not a true reduced density matrix but used for
   estimating expectation values.
 
   Args:
     ds: dataset containing `measurement`, `basis`.
     mpo: MPO to estimate expectation value.
-    method: method (`shadow` or `measurement`) to estimate expectation value.
     estimator: method for estimating expectation value. `empirical` or `mom`.
 
   Returns:
-    Expectation value of `mpo` estimated from `ds`.
+    Expectation value of `mpo` estimated from classical shadow.
   """
   # STEP 0: extract indices of subsystems from `mpos`.
   sub_mpo, sub_indices = _extract_non_identity_mpo(mpo, return_indices=True)
-  if method == 'shadow':
-    # STEP 1: estimate reduced density matrix for each subsystem from `ds`.
-    shadow_single_shot_fn = shadow_utils._get_shadow_single_shot_fn(ds)
-    estimate_shadow_fn = functools.partial(
-        shadow_utils.construct_subsystem_shadows,
-        shadow_single_shot_fn=shadow_single_shot_fn, estimator=estimator,
-    )
-    subsystem_shadow = estimate_shadow_fn(ds, sub_indices)
-    # STEP 2: estimate expectation value of `mpo` from `subsystem_shadow`.
-    return (sub_mpo.to_dense() @ subsystem_shadow).trace()
-  elif method == 'measurement':
-    # STEP 1: compute the pauli word for `sub_mpo`
-    paulis_from_mpo = pauli_decompose(sub_mpo.to_dense())
-    pauli_string = pauli_word_to_string(paulis_from_mpo)
-    pauli = np.array([PAULIMAP[pauli] for pauli in pauli_string])
-    # STEP 2: estimate expectation value of `pauli` from `ds`.
-    return estimate_expval_pauli_from_measurements(
-        ds, pauli, sub_indices, estimator=estimator,
-    )
-  else:
-    raise NotImplementedError(f'Estimation method {method} not implemented.')
+  # STEP 1: estimate reduced density matrix for each subsystem from `ds`.
+  shadow_single_shot_fn = shadow_utils._get_shadow_single_shot_fn(ds)
+  estimate_shadow_fn = functools.partial(
+      shadow_utils.construct_subsystem_shadows,
+      shadow_single_shot_fn=shadow_single_shot_fn, estimator=estimator,
+  )
+  subsystem_shadow = estimate_shadow_fn(ds, sub_indices)
+  # STEP 2: estimate expectation value of `mpo` from `subsystem_shadow`.
+  return (sub_mpo.to_dense() @ subsystem_shadow).trace()
+
+
+def _extract_pauli_indices_from_mpo(
+    mpo: qtn.MatrixProductOperator,
+) -> Sequence[int]:
+  """Extract pauli indices from `mpo`.
+
+  # TODO(YT): move to MPS utils.
+  Args:
+    mpo: MPO to extract pauli indices.
+
+  Returns:
+    indices of pauli operators in `mpo`. {0, 1, 2, 3} -> {X, Y, Z, I}
+  """
+  pauli_indices = []
+  for x in mpo:
+    pauli_index = [
+        PAULIMAP[tag] for tag in PAULIMAP.keys() if np.allclose(
+            x.data, qu.pauli(tag)
+        )
+    ]
+    if len(pauli_index) == 1:
+      pauli_indices.append(pauli_index[0])
+    else:
+      raise ValueError(f'MPO {x=} is not a Pauli operator with {pauli_index=}')
+  return pauli_indices
+
+
+# TODO: remove this function.
+# def estimate_expval_mpo_from_measurement(
+#     ds: xr.Dataset,
+#     mpo: qtn.MatrixProductOperator,
+#     estimator: str = 'empirical',
+# ) -> float:
+#   """Estimates expectation values of `mpo` from measurements in `ds`.
+
+#   Note: this function direclty computes the average of measurement outcomes.
+#   It should be used when the number of measurements in pauli is large enough.
+#   `estimator` can be one of: `empirical`, `mom`(median of means), etc.
+#   Errorbar is standard deviation / sqrt(number of samples).
+
+#   Args:
+#     ds: dataset containing `measurement`, `basis`.
+#     mpo: MPO to estimate expectation value.
+#     estimator: method for estimating expectation value. `empirical` or `mom`.
+
+#   Returns:
+#     Expectation value of `mpo` estimated from `ds`.
+#   """
+
 
 
 def estimate_observable(
@@ -183,8 +216,17 @@ def estimate_observable(
   """
   def is_approximately_real(number):
     return abs(number.imag) < tolerance
-  if method in ('measurement', 'shadow'):
-    return estimate_expval_mpo_from_dataset(train_ds, mpo, method, estimator)
+  if method =='measurement':
+    # STEP 0: extract indices of subsystems from `mpos`.
+    sub_mpo, sub_indices = _extract_non_identity_mpo(mpo, return_indices=True)
+    # STEP 1: compute the pauli word for `sub_mpo`
+    pauli = np.array(_extract_pauli_indices_from_mpo(sub_mpo))
+    # STEP 2: estimate expectation value of `pauli` from `ds`.
+    return estimate_expval_pauli_from_measurements(
+        train_ds, pauli, sub_indices, estimator=estimator,
+    )
+  elif method == 'shadow':
+    return estimate_expval_mpo_from_shadow(train_ds, mpo, estimator)
   elif method == 'mps':
     mps = mps_utils.xarray_to_mps(train_ds)
     expectation_val = (mps.H @ (mpo.apply(mps)))

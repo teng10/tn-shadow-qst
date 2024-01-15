@@ -7,6 +7,7 @@ import numpy as np
 import quimb as qu
 import quimb.tensor as qtn
 import quimb.gen as qugen
+import quimb.experimental.operatorbuilder as quimb_exp_op
 import xarray as xr
 
 from tn_generative import data_utils
@@ -62,6 +63,22 @@ class ExtractNonIdentityMPO(parameterized.TestCase):
     np.testing.assert_allclose(expected_op, subsystem_mpo.to_dense())
 
 
+class ExtractPauliIndicesMPO(parameterized.TestCase):
+  """Tests for extraction of pauli indices from MPO."""
+
+  def test_pauli_extraction(self):
+    """Extract pauli indices of a pauli string."""
+    sparse_operator = quimb_exp_op.SparseOperatorBuilder()
+    term = (1., ('z', 0), ('x', 1), ('I', 2), ('x', 3), ('I', 4))
+    expected_mpo_indices = [2, 0, 3, 0, 3]
+    sparse_operator += term
+    mpo = sparse_operator.build_mpo()
+    actual_mpo_indices = estimates_utils._extract_pauli_indices_from_mpo(
+        mpo
+    )
+    self.assertEqual(expected_mpo_indices, actual_mpo_indices)
+
+
 class EstimateExpvalPauliFromMeasurements(parameterized.TestCase):
   """Tests for estimating expectation values of pauli words."""
 
@@ -85,12 +102,20 @@ class EstimateExpvalPauliFromMeasurements(parameterized.TestCase):
       # Neel state. Expectation value of Z is -1.
       pauli = np.array([2, 2, 2])
       sub_indices = [0, 1, 2]
-      measurements_z = np.tile(np.array([0, 1, 0]), (self.num_samples, 1))
+      bitstring = [0, 1, 0]
+      # Compute expectation from MPS.
+      neel_mps = qtn.MPS_computational_state(bitstring)
+      sparse_operator = quimb_exp_op.SparseOperatorBuilder()
+      term = (1., ('z', 0), ('z', 1), ('z', 2))
+      sparse_operator += term
+      mpo = sparse_operator.build_mpo()
+      expected_ev = neel_mps.H @ (mpo.apply(neel_mps))
+      # expected_ev = -1. # <ZZZ> = -1
+      measurements_z = np.tile(np.array(bitstring), (self.num_samples, 1))
       ds = xr.Dataset({
           'measurement': (['sample', 'site'], measurements_z),
           'basis': (['sample', 'site'], 2. * np.ones((self.num_samples, 3))),
       })
-      expected_ev = -1.
       actual_ev = estimates_utils.estimate_expval_pauli_from_measurements(
           ds, pauli, sub_indices, estimator='empirical'
       )
@@ -100,12 +125,20 @@ class EstimateExpvalPauliFromMeasurements(parameterized.TestCase):
       # Computational product state with expectation value of Z is 1.
       pauli = np.array([2, 2, 2])
       sub_indices = [0, 1, 2]
-      measurements_z = np.tile(np.array([0, 0, 0]), (self.num_samples, 1))
+      bitstring = [0, 0, 0]
+      # Compute expectation from MPS.
+      neel_mps = qtn.MPS_computational_state(bitstring)
+      sparse_operator = quimb_exp_op.SparseOperatorBuilder()
+      term = (1., ('z', 0), ('z', 1), ('z', 2))
+      sparse_operator += term
+      mpo = sparse_operator.build_mpo()
+      expected_ev = neel_mps.H @ (mpo.apply(neel_mps))   
+      # expected_ev = 1.   
+      measurements_z = np.tile(np.array(bitstring), (self.num_samples, 1))
       ds = xr.Dataset({
           'measurement': (['sample', 'site'], measurements_z),
           'basis': (['sample', 'site'], 2. * np.ones((self.num_samples, 3))),
       })
-      expected_ev = 1.
       actual_ev = estimates_utils.estimate_expval_pauli_from_measurements(
           ds, pauli, sub_indices, estimator='empirical'
       )
