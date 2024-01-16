@@ -267,13 +267,13 @@ def compute_schatten_norm_adag_a(
 
 @functools.lru_cache()
 def _precomputed_pauli_products(
-  paulis: Sequence[str],
+  paulis: str,
   n_sites: int,
 ) -> np.ndarray:
   """Precompute all possible pauli products from set `paulis` for `n_sites`.
 
   Args:
-    paulis: Pauli strings.
+    paulis: Paulis to project combinations onto.
     n_sites: number of sites.
 
   Returns:
@@ -281,7 +281,7 @@ def _precomputed_pauli_products(
   """
   pauli_matrices = np.stack([qu.pauli(p) for p in PAULIMAP.keys()]) # all paulis
   pauli_products = []
-  for ids in itertools.product(*[paulis] * n_sites):
+  for ids in itertools.product(*[[PAULIMAP[p] for p in paulis]] * n_sites):
     stacked_paulis = pauli_matrices[np.array(ids)]
     pauli_product = functools.reduce(np.kron, stacked_paulis)
     pauli_products.append(pauli_product)
@@ -306,7 +306,7 @@ def _project_onto_pauli_product(
   """
   projection_coefficients = jnp.einsum(
       'ijk, kj -> i', precomputed_pauli_products, dm
-  )
+  ) / dm.shape[0] # normalize out the trace of identity.
   return jnp.einsum(
     'i, ijk -> jk', projection_coefficients, precomputed_pauli_products
   )
@@ -315,7 +315,7 @@ def _project_onto_pauli_product(
 def construct_subsystem_operators(
     mps: qtn.MatrixProductState,
     subsystem: Sequence[int],
-    paulis: Sequence[str],
+    paulis: str,
 ) -> np.ndarray:
   """Construct operators supported by `paulis` from `mps` in `subsystem`.
 

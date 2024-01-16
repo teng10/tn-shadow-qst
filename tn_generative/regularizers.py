@@ -222,12 +222,12 @@ def get_density_reg_fn(
 def get_subsystem_pauli_reg_fn(
     system: PhysicalSystem,
     train_ds: xr.Dataset,
-    estimator: str = 'mps',
+    estimator: str = 'shadow',
     beta: Optional[Union[np.ndarray, float]] = 1.,
     subsystem_kwargs: Optional[dict] = {
         'method': 'default', 'explicit_subsystems': None
     },
-    paulis: Optional[list[str]] = ['X', 'Z', 'I'],
+    paulis: Optional[str] = 'XZI',
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function using shadow of the subsystems.
 
@@ -246,7 +246,7 @@ def get_subsystem_pauli_reg_fn(
   """
   subsystems = _get_subsystems(system, **subsystem_kwargs)
   estimator_fn = functools.partial(
-      shadow_utils.construct_subsystem_shadows, method=estimator, 
+      shadow_utils.construct_subsystem_shadows, 
       shadow_single_shot_fn=shadow_utils._get_shadow_single_shot_fn(train_ds)
   )
   xz_estimates = [
@@ -255,12 +255,12 @@ def get_subsystem_pauli_reg_fn(
   def reg_fn(mps_arrays: Sequence[jax.Array]) -> float:
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     xz_estimates_model = [
-        mps_utils.construct_subsystem_operators(mps, subsystem, paulis) # DONE: add method for estimating subsystem xz components.
+        mps_utils.construct_subsystem_operators(mps, subsystem, paulis)
         for subsystem in subsystems
     ]
     # COMMENT(YT): Frobenius norm between the projected rdm.
     return beta * jnp.mean(jnp.array(
-        [jnp.linalg.norm((rho_1 - rho_2).to_dense(), ord='fro') for rho_1, rho_2
+        [jnp.linalg.norm((rho_1 - rho_2), ord='fro') for rho_1, rho_2
             in zip(xz_estimates_model, xz_estimates)
         ])
     )

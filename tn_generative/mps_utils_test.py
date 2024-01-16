@@ -1,14 +1,17 @@
 """Tests for mps_utils."""
-import functools
 from absl.testing import absltest
 from absl.testing import parameterized
+import functools
+import os
 
 import numpy as np
 import quimb.tensor as qtn
 import quimb.gen as qugen
+import xarray as xr
 
+from tn_generative import data_utils
 from tn_generative  import mps_utils
-
+from tn_generative import shadow_utils
 
 class MpoUtilsTests(parameterized.TestCase):
   """Tests for matrix product operator utilities."""
@@ -71,6 +74,7 @@ class MpoUtilsTests(parameterized.TestCase):
       np.testing.assert_allclose(actual_amplitude, expected_amplitude,
                                  atol=1e-6, rtol=1e-6)
 
+
 class MpsUtilsTests(parameterized.TestCase):
   """Tests utils for matrix product states."""
 
@@ -86,7 +90,6 @@ class MpsUtilsTests(parameterized.TestCase):
     np.testing.assert_allclose(
         normalized_mps.H @ normalized_mps, 1.0, atol=1e-6
     )
-
 
   @parameterized.parameters(3, 4, 5)
   def test_xr_mps_conversion(self, size):
@@ -115,6 +118,33 @@ class MpsUtilsTests(parameterized.TestCase):
     tensors = mps_utils._mps_to_expanded_tensors(mps)
     mps_from_tesors = mps_utils._mps_from_extended_tensors(tensors)
     np.testing.assert_allclose(mps_from_tesors.H @ mps, 1.0)  
+
+
+class ProjectSubsystemTests(absltest.TestCase):
+  """Tests for projecting subsystem density matrices."""
+
+  def setUp(self):
+    script_path = os.path.abspath(__file__)
+    # Extract the directory containing the script
+    current_dir = os.path.dirname(script_path)
+    ds_path = os.path.join(current_dir, 'test_data/bell_state_ds_x_or_z.nc')
+    bell_state_ds = xr.load_dataset(ds_path)
+    self.bell_state_ds = data_utils.combine_complex_ds(bell_state_ds)
+    self.bell_state_mps = qtn.MPS_ghz_state(2)
+
+  def test_project_subsystem_with_shadow(self):
+    """Test projection of the density matrix onto a Pauli subspace."""
+    subsystem = [0, 1]
+    shadow_fn = shadow_utils._get_shadow_single_shot_fn(self.bell_state_ds)
+    shadow_state_custom = shadow_utils.construct_subsystem_shadows(
+        self.bell_state_ds, subsystem, shadow_fn
+    )
+    bell_state_projected_xz = mps_utils.construct_subsystem_operators(
+        self.bell_state_mps, subsystem, 'XZI')
+    np.testing.assert_allclose(
+        bell_state_projected_xz, shadow_state_custom, atol=0.01
+    )
+    
 
   if __name__ == "__main__":
     absltest.main()
