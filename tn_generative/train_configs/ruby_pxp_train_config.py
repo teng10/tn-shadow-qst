@@ -114,8 +114,8 @@ def sweep_nxm_ruby_fn(
     ),
     boundary: str = 'periodic',
 ):
-  for train_d in train_bond_dims:
-    for init_seed in range(num_seeds):
+  for init_seed in range(num_seeds):
+    for train_d in train_bond_dims:
       for sampler in samplers:
         for delta in deltas:
           for train_num_samples in train_samples:
@@ -139,15 +139,15 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_4x2_fn_shadow': list(sweep_nxm_ruby_fn(
         4, 2, train_bond_dims=(20, 10), reg_name='hamiltonian',
         estimator='shadow',
-        samplers=('x_or_z_basis_sampler', ), #'xz_basis_sampler',
+        samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
         deltas=(1.7, ), train_betas=(0., 1., 5.),
     )),
     'sweep_sc_4x2_fn_xz_subsystem': list(sweep_nxm_ruby_fn(
-        4, 2, train_bond_dims=(20, 10), reg_name='subsystem_xz_operators',
+        4, 2, train_bond_dims=(20, 10, 40), reg_name='subsystem_xz_operators',
         estimator='shadow',
-        samplers=('x_or_z_basis_sampler', ), #'xz_basis_sampler',
-        deltas=(1.7, ), train_betas=(0., 1., 5.),
-    )),    
+        samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
+        deltas=(1.7, 0.5), train_betas=(0., 1., 5.),
+    )),
 }
 
 
