@@ -39,22 +39,31 @@ class SubsystemsRegularizerTest(parameterized.TestCase):
           'physical_system': physical_systems.SurfaceCode(3, 3)
       }
   )
-  def test_reduced_density_matrices_explicit(self, physical_system):
+  def test_projected_reduced_density_matrices(self, physical_system):
     """Tests that regularization is positive and zero for true state."""
     subsystems = [[0, 1, 3, 4], [1, 2, 4, 5], [3, 4, 6, 7]]
     subsystem_kwargs = {'method': 'explicit', 'explicit_subsystems': subsystems}
     reg_fn = self.get_reg_fn(physical_system, self.test_ds,
-        subsystem_kwargs=subsystem_kwargs
+        subsystem_kwargs=subsystem_kwargs, method='mps',
     )
     with self.subTest('assert_positive'):
       mps_rand = qtn.MPS_rand_state(physical_system.n_sites, 2, seed=42)
       reg_val = reg_fn(mps_rand.arrays)
-      # Consider remove this test as this depends on the random seed.
       self.assertGreater(reg_val, 0.)
 
     with self.subTest('assert_zero'):
       mps = mps_utils.xarray_to_mps(self.test_ds).arrays
       np.testing.assert_allclose(reg_fn(mps), 0., atol=1e-6)
+
+    with self.subTest('shadow method assert positive'):
+      reg_fn = self.get_reg_fn(physical_system, self.test_ds,
+          subsystem_kwargs=subsystem_kwargs, method='shadow',
+      )
+      mps_rand = qtn.MPS_rand_state(physical_system.n_sites, 2, seed=42)
+      reg_val = reg_fn(mps_rand.arrays)
+      self.assertGreater(reg_val, 0.)
+
+
 
   # TODO: fix this test. Current dataset is fixed XZ. Need random XZ.
   # @parameterized.named_parameters(

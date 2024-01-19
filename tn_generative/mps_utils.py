@@ -265,7 +265,7 @@ def compute_schatten_norm_adag_a(
   return sum(error_canonical_sites) / total_dim
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def _precomputed_pauli_products(
   paulis: str,
   n_sites: int,
@@ -317,7 +317,7 @@ def construct_subsystem_operators(
     subsystem: Sequence[int],
     paulis: str,
 ) -> np.ndarray:
-  """Construct operators supported by `paulis` from `mps` in `subsystem`.
+  """Computes projection of a reduced density matrix onto subspace of paulis.
 
   Args:
     mps: MPS state.

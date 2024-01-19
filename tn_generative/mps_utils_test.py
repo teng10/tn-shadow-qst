@@ -5,6 +5,7 @@ import functools
 import os
 
 import numpy as np
+import quimb as qu
 import quimb.tensor as qtn
 import quimb.gen as qugen
 import xarray as xr
@@ -19,7 +20,7 @@ class MpoUtilsTests(parameterized.TestCase):
   @parameterized.parameters(2, 3, 4, 6, 9)
   def test_z_to_basis_mpo(self, size, seed=42):
     """Tests the rotation MPO by building an explicit vector rotation.
-    $\psi^\prime = U \psi$, where $U = \bigotimes_i U_i$ and $U_i$ is 
+    $\psi^\prime = U \psi$, where $U = \bigotimes_i U_i$ and $U_i$ is
     the rotation matrix for the $i$-th site.
     """
     qugen.rand.seed_rand(seed)
@@ -117,7 +118,7 @@ class MpsUtilsTests(parameterized.TestCase):
     mps = qtn.MPS_rand_state(size, bond_dim=5)
     tensors = mps_utils._mps_to_expanded_tensors(mps)
     mps_from_tesors = mps_utils._mps_from_extended_tensors(tensors)
-    np.testing.assert_allclose(mps_from_tesors.H @ mps, 1.0)  
+    np.testing.assert_allclose(mps_from_tesors.H @ mps, 1.0)
 
 
 class ProjectSubsystemTests(absltest.TestCase):
@@ -133,7 +134,8 @@ class ProjectSubsystemTests(absltest.TestCase):
     self.bell_state_mps = qtn.MPS_ghz_state(2)
 
   def test_project_subsystem_with_shadow(self):
-    """Test projection of the density matrix onto a Pauli subspace."""
+    """Test projection of the density matrix with shadow prediction."""
+    # TODO(YT): move to shadow_utils_test.py
     subsystem = [0, 1]
     shadow_fn = shadow_utils._get_shadow_single_shot_fn(self.bell_state_ds)
     shadow_state_custom = shadow_utils.construct_subsystem_shadows(
@@ -144,7 +146,21 @@ class ProjectSubsystemTests(absltest.TestCase):
     np.testing.assert_allclose(
         bell_state_projected_xz, shadow_state_custom, atol=0.01
     )
-    
+
+  def test_project_subsystem_exact(self):
+    """Test projection of the density matrix with exact answer."""
+    subsystem = [0, 1]
+    expected_xz_projected_bell_state = (
+        0.25 * np.kron(qu.pauli('I'), qu.pauli('I')) +
+        0.25 * np.kron(qu.pauli('X'), qu.pauli('X')) +
+        0.25 * np.kron(qu.pauli('Z'), qu.pauli('Z'))
+    )
+    bell_state_projected_xz = mps_utils.construct_subsystem_operators(
+        self.bell_state_mps, subsystem, 'XZI')
+    np.testing.assert_allclose(
+        bell_state_projected_xz, expected_xz_projected_bell_state
+    )
+
 
   if __name__ == "__main__":
     absltest.main()

@@ -219,15 +219,15 @@ def get_density_reg_fn(
 
 
 @register_reg_fn('subsystem_xz_operators')
-def get_subsystem_pauli_reg_fn(
+def get_subsystem_xz_pauli_reg_fn(
     system: PhysicalSystem,
     train_ds: xr.Dataset,
-    estimator: str = 'shadow',
     beta: Optional[Union[np.ndarray, float]] = 1.,
     subsystem_kwargs: Optional[dict] = {
         'method': 'default', 'explicit_subsystems': None
     },
     paulis: Optional[str] = 'XZI',
+    method: Optional[str] = 'shadow',
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function using shadow of the subsystems.
 
@@ -236,22 +236,31 @@ def get_subsystem_pauli_reg_fn(
   Args:
     system: physical system where the dataset is generated from.
     ds: dataset containing `measurement`, `basis`.
-    estimator: method used to compute expectation value of the regularization.
-        Options are `mps` or `shadow`.
     beta: regularization strength. Default is 1.
     subsystem_kwargs: kwargs for `system.get_subsystems`.
+    paulis: pauli operators used to construct the shadow.
+    method: method for computing the projection. `shadow` or `mps`.
 
   Return:
     reg_fn: regularization function takes MPS arrays.
   """
   subsystems = _get_subsystems(system, **subsystem_kwargs)
-  estimator_fn = functools.partial(
-      shadow_utils.construct_subsystem_shadows, 
-      shadow_single_shot_fn=shadow_utils._get_shadow_single_shot_fn(train_ds)
-  )
-  xz_estimates = [
-      estimator_fn(train_ds, subsystem) for subsystem in subsystems
-  ]  
+  if method == 'shadow':
+    estimator_fn = functools.partial(
+        shadow_utils.construct_subsystem_shadows, 
+        shadow_single_shot_fn=shadow_utils._get_shadow_single_shot_fn(train_ds)
+    )
+    xz_estimates = [
+        estimator_fn(train_ds, subsystem) for subsystem in subsystems
+    ]
+  elif method == 'mps':
+    mps = mps_utils.xarray_to_mps(train_ds)
+    xz_estimates = [
+        mps_utils.construct_subsystem_operators(mps, subsystem, paulis) for 
+        subsystem in subsystems
+    ]
+  else:
+    raise ValueError(f'Unexpected {method=} is not implemented.')
   def reg_fn(mps_arrays: Sequence[jax.Array]) -> float:
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     xz_estimates_model = [
