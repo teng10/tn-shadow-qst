@@ -227,7 +227,7 @@ def get_subsystem_xz_pauli_reg_fn(
         'method': 'default', 'explicit_subsystems': None
     },
     paulis: Optional[str] = 'XZI',
-    method: Optional[str] = 'shadow',
+    estimator: Optional[str] = 'shadow',
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function using shadow of the subsystems.
 
@@ -245,7 +245,7 @@ def get_subsystem_xz_pauli_reg_fn(
     reg_fn: regularization function takes MPS arrays.
   """
   subsystems = _get_subsystems(system, **subsystem_kwargs)
-  if method == 'shadow':
+  if estimator == 'shadow':
     estimator_fn = functools.partial(
         shadow_utils.construct_subsystem_shadows, 
         shadow_single_shot_fn=shadow_utils._get_shadow_single_shot_fn(train_ds)
@@ -253,14 +253,14 @@ def get_subsystem_xz_pauli_reg_fn(
     xz_estimates = [
         estimator_fn(train_ds, subsystem) for subsystem in subsystems
     ]
-  elif method == 'mps':
+  elif estimator == 'mps':
     mps = mps_utils.xarray_to_mps(train_ds)
     xz_estimates = [
         mps_utils.construct_subsystem_operators(mps, subsystem, paulis) for 
         subsystem in subsystems
     ]
   else:
-    raise ValueError(f'Unexpected {method=} is not implemented.')
+    raise ValueError(f'Unexpected {estimator=} is not implemented.')
   def reg_fn(mps_arrays: Sequence[jax.Array]) -> float:
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     xz_estimates_model = [
