@@ -51,7 +51,7 @@ def sweep_param_fn(
     train_beta: float,
     init_seed: int,
     reg_name: str,
-    estimator: str,
+    method: str,
 ) -> dict:
   """Helper function for formatting sweep parameters.
 
@@ -68,7 +68,7 @@ def sweep_param_fn(
     train_beta: regularization strength.
     init_seed: random seed number for initializing mps.
     reg_name: regularization name.
-    estimator: method for estimating regularization.
+    method: method for estimating regularization.
 
   Returns:
     dictionary of parameters for a single sweep.
@@ -80,7 +80,7 @@ def sweep_param_fn(
       'data.num_training_samples': train_num_samples,
       'training.training_schemes.lbfgs_reg.reg_name': reg_name,
       'training.training_schemes.lbfgs_reg.reg_kwargs.beta': train_beta,
-      'training.training_schemes.lbfgs_reg.reg_kwargs.estimator': estimator,
+      'training.training_schemes.lbfgs_reg.reg_kwargs.method': method,
       'data.filename': get_dataset_name(
           sampler=sampler, size_x=size_x, size_y=size_y, delta=delta,
           boundary=boundary,
@@ -104,7 +104,7 @@ def sweep_nxm_ruby_fn(
     size_y: int,
     train_bond_dims: tuple[int],
     reg_name: str = 'hamiltonian',
-    estimator: str = 'shadow',
+    method: str = 'shadow',
     num_seeds: int = 10,
     train_samples: tuple[int] = (3_000, 7_000, 20_000, 40_000, 90_000),
     train_betas: tuple[float] = (0., 1., 5.),
@@ -114,8 +114,8 @@ def sweep_nxm_ruby_fn(
     ),
     boundary: str = 'periodic',
 ):
-  for train_d in train_bond_dims:
-    for init_seed in range(num_seeds):
+  for init_seed in range(num_seeds):
+    for train_d in train_bond_dims:
       for sampler in samplers:
         for delta in deltas:
           for train_num_samples in train_samples:
@@ -126,7 +126,7 @@ def sweep_nxm_ruby_fn(
                   train_num_samples=train_num_samples, train_beta=train_beta,
                   init_seed=init_seed,
                   reg_name=(reg_name if train_beta > 0 else 'none'),
-                  estimator=estimator,
+                  method=method,
               )
 
 
@@ -138,9 +138,15 @@ SWEEP_FN_REGISTRY = {
     )),
     'sweep_sc_4x2_fn_shadow': list(sweep_nxm_ruby_fn(
         4, 2, train_bond_dims=(20, 10), reg_name='hamiltonian',
-        estimator='shadow',
-        samplers=('x_or_z_basis_sampler', ), #'xz_basis_sampler',
+        method='shadow',
+        samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
         deltas=(1.7, ), train_betas=(0., 1., 5.),
+    )),
+    'sweep_sc_4x2_fn_xz_subsystem': list(sweep_nxm_ruby_fn(
+        4, 2, train_bond_dims=(40, ), reg_name='subsystem_xz_operators',
+        method='shadow',
+        samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
+        deltas=(0.5, ), train_betas=(1., 5.),
     )),
 }
 
@@ -193,7 +199,7 @@ def get_config():
   lbfgs_finetune_config.training_scheme = 'lbfgs'
   lbfgs_finetune_config.training_kwargs = {}
   lbfgs_finetune_config.reg_name = 'hamiltonian'
-  lbfgs_finetune_config.reg_kwargs = {'beta': 0., 'estimator': 'mps'}
+  lbfgs_finetune_config.reg_kwargs = {'beta': 0., 'method': 'mps'}
   config.training.training_schemes = config_dict.ConfigDict()
   config.training.training_schemes.minibatch_no_reg = minibatch_pretrain_config
   config.training.training_schemes.lbfgs_reg = lbfgs_finetune_config

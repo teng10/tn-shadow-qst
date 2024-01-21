@@ -1,20 +1,23 @@
 """Helper functions for manipulating MPS objects."""
 from typing import Sequence, Callable
+import functools
+import itertools
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import xarray as xr
-import quimb as qmb
+import quimb as qu
 import quimb.tensor as qtn
 
 from tn_generative import types
 
 Array = types.Array
 
-HADAMARD = qmb.gen.operators.hadamard()
+HADAMARD = qu.gen.operators.hadamard()
 Y_HADAMARD = 1./ np.sqrt(2.) * np.array([[-1.j, -1.], [1, 1.j]])
-EYE = qmb.gen.operators.eye(2)
+EYE = qu.gen.operators.eye(2)
+PAULIMAP = {'X': 0, 'Y': 1, 'Z': 2, 'I': 3}
 
 
 def z_to_basis_mpo(basis: Array) -> qtn.MatrixProductOperator:
@@ -231,8 +234,8 @@ def compute_schatten_norm_adag_a(
     distance_fn: Callable[[np.ndarray, np.ndarray], float],
 ) -> float:
   """Schatten p-norm of the contracted transfer matrices.
-  
-  Compute Schatten p-norm between the \sum_sigma A+ A matrices 
+
+  Compute Schatten p-norm between the \sum_sigma A+ A matrices
   of the target and result MPS. TODO (YT): add reference.
   p is determined by `distance_fn`.
 
@@ -260,3 +263,82 @@ def compute_schatten_norm_adag_a(
       contracted_transfer_eigvals_result
   )
   return sum(error_canonical_sites) / total_dim
+
+
+@functools.lru_cache
+def _precomputed_pauli_products(
+  paulis: str,
+  n_sites: int,
+) -> np.ndarray:
+  """Precompute all possible pauli products from set `paulis` for `n_sites`.
+
+  Args:
+    paulis: Paulis for which combinations to project  onto. 
+      (e.g. 'IZ' for two-sites means projection onto II, ZI, IZ, ZZ)
+      Number of combinations is len(paulis) ** n_sites.
+    n_sites: number of sites.
+
+  Returns:
+    Array of shape (#combos, 2^n_sites, 2^n_sites) possible pauli products.
+  """
+  pauli_matrices = np.stack([qu.pauli(p) for p in PAULIMAP.keys()]) # all paulis
+  pauli_products = []
+  for ids in itertools.product(*[[PAULIMAP[p] for p in paulis]] * n_sites):
+    stacked_paulis = pauli_matrices[np.array(ids)]
+    pauli_product = functools.reduce(np.kron, stacked_paulis)
+    pauli_products.append(pauli_product)
+  return np.array(pauli_products)
+
+
+def _project_onto_pauli_product(
+    dm: np.ndarray,
+    precomputed_pauli_products: np.ndarray,
+) -> np.ndarray:
+  """Project density matrix `dm` onto `precomputed_pauli_products`.
+
+  Note: this function should only be used for small system size.
+  e.g. for regularization with reduced density matrices.
+  
+  Args:
+    dm: density matrix. shape (2^n_sites, 2^n_sites)
+    precomputed_pauli_products: all pauli products. (#p, 2^n_sites, 2^n_sites)
+  
+  Returns:
+    Projected density matrix.
+  """
+   # TODO(YT): add limit on system size.
+  projection_coefficients = jnp.einsum(
+      'ijk, kj -> i', precomputed_pauli_products, dm
+  ) / dm.shape[0] # normalize out the trace of identity.
+  return jnp.einsum(
+    'i, ijk -> jk', projection_coefficients, precomputed_pauli_products
+  )
+
+
+def construct_subsystem_operators(
+    mps: qtn.MatrixProductState,
+    subsystem: Sequence[int],
+    paulis: str,
+) -> np.ndarray:
+  """Computes projection of a reduced density matrix onto subspace of paulis.
+
+  For instance, `paulis`='ZI' for a subsystem of size 2 means projection onto 
+  the subspace spanned by the following pauli products II, ZI, IZ, ZZ.
+
+  Args:
+    mps: MPS state.
+    subsystem: indices of subsystem.
+    paulis: Pauli strings.
+  
+  Returns:
+    Contribution of paulis to the subsystem reduced density matrix.
+  """
+  precomputed_pauli_products = _precomputed_pauli_products(
+      paulis, len(subsystem)
+  )
+  # Compute the reduced density matrix of the subsystem
+  subsystem_dm = mps.partial_trace(subsystem).to_dense()
+  # Project the reduced density matrix onto the pauli products
+  return _project_onto_pauli_product(
+      subsystem_dm, precomputed_pauli_products
+  )
