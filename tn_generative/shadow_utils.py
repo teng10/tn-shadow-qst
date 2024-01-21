@@ -111,14 +111,17 @@ def construct_subsystem_shadows(
     full_ds: xr.Dataset,
     subsystem: Sequence[int],
     shadow_single_shot_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
+    estimator: str = 'empirical',
 ) -> np.ndarray:
   """Compute shadow states for `subsystem` from measurements in `full_ds`.
 
+  # TODO(YT): incorporate tests for `estimator`.
   Args:
     full_ds: dataset containing `measurement`, `basis`.
     subsystem: indices of subsystem.
     shadow_single_shot_fn: function to compute single shot shadow given
         two arrays: measurement outcome `bitstring` and unitary ids `basis`.
+    estimator: method for estimating expectation value. `empirical` or `mom`.
 
   Returns:
     `subsystem` shadow state.
@@ -137,9 +140,16 @@ def construct_subsystem_shadows(
     bitstrings = ds['measurement'].values
     bases = ds['basis'].values
     combined = np.concatenate([bitstrings, bases], axis=-1)
-    uniques, counts = np.unique(combined, axis=0, return_counts=True)
-    rdm = sum(c * precomputed_shadows[tuple(u)] for c, u in zip(counts, uniques))
-    return rdm / sum(counts)
+    if estimator == 'empirical':
+      uniques, counts = np.unique(combined, axis=0, return_counts=True)
+      rdm = sum(
+          c * precomputed_shadows[tuple(u)] for c, u in zip(counts, uniques)
+      )
+      return rdm / sum(counts)
+    elif estimator == 'mom':
+      raise NotImplementedError(f'Shadow {estimator=} not implemented.')
+    else:
+      raise ValueError(f'Unknown shadow {estimator=}.')
 
   subsystem_ds = full_ds.sel(site=subsystem)
   precomputed_shadows = get_precomputed_single_shadows(

@@ -192,10 +192,17 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_size_y_3_shadow_fn': sum(
         [list(surface_code_nxm_sweep_fn(x, 3, [10],
             samplers=('x_or_z_basis_sampler', ), onsite_z_fields=(0., 0.1),
-            num_seeds=10, estimator='shadow', train_betas=(0., 1., 5.))
+            num_seeds=10, estimator='shadow', )
         ) for x in [3, 5, 7, 9, 15]],
         start=[]
     ),    
+    'sweep_sc_size_y_3_measurement_fn': sum(
+        [list(surface_code_nxm_sweep_fn(x, 3, [10],
+            samplers=('xz_basis_sampler', ), onsite_z_fields=(0., 0.1),
+            num_seeds=10, estimator='measurement', )
+        ) for x in [3, 5, 7, 9, 15]],
+        start=[]
+    ),        
     #TODO(YT): eventually generate this dataset.
     # 'sweep_sc_35x3_fn': list(surface_code_nxm_sweep_fn(35, 3, (5, ),
     # onsite_z_fields=(0., 0.1), )),
