@@ -7,7 +7,6 @@ import numpy as np
 import xarray as xr
 import quimb.tensor as qtn
 import quimb as qu
-from pennylane.pauli import pauli_decompose, pauli_word_to_string
 
 from tn_generative import mps_utils
 from tn_generative import physical_systems
@@ -59,12 +58,13 @@ def _extract_pauli_prod_from_ds(
     indices: indices of subsystems of the pauli word.
 
   Returns:
-    Pauli product of `pauli` for subsystems `indices`.
+    Pauli product of measurements for all samples in `pauli` basis.
   """
   # Step 0: extract measurements from `ds` for `indices` and `pauli`.
   ds_subsystem = ds.sel(site=indices)
   ds_pauli = ds_subsystem.where(ds_subsystem.basis == pauli, drop=True)
   # Step 1: compute the product of measurements for each sample.
+  # TODO(YT): consider explicitly setting `axis`=1.
   def _pauli_prod(array, axis):
     return np.prod(-2. * array + 1, axis=axis) # 0->1, 1->-1
   pauli_prod = xr.apply_ufunc(
@@ -82,6 +82,11 @@ def estimate_expval_pauli_from_measurements(
     return_errbar: bool = False,
 ) -> float:
   """Estimate expectations of a pauli word from `ds` using direct measurements.
+
+  This function filters out measurements in `ds` in `pauli` basis of subsystem.
+  Then it computes the product of measurements for each sample and estimates the
+  expectation value of the product using `estimator`.
+  Note this should be used for non-randomized dataset for an accurate estimate.
 
   Args:
     ds: dataset containing `measurement`, `basis`.
@@ -142,7 +147,7 @@ def estimate_expval_mpo_from_shadow(
 def _extract_pauli_indices_from_mpo(
     mpo: qtn.MatrixProductOperator,
 ) -> Sequence[int]:
-  """Extract pauli indices from `mpo`.
+  """Extract pauli indices from `mpo` of a pauli string.
 
   # TODO(YT): move to MPS utils.
   Args:
@@ -163,30 +168,6 @@ def _extract_pauli_indices_from_mpo(
     else:
       raise ValueError(f'MPO {x=} is not a Pauli operator with {pauli_index=}')
   return pauli_indices
-
-
-# TODO: remove this function.
-# def estimate_expval_mpo_from_measurement(
-#     ds: xr.Dataset,
-#     mpo: qtn.MatrixProductOperator,
-#     estimator: str = 'empirical',
-# ) -> float:
-#   """Estimates expectation values of `mpo` from measurements in `ds`.
-
-#   Note: this function direclty computes the average of measurement outcomes.
-#   It should be used when the number of measurements in pauli is large enough.
-#   `estimator` can be one of: `empirical`, `mom`(median of means), etc.
-#   Errorbar is standard deviation / sqrt(number of samples).
-
-#   Args:
-#     ds: dataset containing `measurement`, `basis`.
-#     mpo: MPO to estimate expectation value.
-#     estimator: method for estimating expectation value. `empirical` or `mom`.
-
-#   Returns:
-#     Expectation value of `mpo` estimated from `ds`.
-#   """
-
 
 
 def estimate_observable(
@@ -217,6 +198,8 @@ def estimate_observable(
   def is_approximately_real(number):
     return abs(number.imag) < tolerance
   if method =='measurement':
+    # TODO (YT): add warning if `ds` is not fixed basis. Otherwise this will
+    # give an estimate with large errorbars.
     # STEP 0: extract indices of subsystems from `mpos`.
     sub_mpo, sub_indices = _extract_non_identity_mpo(mpo, return_indices=True)
     # STEP 1: compute the pauli word for `sub_mpo`
@@ -226,6 +209,7 @@ def estimate_observable(
         train_ds, pauli, sub_indices, estimator=estimator,
     )
   elif method == 'shadow':
+    # TODO (YT): add warning if `ds` is not random basis.
     return estimate_expval_mpo_from_shadow(train_ds, mpo, estimator)
   elif method == 'mps':
     mps = mps_utils.xarray_to_mps(train_ds)
