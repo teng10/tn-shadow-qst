@@ -227,7 +227,7 @@ def get_subsystem_xz_pauli_reg_fn(
         'method': 'default', 'explicit_subsystems': None
     },
     paulis: Optional[str] = 'XZI',
-    estimator: Optional[str] = 'shadow',
+    method: Optional[str] = 'shadow',
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function using shadow of the subsystems.
 
@@ -238,6 +238,9 @@ def get_subsystem_xz_pauli_reg_fn(
     ds: dataset containing `measurement`, `basis`.
     beta: regularization strength. Default is 1.
     subsystem_kwargs: kwargs for `system.get_subsystems`.
+        `method`: method used to get subsystem indices. 
+            'default': use `system.get_subsystems`.
+            'explicit': use `explicit_subsystems`.
     paulis: pauli operators used to construct the shadow.
     method: method for computing the projection. `shadow` or `mps`.
 
@@ -245,7 +248,9 @@ def get_subsystem_xz_pauli_reg_fn(
     reg_fn: regularization function takes MPS arrays.
   """
   subsystems = _get_subsystems(system, **subsystem_kwargs)
-  if estimator == 'shadow':
+  if method == 'shadow':
+    # TODO (YT): consider add `estimator` for shadow method in
+    # `shadow_utils.construct_subsystem_shadows`
     estimator_fn = functools.partial(
         shadow_utils.construct_subsystem_shadows, 
         shadow_single_shot_fn=shadow_utils._get_shadow_single_shot_fn(train_ds)
@@ -253,14 +258,14 @@ def get_subsystem_xz_pauli_reg_fn(
     xz_estimates = [
         estimator_fn(train_ds, subsystem) for subsystem in subsystems
     ]
-  elif estimator == 'mps':
+  elif method == 'mps':
     mps = mps_utils.xarray_to_mps(train_ds)
     xz_estimates = [
         mps_utils.construct_subsystem_operators(mps, subsystem, paulis) for 
         subsystem in subsystems
     ]
   else:
-    raise ValueError(f'Unexpected {estimator=} is not implemented.')
+    raise ValueError(f'Unexpected {method=} is not implemented.')
   def reg_fn(mps_arrays: Sequence[jax.Array]) -> float:
     mps = qtn.MatrixProductState(arrays=mps_arrays)
     xz_estimates_model = [

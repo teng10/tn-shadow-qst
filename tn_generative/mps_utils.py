@@ -273,7 +273,9 @@ def _precomputed_pauli_products(
   """Precompute all possible pauli products from set `paulis` for `n_sites`.
 
   Args:
-    paulis: Paulis to project combinations onto.
+    paulis: Paulis for which combinations to project  onto. 
+      (e.g. 'IZ' for two-sites means projection onto II, ZI, IZ, ZZ)
+      Number of combinations is len(paulis) ** n_sites.
     n_sites: number of sites.
 
   Returns:
@@ -304,6 +306,7 @@ def _project_onto_pauli_product(
   Returns:
     Projected density matrix.
   """
+   # TODO(YT): add limit on system size.
   projection_coefficients = jnp.einsum(
       'ijk, kj -> i', precomputed_pauli_products, dm
   ) / dm.shape[0] # normalize out the trace of identity.
@@ -318,6 +321,9 @@ def construct_subsystem_operators(
     paulis: str,
 ) -> np.ndarray:
   """Computes projection of a reduced density matrix onto subspace of paulis.
+
+  For instance, `paulis`='ZI' for a subsystem of size 2 means projection onto 
+  the subspace spanned by the following pauli products II, ZI, IZ, ZZ.
 
   Args:
     mps: MPS state.
