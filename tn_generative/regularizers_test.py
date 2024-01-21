@@ -13,6 +13,7 @@ from tn_generative import physical_systems
 from tn_generative import regularizers
 
 
+# TODO(YT): [High Priority] Add tests for `hamiltonian` regularizer.
 class SubsystemsRegularizerTest(parameterized.TestCase):
   """Tests for regularization using reduced_density_matrices."""
   def setUp(self):
