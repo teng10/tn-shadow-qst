@@ -41,7 +41,7 @@ register_reg_fn = lambda name: functools.partial(
 def get_hamiltonian_reg_fn(
     system: PhysicalSystem,
     train_ds: xr.Dataset,
-    estimator: str = 'mps',
+    method: str = 'mps',
     beta: Optional[Union[np.ndarray, float]] = 1.,
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function for non-onsite terms in a hamiltonian.
@@ -49,7 +49,7 @@ def get_hamiltonian_reg_fn(
   Args:
     system: physical system where the dataset is generated from.
     train_ds: dataset containing `measurement`, `basis`.
-    estimator: method used to compute expectation value of the regularization
+    method: method used to compute expectation value of the regularization
         mpos and dataset `train_ds`.
     beta: regularization strength. Default is 1.
 
@@ -78,11 +78,11 @@ def get_hamiltonian_reg_fn(
   
   ham_mpos = system.get_ham_mpos()
   ham_multisite_mpos = _get_multisite_mpos(ham_mpos)
-  estimator_fn = functools.partial(
-        estimates_utils.estimate_observable, method=estimator
+  method_fn = functools.partial(
+        estimates_utils.estimate_observable, method=method
     )
   stabilizer_estimates = np.array([
-      estimator_fn(train_ds, ham_mpo) for ham_mpo in ham_multisite_mpos
+      method_fn(train_ds, ham_mpo) for ham_mpo in ham_multisite_mpos
   ])
   def reg_fn(mps_arrays: Sequence[jax.Array]):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
@@ -99,7 +99,7 @@ def get_hamiltonian_reg_fn(
 def get_pauli_z_reg_fn(
   system: PhysicalSystem,
   train_ds: xr.Dataset,
-  estimator: str = 'mps',
+  method: str = 'mps',
   beta: Optional[Union[np.ndarray, float]] = 1.,
 ) -> Callable[[Sequence[jax.Array]], float]:
   """Returns regularization function for pauli z operators.
@@ -107,7 +107,7 @@ def get_pauli_z_reg_fn(
   Args:
     system: physical system where the dataset is generated from.
     train_ds: dataset containing `measurement`, `basis`.
-    estimator: method used to compute expectation value of the regularization
+    method: method used to compute expectation value of the regularization
         mpos and dataset `train_ds`.
     beta: regularization strength. Default is 1.
 
@@ -117,11 +117,11 @@ def get_pauli_z_reg_fn(
   pauli_z_mpos = system.get_obs_mpos(
       [(1., ('z', i)) for i in range(system.n_sites)]
   )
-  estimator_fn = functools.partial(
-        estimates_utils.estimate_observable, method=estimator
+  method_fn = functools.partial(
+        estimates_utils.estimate_observable, method=method
     )
   pauli_z_estimates = np.array(
-      [estimator_fn(train_ds, pauli_z) for pauli_z in pauli_z_mpos]
+      [method_fn(train_ds, pauli_z) for pauli_z in pauli_z_mpos]
   )
   def reg_fn(mps_arrays):
     mps = qtn.MatrixProductState(arrays=mps_arrays)
@@ -171,7 +171,7 @@ def _get_subsystems(
 def get_density_reg_fn(
     system: PhysicalSystem,
     train_ds: xr.Dataset,
-    estimator: str = 'mps',
+    method: str = 'mps',
     beta: Optional[Union[np.ndarray, float]] = 1.,
     subsystem_kwargs: Optional[dict] = {
         'method': 'default', 'explicit_subsystems': None
@@ -183,7 +183,7 @@ def get_density_reg_fn(
   Args:
     system: physical system where the dataset is generated from.
     ds: dataset containing `measurement`, `basis`.
-    estimator: method used to compute expectation value of the regularization
+    method: method used to compute expectation value of the regularization
         mpos and dataset `ds`.
     beta: regularization strength. Default is 1.
     subsystem_kwargs: kwargs for `system.get_subsystems`.
@@ -192,11 +192,11 @@ def get_density_reg_fn(
     reg_fn: regularization function takes MPS arrays.
   """
   subsystems = _get_subsystems(system, **subsystem_kwargs)
-  estimator_fn = functools.partial(
-      estimates_utils.estimate_density_matrix, method=estimator
+  method_fn = functools.partial(
+      estimates_utils.estimate_density_matrix, method=method
   )
   reduced_density_matrices_estimates = [
-      estimator_fn(train_ds, subsystem) for subsystem in subsystems
+      method_fn(train_ds, subsystem) for subsystem in subsystems
   ]
   def reg_fn(mps_arrays: Sequence[jax.Array]) -> float:
     mps = qtn.MatrixProductState(arrays=mps_arrays)
