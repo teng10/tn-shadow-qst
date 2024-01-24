@@ -154,10 +154,10 @@ SWEEP_FN_REGISTRY = {
         deltas=(1.7, ), train_betas=(0., 1., 5.),
     )),
     'sweep_sc_4x2_fn_xz_subsystem': list(sweep_nxm_ruby_fn(
-        4, 2, train_bond_dims=(40, ), reg_name='subsystem_xz_operators',
+        4, 2, train_bond_dims=(30, 20), reg_name='subsystem_xz_operators',
         method='shadow',
         samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
-        deltas=(0.5, ), train_betas=(1., 5.),
+        deltas=(0.5, ), train_betas=(0., 1., 5.),
     )),
     # TODO (YTZ): make this cleaner.
     'sweep_sc_4x2_fn_xz_subsystem_hexagon': [
@@ -229,7 +229,7 @@ def get_config():
   # can be accessed via --config.training.training_schemes.
   # train through minibatch for 50 steps first, then lbfgs for 50 steps.
   config.training.training_sequence = ('minibatch_no_reg', 'lbfgs_reg')
-  config.training.steps_sequence = (30000, 400)
+  config.training.steps_sequence = (30000, 800)
   # Save options.
   config.results = config_dict.ConfigDict()
   config.results.save_results = True
