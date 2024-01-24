@@ -229,7 +229,7 @@ def get_config():
   # can be accessed via --config.training.training_schemes.
   # train through minibatch for 50 steps first, then lbfgs for 50 steps.
   config.training.training_sequence = ('minibatch_no_reg', 'lbfgs_reg')
-  config.training.steps_sequence = (30000, 800)
+  config.training.steps_sequence = (30000, 600)
   # Save options.
   config.results = config_dict.ConfigDict()
   config.results.save_results = True
