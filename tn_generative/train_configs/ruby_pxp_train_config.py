@@ -140,11 +140,21 @@ subsystems = [
   [32, 34, 24, 45, 43, 41],
 ]
 subsystem_kwargs = {'method':'explicit', 'explicit_subsystems': subsystems}
+sc_4x2_xz_hexagon_params = list(sweep_nxm_ruby_fn(
+    4, 2, train_bond_dims=(20, 10), reg_name='subsystem_xz_operators',
+    method='shadow', samplers=('x_or_z_basis_sampler', ),
+     deltas=(1.7, ), train_betas=(1., 5.),
+))
+hex_subsystem_key = {
+    'training.training_schemes.lbfgs_reg.reg_kwargs.subsystem_kwargs': subsystem_kwargs
+}
+sc_4x2_xz_hexagon_params = [x | hex_subsystem_key for x in sc_4x2_xz_hexagon_params]
+
 
 SWEEP_FN_REGISTRY = {
     'sweep_sc_4x2_fn_mps': list(sweep_nxm_ruby_fn(
         4, 2, train_bond_dims=(20, 40), reg_name='none',
-        samplers=('x_or_z_basis_sampler', 'xz_basis_sampler', ),
+        samplers=('xz_basis_sampler', ),
         deltas=(1.7, 0.5), train_betas=(0., ),
     )),
     'sweep_sc_4x2_fn_shadow': list(sweep_nxm_ruby_fn(
@@ -159,17 +169,19 @@ SWEEP_FN_REGISTRY = {
         samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
         deltas=(0.5, ), train_betas=(0., 1., 5.),
     )),
-    # TODO (YTZ): make this cleaner.
-    'sweep_sc_4x2_fn_xz_subsystem_hexagon': [
-        {**x, **{'training.training_schemes.lbfgs_reg.reg_kwargs.subsystem_kwargs': subsystem_kwargs}} for x in 
-        list(sweep_nxm_ruby_fn(
-        4, 2, train_bond_dims=(20, 10), reg_name='subsystem_xz_operators',
-        method='shadow',
-        samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
-        deltas=(1.7, ), train_betas=(1., 5.),
-        ))
-    ],    
+    # # TODO (YTZ): make this cleaner.
+    # 'sweep_sc_4x2_fn_xz_subsystem_hexagon': [
+    #     {**x, **{'training.training_schemes.lbfgs_reg.reg_kwargs.subsystem_kwargs': subsystem_kwargs}} for x in 
+    #     list(sweep_nxm_ruby_fn(
+    #     4, 2, train_bond_dims=(20, 10), reg_name='subsystem_xz_operators',
+    #     method='shadow',
+    #     samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
+    #     deltas=(1.7, ), train_betas=(1., 5.),
+    #     ))
+    # ],    
 }
+
+SWEEP_FN_REGISTRY['sweep_sc_4x2_fn_xz_subsystem_hexagon'] = sc_4x2_xz_hexagon_params
 
 
 def get_config():
