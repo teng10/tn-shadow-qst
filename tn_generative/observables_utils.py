@@ -18,9 +18,10 @@ def get_Q_mpo(
   h = (1 - sz) / 2 is hole operator
   Define new Q indices for the local triangle of sites (1, 2, 3)
   The order is such that the first site flips and 2 resonates with 3.
-  See _get_Q_mpo for the definition of the Q operator
-  and definition in Fig 5a of http://arxiv.org/abs/2011.12310 for the ordering
-  of the sites.
+  See definition in Fig 5a of http://arxiv.org/abs/2011.12310 for the ordering
+  of the sites. Intuitions for the ordering:
+  - Flipping the first site we want 2 & 3 to be empty (holes).
+  - Resonating 2 & 3 we want 1 to be empty (hole) and total number to be 1.
 
   Args:
     three_sites: The three sites to construct the Q operator for.
@@ -30,9 +31,9 @@ def get_Q_mpo(
     The Q operator as an MPO.
   """
   site1, site2, site3 = three_sites
-  sparse_op += -1.0, ('x', site1), ('n', site2), ('n', site3)
-  sparse_op += 1.0, ('n', site1), ('h', site2), ('x', site2), ('x', site3)
-  sparse_op += 1.0, ('n', site1), ('h', site3), ('x', site2), ('x', site3)
+  sparse_op += -1.0, ('x', site1), ('h', site2), ('h', site3)
+  sparse_op += 1.0, ('h', site1), ('n', site2), ('x', site2), ('x', site3)
+  sparse_op += 1.0, ('h', site1), ('n', site3), ('x', site2), ('x', site3)
   return sparse_op.build_mpo()
 
 
