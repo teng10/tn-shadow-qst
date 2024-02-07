@@ -134,8 +134,8 @@ def sweep_nxm_ruby_fn(
 subsystems = [
   [ 2,  4,  6, 13, 15, 23],
   [14, 16, 18, 25, 27, 35],
-  [26, 28, 30, 37, 39, 47], 
-  [8, 10, 0, 21, 19, 17], 
+  [26, 28, 30, 37, 39, 47],
+  [8, 10, 0, 21, 19, 17],
   [20, 22, 12, 33, 31, 29],
   [32, 34, 24, 45, 43, 41],
 ]
@@ -157,6 +157,11 @@ SWEEP_FN_REGISTRY = {
         samplers=('xz_basis_sampler', ),
         deltas=(1.7, 0.5), train_betas=(0., ),
     )),
+    'sweep_sc_4x2_fn_disorder': list(sweep_nxm_ruby_fn(
+        4, 2, train_bond_dims=(30, ), reg_name='none',
+        samplers=('xz_basis_sampler', ),
+        deltas=(0.5, ), train_betas=(0., ),
+    )),    
     'sweep_sc_4x2_fn_shadow': list(sweep_nxm_ruby_fn(
         4, 2, train_bond_dims=(20, 10), reg_name='hamiltonian',
         method='shadow',
@@ -164,21 +169,23 @@ SWEEP_FN_REGISTRY = {
         deltas=(1.7, ), train_betas=(0., 1., 5.),
     )),
     'sweep_sc_4x2_fn_xz_subsystem': list(sweep_nxm_ruby_fn(
-        4, 2, train_bond_dims=(30, 20), reg_name='subsystem_xz_operators',
+        4, 2, train_bond_dims=(30, ), reg_name='subsystem_xz_operators',
         method='shadow',
         samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
         deltas=(0.5, ), train_betas=(0., 1., 5.),
     )),
-    # # TODO (YTZ): make this cleaner.
-    # 'sweep_sc_4x2_fn_xz_subsystem_hexagon': [
-    #     {**x, **{'training.training_schemes.lbfgs_reg.reg_kwargs.subsystem_kwargs': subsystem_kwargs}} for x in 
-    #     list(sweep_nxm_ruby_fn(
-    #     4, 2, train_bond_dims=(20, 10), reg_name='subsystem_xz_operators',
-    #     method='shadow',
-    #     samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
-    #     deltas=(1.7, ), train_betas=(1., 5.),
-    #     ))
-    # ],    
+    'sweep_sc_4x2_fn_xz_subsystem_sl': list(sweep_nxm_ruby_fn(
+        4, 2, train_bond_dims=(20, ), reg_name='subsystem_xz_operators',
+        method='shadow',
+        samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
+        deltas=(1.7, ), train_betas=(0., 1., 5.),
+    )),
+    'sweep_sc_4x2_fn_xz_subsystem_sl_bond40': list(sweep_nxm_ruby_fn(
+        4, 2, train_bond_dims=(40, ), reg_name='subsystem_xz_operators',
+        method='shadow',
+        samplers=('x_or_z_basis_sampler', ), # only randomized XZ.
+        deltas=(1.7, ), train_betas=(0., ),
+    )),    
 }
 
 SWEEP_FN_REGISTRY['sweep_sc_4x2_fn_xz_subsystem_hexagon'] = sc_4x2_xz_hexagon_params
