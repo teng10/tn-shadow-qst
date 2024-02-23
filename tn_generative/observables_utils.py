@@ -14,14 +14,17 @@ def get_Q_mpo(
   """Construct Q operator for local Hilbert space of three sites.
   
   Q = - x1 n2 n3 + n1 (h2 + h3) x2 x3
-  n = (1 + sz) / 2 is number operator
-  h = (1 - sz) / 2 is hole operator
+  Quimb convention:
+  n = (1 - sz) / 2 is number operator
+  h = (1 + sz) / 2 is hole operator
   Define new Q indices for the local triangle of sites (1, 2, 3)
   The order is such that the first site flips and 2 resonates with 3.
   See definition in Fig 5a of http://arxiv.org/abs/2011.12310 for the ordering
-  of the sites. Intuitions for the ordering:
-  - Flipping the first site we want 2 & 3 to be empty (holes).
-  - Resonating 2 & 3 we want 1 to be empty (hole) and total number to be 1.
+  of the sites. Note our convention is reversed n<->h, because sz = -1 for being
+  empty and 1 for being occupied.
+  Intuitions for the ordering:
+  - Flipping the first site we want 2 & 3 to be empty (n).
+  - Resonating 2 & 3 we want 1 to be empty (n) and total number to be 1.
 
   Args:
     three_sites: The three sites to construct the Q operator for.
@@ -31,9 +34,9 @@ def get_Q_mpo(
     The Q operator as an MPO.
   """
   site1, site2, site3 = three_sites
-  sparse_op += -1.0, ('x', site1), ('h', site2), ('h', site3)
-  sparse_op += 1.0, ('h', site1), ('n', site2), ('x', site2), ('x', site3)
-  sparse_op += 1.0, ('h', site1), ('n', site3), ('x', site2), ('x', site3)
+  sparse_op += -1.0, ('x', site1), ('n', site2), ('n', site3)
+  sparse_op += 1.0, ('n', site1), ('h', site2), ('x', site2), ('x', site3)
+  sparse_op += 1.0, ('n', site1), ('h', site3), ('x', site2), ('x', site3)
   return sparse_op.build_mpo()
 
 
