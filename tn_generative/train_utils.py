@@ -130,9 +130,9 @@ def run_full_batch_training(
   """
   measurements = train_ds.measurement.values
   bases = train_ds.basis.values
-  physical_system = data_utils.physical_system_from_attrs_dict(train_ds.attrs)
   get_regularization_fn = REGULARIZER_REGISTRY[training_config.reg_name]
   if get_regularization_fn is not None:
+    physical_system = data_utils.physical_system_from_attrs_dict(train_ds.attrs)
     regularization_fn = get_regularization_fn(
         system=physical_system, train_ds=train_ds,
         **training_config.reg_kwargs

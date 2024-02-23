@@ -29,6 +29,39 @@ FLAGS = flags.FLAGS
 DTYPES_REGISTRY = types.DTYPES_REGISTRY
 TASK_REGISTRY = data_generation.TASK_REGISTRY
 
+def _run_data_generation(
+    init_seed: int,
+    num_samples: int,
+    sampling_method: str,
+    mps: qtn.MatrixProductState,
+) -> xr.Dataset:
+  """Runs data generation for a given MPS.
+  
+  Args:
+    init_seed: The initial seed for the random number generator.
+    num_samples: The number of samples to generate.
+    sampling_method: The method to use for sampling.
+    mps: The MPS to sample from.
+  
+  Returns:
+    An xarray dataset containing the generated samples.
+  """
+  qtn.contraction.set_tensor_linop_backend('jax')
+  qtn.contraction.set_contract_backend('jax')
+  rng_seq = hk.PRNGSequence(init_seed)
+  all_keys = rng_seq.take(num_samples)
+  sample_fn = mps_sampling.SAMPLER_REGISTRY[sampling_method]
+  sample_fn = functools.partial(sample_fn, mps=mps)
+  sample_fn = jax.jit(sample_fn, backend='cpu')
+  generate_fn = lambda sample: sample_fn(all_keys[sample])
+  runner = xyzpy.Runner(
+      generate_fn,
+      var_names=['measurement', 'basis'],
+      var_dims={'measurement': ['site'], 'basis': ['site']},
+      var_coords={'site': np.arange(mps.L)},
+  )
+  combos = {'sample': np.arange(num_samples)}
+  return runner.run_combos(combos, parallel=False)
 
 def generate_data(config):
   if config.sweep_name in config.sweep_fn_registry:
@@ -77,22 +110,12 @@ def generate_data(config):
         loading mps is {config.sampling.mps_filepath=}'
     )
   # Running data generation
-  qtn.contraction.set_tensor_linop_backend('jax')
-  qtn.contraction.set_contract_backend('jax')
-  rng_seq = hk.PRNGSequence(config.sampling.init_seed)
-  all_keys = rng_seq.take(config.sampling.num_samples)
-  sample_fn = mps_sampling.SAMPLER_REGISTRY[config.sampling.sampling_method]
-  sample_fn = functools.partial(sample_fn, mps=mps)
-  sample_fn = jax.jit(sample_fn, backend='cpu')
-  generate_fn = lambda sample: sample_fn(all_keys[sample])
-  runner = xyzpy.Runner(
-      generate_fn,
-      var_names=['measurement', 'basis'],
-      var_dims={'measurement': ['site'], 'basis': ['site']},
-      var_coords={'site': np.arange(mps.L)},
+  ds = _run_data_generation(
+      config.sampling.init_seed,
+      config.sampling.num_samples,
+      config.sampling.sampling_method,
+      mps,
   )
-  combos = {'sample': np.arange(config.sampling.num_samples)}
-  ds = runner.run_combos(combos, parallel=False)
   ds = xr.merge([ds, mps_properties], combine_attrs='no_conflicts')
   # Saving data
   if config.output.save_data:
