@@ -35,16 +35,21 @@ def _run_data_generation(
     sampling_method: str,
     mps: qtn.MatrixProductState,
 ) -> xr.Dataset:
-  """Runs data generation for a given MPS.
+  """Simulate measurements outcomes for a given MPS.
   
   Args:
     init_seed: The initial seed for the random number generator.
     num_samples: The number of samples to generate.
-    sampling_method: The method to use for sampling.
+    sampling_method: The measurement scheme to use for sampling.
+        Options are 'xz_basis_sampler', 'x_or_z_basis_sampler', etc.
     mps: The MPS to sample from.
   
   Returns:
-    An xarray dataset containing the generated samples.
+    An xarray dataset containing the generated samples with the following:
+    - 'measurement': The measurement outcomes of (num_samples, L) array.
+       '0' for + z-eigenstate, '1' for - z-eigenstate.
+    - 'basis': The basis in which meausurement was made (num_samples, L) array.
+        '0' for X basis, '1' for Y basis, '2' for Z basis.
   """
   qtn.contraction.set_tensor_linop_backend('jax')
   qtn.contraction.set_contract_backend('jax')
@@ -83,12 +88,14 @@ def generate_data(config):
     dmrg = qtn.DMRG1(task_mpo, bond_dims=config.dmrg.bond_dims, p0=mps)
     convergence = dmrg.solve(**config.dmrg.solve_kwargs)
     mps = dmrg.state.copy()
-    mps = mps.canonize(0)  # canonicalize MPS.
+    mps = mps.canonize(0)  # right canonicalize MPS.
     # TODO(YT): add dmrg data analysis module.
     energy_variance = (
         mps.H @ (task_mpo.apply(task_mpo.apply(mps))) - dmrg.energy**2
     )
-    mps_properties = data_utils.compute_onsite_pauli_expectations(mps, task_system)
+    mps_properties = data_utils.compute_onsite_pauli_expectations(
+        mps, task_system
+    )
     mps_properties['energy'] = dmrg.energy
     mps_properties['energy_variance'] = energy_variance
     mps_properties['entropy'] = mps.entropy(mps.L // 2)
