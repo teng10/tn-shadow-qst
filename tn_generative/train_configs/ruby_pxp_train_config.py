@@ -191,6 +191,11 @@ SWEEP_FN_REGISTRY = {
         samplers=('x_or_z_basis_sampler', ),
         deltas=(0.5, ), train_betas=(0., 1., 5.),
     )),    
+    'sweep_sc_4x2_sl_fixedXZ': list(sweep_nxm_ruby_fn(
+        4, 2, train_bond_dims=(20,), reg_name='none',
+        samplers=('xz_basis_sampler', ),
+        deltas=(1.7,), train_betas=(0., ),
+    )),    
 }
 
 SWEEP_FN_REGISTRY['sweep_sc_4x2_fn_xz_subsystem_hexagon'] = sc_4x2_xz_hexagon_params
