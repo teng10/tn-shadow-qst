@@ -47,6 +47,8 @@ def make_iterator_over_ds(ds, dim, batch_size):
 def stream_mean_over_dim(ds, fn, dim, batch_size=500):
   """Compute the streamed mean of `fn` applied to `ds` along `dim`."""
   def _stream_mean_fn(c, x):
+    # c is carry of the form (mean, count)
+    # x is the next slice of the dataset
     mean, count = c
     new_count = x.sizes[dim]
     return (
