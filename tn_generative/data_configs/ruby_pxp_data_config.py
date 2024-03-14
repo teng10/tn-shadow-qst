@@ -78,6 +78,14 @@ SWEEP_FN_REGISTRY = {
     'sweep_sc_2x1_fn': list(sweep_sc_nxm_fn(
         size_x=2, size_y=1, deltas=np.arange(0.5, 1.5, 0.5), bond_dims=(10, )
     )),
+    'sweep_sc_4x3_fn': list(sweep_sc_nxm_fn(
+        size_x=4, size_y=3, deltas=np.arange(1.6, 2., 0.1),
+        bond_dims=(120, 200), samplers=('xz_basis_sampler', )
+    )),    
+    'sweep_sc_4x1_fn': list(sweep_sc_nxm_fn(
+        size_x=4, size_y=1, deltas=np.arange(1.6, 2., 0.1),
+        bond_dims=(60, 100), samplers=('xz_basis_sampler', )
+    )),        
 }
 
 
