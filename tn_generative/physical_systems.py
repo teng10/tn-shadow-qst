@@ -277,6 +277,8 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
       rho: aspect ratio of the ruby lattice.
       rb: Rydberg blockade radius, in units of lattice spacing.
       omega: laser Rabi frequency, `x` field.
+      boundary: boundary condition along y-axis, either `open` or `periodic`.
+          'peiordic' boundary condition is equivalent to cylinder geometry.
 
     Returns:
       Ruby Rydberg hamiltonian Physical system.
@@ -311,6 +313,8 @@ class RubyRydberg(PhysicalSystem):  #TODO(YT): add tests.
     self.boundary_sites = []  # sites on the boundary.
     self.n_unit_cell = 6  # number of sites in a unit cell.
     if self.boundary == 'periodic':
+      # boundary sites for the system (along x-axis), assuming the system
+      # is a cylinder, where y-axis is periodic.
       total_unit_cells = self.Lx * self.Ly
       left_boundary_sites = np.concatenate([
           np.array([3, 5]) + self.n_unit_cell * i for i in range(self.Ly)

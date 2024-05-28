@@ -47,6 +47,8 @@ def make_iterator_over_ds(ds, dim, batch_size):
 def stream_mean_over_dim(ds, fn, dim, batch_size=500):
   """Compute the streamed mean of `fn` applied to `ds` along `dim`."""
   def _stream_mean_fn(c, x):
+    # c is carry of the form (mean, count)
+    # x is the next slice of the dataset
     mean, count = c
     new_count = x.sizes[dim]
     return (
@@ -68,6 +70,7 @@ def merge_pd_tiled_config(df, config_df):
   return complete_df
 
 
+# TODO(YT): move to observables_utils.py
 def compute_onsite_pauli_expectations(mps, physical_system):
   """Compute the expectation value of the onsite Pauli operators.
 
@@ -136,3 +139,30 @@ def physical_system_from_attrs_dict(attrs_dict):
             for k in attrs_dict['physical_system_arg_names'].split(',')
   }
   return cls(**kwargs)
+
+
+def _discard_odd_basis_measurements(
+    ds: xr.Dataset,
+    basis: int=1,
+    mod: int=2,
+) -> xr.Dataset:
+  """Discard measurements for `basis` occuring with nonzero `mod` frequency.
+  
+  Example: to throw away any pauli x measurements, 
+  set `basis=0` and `mod=mps.L+1`.
+  Args:
+    ds: The dataset to discard the basis measurement from.
+    basis: The basis to discard. Default (1) is y basis.
+    mod: The modulus of the number of measurements to discard. Default is 2.
+
+  Returns:
+    The dataset with the basis measurement discarded.
+  """
+  def _mask_fn(array):
+    return np.count_nonzero(array == basis, axis=-1) % mod == 0
+  
+  mask = xr.apply_ufunc(
+      _mask_fn, ds.basis,
+      input_core_dims=[['site']], output_core_dims=[[]],
+  ) # axis=-1 because of the way xr handles broadcasting with CORE_DIMENSIONS
+  return ds.where(mask, drop=True).astype(int)
