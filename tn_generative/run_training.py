@@ -1,11 +1,22 @@
 """Main file for running training."""
-# How to run this file:
+# How to run this file using command line:
+# python -m tn_generative.run_training \
+# --train_config=tn_generative/train_configs/surface_code_train_config.py \
+# --train_config.job_id=0530 \
+# --train_config.task_id=0 \
+# --train_config.data.dir=tn_generative/test_data/ \
+# --train_config.data.filename=surface_code_xz.nc \
+# --train_config.results.experiment_dir=./ \
+# --train_config.training.steps_sequence="(5000,400)" \
+# --train_config.data.num_training_samples=10000 \
+# --train_config.model.bond_dim=10
+# How to run this file using config file:
 # python -m tn_generative.run_training \
 # --train_config=tn_generative/train_configs/surface_code_train_config.py \
 # --train_config.job_id=0828 \
 # --train_config.task_id=0 \
 # --train_config.sweep_name="sweep_sc_3x3_fn" \
-# --train_config.training.num_training_steps=20 \
+# --train_config.training.steps_sequence="(5000,400)" \
 from absl import app
 from absl import flags
 from datetime import datetime
@@ -43,6 +54,7 @@ def run_full_batch_experiment(
   if config.sweep_name in config.sweep_fn_registry:
     sweep_params = config.sweep_fn_registry[config.sweep_name]
     config.update_from_flattened_dict(sweep_params[config.task_id])
+    logging.info(f'Updating configs using {config.sweep_name=}')
   elif config.sweep_name == None:
     pass
   else:
@@ -104,7 +116,7 @@ def run_full_batch_experiment(
     if not os.path.exists(results_dir):
       os.makedirs(results_dir)
     results_filename = config.results.filename.replace(
-        '%JOB_ID', str(config.job_id)
+        '%JOB_ID_%TASK_ID', str(config.job_id)+'_'+str(config.task_id)
     )
     save_path = os.path.join(results_dir, results_filename)
     complete_train_df.to_csv(save_path + '_train.csv')
