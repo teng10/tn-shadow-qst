@@ -61,6 +61,17 @@ python -m tn_generative.run_training \
 --train_config.data.num_training_samples=10000 \
 --train_config.model.bond_dim=10
 ```
+
+## Dependencies
+This project relies on several third-party packages. We would like to acknowledge and thank the developers of [quimb](https://quimb.readthedocs.io/en/latest/#):
+@article{gray2018quimb,
+    title={quimb: a python library for quantum information and many-body calculations},
+    author={Gray, Johnnie},
+    journal={Journal of Open Source Software},
+    year = {2018},
+    volume={3}, number={29}, pages={819},
+    doi={10.21105/joss.00819},
+}
 The results are saved in directory specified by `train_config.results.experiment_dir`. This command outputs the following files:
 1. `530_0_eval.csv`: Contains evaluation results, including fidelity (`fidelity`) and train and test losses (`model_ll`).
 2. `530_0_mps_lbfgs_1.nc`: Contains the trained MPS state after the L-BFGS sequence.
