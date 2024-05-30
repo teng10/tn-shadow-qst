@@ -61,7 +61,11 @@ python -m tn_generative.run_training \
 --train_config.data.num_training_samples=10000 \
 --train_config.model.bond_dim=10
 ```
+
 The results are saved in directory specified by `train_config.results.experiment_dir`. This command outputs the following files:
 1. `530_0_eval.csv`: Contains evaluation results, including fidelity (`fidelity`) and train and test losses (`model_ll`).
 2. `530_0_mps_lbfgs_1.nc`: Contains the trained MPS state after the L-BFGS sequence.
-3. `530_0_train.csv`: Contains the training results, containing `loss` for each training step, as well as comprehensive descriptions of all the parameter configurations for the training process. 
+3. `530_0_train.csv`: Contains the training results, containing `loss` for each training step, as well as comprehensive descriptions of all the parameter configurations for the training process.
+
+## Dependencies
+This project relies on a third-party for the tensor network calculations. We would like to acknowledge and thank the developers of [quimb](https://quimb.readthedocs.io/en/latest/#).
