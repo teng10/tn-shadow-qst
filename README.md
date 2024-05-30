@@ -68,4 +68,4 @@ The results are saved in directory specified by `train_config.results.experiment
 3. `530_0_train.csv`: Contains the training results, containing `loss` for each training step, as well as comprehensive descriptions of all the parameter configurations for the training process.
 
 ## Dependencies
-This project relies on several third-party packages. We would like to acknowledge and thank the developers of [quimb](https://quimb.readthedocs.io/en/latest/#).
+This project relies on a third-party for the tensor network calculations. We would like to acknowledge and thank the developers of [quimb](https://quimb.readthedocs.io/en/latest/#).
