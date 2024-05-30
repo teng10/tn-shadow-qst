@@ -24,8 +24,8 @@ python3 -m venv venv/
 pip install -r requirements.txt
 ```
 
-## Simple demo
-In this demo below, we will generate a dataset for the ground state of a a $3 \times 3$ surface code Hamiltonian. This involves two steps:
+## Command line demo
+In this demo below, we will perform tomography for the ground state of a a $3 \times 3$ surface code Hamiltonian. For a notebook version, see [draft_tutorials.ipynb](https://github.com/teng10/tn-shadow-qst/blob/e0347b7d64ef86c7564efa0a95e13008d9dfeab8/draft_tutorial.ipynb). This involves two steps:
 1. Using run_data_generation.py, we will run the density matrix renormalization group (DMRG) to find the ground state of a specified Hamiltonian as our target state. Then, we simulate measurements of the target state by sampling the target matrix product state (MPS). (This step can be skipped if you already have a dataset, as we demonstrate next!)
 2. After generating this dataset, we can perform training with a matrix product state ansatz by runnnig `run_training.py`.
 
