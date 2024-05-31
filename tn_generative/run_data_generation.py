@@ -1,7 +1,7 @@
 """Main file for running data generation."""
   # run this script with the following command in the terminal:
-  # python -m tn_generative.run_data_generation\
-  # --data_config=tn_generative/data_configs/surface_code_data_config.py\
+  # python -m tn_generative.run_data_generation \
+  # --data_config=tn_generative/data_configs/surface_code_data_config.py \
   # --data_config.job_id=0 --data_config.task_id=0
 from absl import app
 from absl import flags
