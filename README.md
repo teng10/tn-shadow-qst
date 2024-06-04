@@ -1,9 +1,9 @@
 # tn-shadow-qst
 Code and data for **Learning topological states from randomized measurements using
-variational tensor network tomography** (arXiv link: )
+variational tensor network tomography** ([arXiv link](https://arxiv.org/abs/2406.00193))
 
 - A tutorial on how to use the codebase is in [tutorial.ipynb](https://github.com/teng10/tn-shadow-qst/blob/bcd59fc3f65806fc69c1dc317bfe506bcee523ee/tutorial.ipynb).
-- To reproduce figures from the paper with the dataset linked [here](https://doi.org/10.5281/zenodo.11397880) , see [`Draft_figures.ipynb`](https://github.com/teng10/tn-shadow-qst/blob/bd3f62930849889fba854b96f6da129fc1c99e51/Draft_figures.ipynb).
+- To reproduce figures from the paper with the dataset linked [here](https://doi.org/10.5281/zenodo.11397880) , see [Draft_figures.ipynb](https://github.com/teng10/tn-shadow-qst/blob/bd3f62930849889fba854b96f6da129fc1c99e51/Draft_figures.ipynb).
 
 
 ## Getting started
@@ -22,6 +22,10 @@ python3 -m venv venv/
    3. Install the necessary packages listed in `requirements.txt`:
 ```
 pip install -r requirements.txt
+```
+   4. Activate the environment before running the code:
+```
+source venv/bin/activate
 ```
 
 ## Command line demo
@@ -68,4 +72,4 @@ The results are saved in directory specified by `train_config.results.experiment
 3. `530_0_train.csv`: Contains the training results, containing `loss` for each training step, as well as comprehensive descriptions of all the parameter configurations for the training process.
 
 ## Dependencies
-This project relies on a third-party for the tensor network calculations. We would like to acknowledge and thank the developers of [quimb](https://quimb.readthedocs.io/en/latest/#).
+This project relies on a third-party package for the tensor network calculations. We would like to acknowledge and thank the developers of [quimb](https://quimb.readthedocs.io/en/latest/#).
