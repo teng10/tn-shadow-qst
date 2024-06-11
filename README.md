@@ -27,10 +27,6 @@ source venv/bin/activate
 ```
 pip install -r requirements.txt
 ```
-   4. Activate the environment before running the code:
-```
-source venv/bin/activate
-```
 
 ## Command line demo
 In this demo below, we will perform tomography for the ground state of a a $3 \times 3$ surface code Hamiltonian. For a notebook version, see [tutorial.ipynb]([https://github.com/teng10/tn-shadow-qst/blob/e0347b7d64ef86c7564efa0a95e13008d9dfeab8/draft_tutorial.ipynb](https://github.com/teng10/tn-shadow-qst/blob/bcd59fc3f65806fc69c1dc317bfe506bcee523ee/tutorial.ipynb)). This involves two steps:
