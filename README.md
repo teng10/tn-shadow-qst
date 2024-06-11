@@ -19,7 +19,11 @@ git clone https://github.com/teng10/tn-shadow-qst.git
 ```
 python3 -m venv venv/
 ```
-   3. Install the necessary packages listed in `requirements.txt`:
+   3. Activate the environment before running the code:
+```
+source venv/bin/activate
+```
+   4. Install the necessary packages listed in `requirements.txt` (can be skipped after previous installations):
 ```
 pip install -r requirements.txt
 ```
