@@ -159,5 +159,32 @@ class FixedBasisSamplerTest(parameterized.TestCase):
           actual_probabilities, basis_probabilities, atol=1e-2)
 
 
+class NoisySamplerTest(parameterized.TestCase):
+    """Tests for noisy sampler mps utilities."""
+    
+    def setUp(self):
+        # set backend to JAX for vmap and jit.
+        qtn.contraction.set_contract_backend('jax')
+    
+    @parameterized.parameters(2, 3, 4)
+    def test_random_basis_noisy_sampler(self, size, seed=42):
+        """Test random basis noisy sampler flips bits correctly."""
+        key = jax.random.PRNGKey(seed)
+        mps = qtn.MPS_neel_state(size)
+        noise_probabilities = [0., 1.]  # flip 1 bit with prob 1
+        sample = mps_sampling.random_basis_noisy_sampler(
+            key, mps, noise_probabilities=noise_probabilities
+        )
+        np.testing.assert_array_equal(
+            sample[0], np.zeros(size) * 1
+        )
+        noise_probabilities = [1., 0.]  # flip 0 bits with prob 1
+        sample = mps_sampling.random_basis_noisy_sampler(
+            key, mps, noise_probabilities=noise_probabilities
+        )
+        np.testing.assert_array_equal(
+            sample[0], np.ones(size) * 1
+        )
+
 if __name__ == "__main__":
   absltest.main()

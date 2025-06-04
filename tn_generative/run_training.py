@@ -24,6 +24,7 @@ import os
 import logging
 from typing import Any, Dict, Tuple
 
+import jax
 from jax import config as jax_config
 from ml_collections import config_flags
 import numpy as np
@@ -34,6 +35,7 @@ import xarray as xr
 
 from tn_generative import data_utils
 from tn_generative import mps_utils
+from tn_generative import noise_utils
 from tn_generative import train_utils
 from tn_generative import types
 
@@ -70,6 +72,14 @@ def run_full_batch_experiment(
   ds = xr.open_dataset(datapath)
   # Load dataset by combining real&imag fields into complex fields.
   ds = data_utils.combine_complex_ds(ds)
+  # Add noise to the dataset if specified.
+  if train_config.data_noise is not None:
+    key = jax.random.PRNGKey(model_config.init_seed)
+    noise_fn = noise_utils.NOISE_REGISTRY[train_config.data_noise.name]
+    logging.info(f'Adding noise to dataset using {train_config.data_noise=}')
+    ds = noise_fn(
+        key, ds, train_config.data_noise.probabilities
+    )
   train_ds = ds.isel(sample=slice(0, config.data.num_training_samples))
   # partition the dataset into training and test.
   test_ds = ds.isel(sample=slice(-config.data.num_test_samples, None))

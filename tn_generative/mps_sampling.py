@@ -166,6 +166,55 @@ def random_uniform_basis_sampler(
   return base_sample_fn(sample_key, rotated_mps), basis
 
 
+def random_basis_noisy_sampler(
+    key: jax.random.PRNGKeyArray,
+    mps: qtn.MatrixProductState,
+    x_y_z_probabilities: Tuple[float, float, float] = [1./3., 1./3., 1./3.],
+    noise_probabilities: Tuple[float, float] = [0.0, 0.0],
+    base_sample_fn: SamplerFn = gibbs_sampler,
+) -> MeasurementAndBasis:
+  """Draws a noisy sample from `mps` in random X, Y or Z basis at each site.
+
+  Samples `mps` in an X, Y or Z basis selected randomly at each site,
+  with probabilities of `x_y_z_probabilities`. Default is uniform in all bases.
+  With `noise_probabilities`, a sample is flipped for 0, 1 bits.
+
+  Args:
+    key: random key used to draw a sample.
+    mps: matrix product state in `z` basis from which to draw a sample.
+    x_y_z_probabilities: probabilities for selecting X, Y or Z basis.
+    noise_probabilities: probabilities for flipping [0, 1] bits.
+    base_sample_fn: sampler method. Default is gibbs_sampler.
+
+  Returns:
+    Tuple of mesurement sample and basis.
+  """
+  x_y_z_probabilities = jnp.asarray(x_y_z_probabilities)
+  noise_probabilities = jnp.asarray(noise_probabilities)
+  sample_key, basis_key, noise_key = jax.random.split(key, 3)
+  basis = jax.random.choice(basis_key, 3, [mps.L], p=x_y_z_probabilities)
+  mps = mps.copy()
+  rotation_mpo = mps_utils.z_to_basis_mpo(basis)
+  rotated_mps = rotation_mpo.apply(mps)
+  bit = base_sample_fn(sample_key, rotated_mps)
+  noise_keys = jax.random.split(noise_key, mps.L)
+  #   if noise_probabilities[0] > 0.0 or noise_probabilities[1] > 0.0:
+  for i, key in enumerate(noise_keys):
+    # flip 0/1 with their respective probabilities
+    # 0 -> 1 with prob noise_probabilities[0]
+    # 1 -> 0 with prob noise_probabilities[1]
+    p = noise_probabilities[bit.at[i].get()]
+    bit = bit.at[i].set(
+        (bit[i]+
+            jax.random.choice(
+              key, 2, p=jnp.array([1.0 - p, p])
+            )
+        ) % 2
+    )
+
+  return bit, basis
+
+# Registering samplers in the global registry.
 register_sampler('x_basis_sampler')(
     functools.partial(fixed_basis_sampler, basis=0))
 register_sampler('z_basis_sampler')(
@@ -179,3 +228,9 @@ register_sampler('x_or_z_basis_sampler')(
     )
 )
 register_sampler('x_y_z_basis_sampler')(functools.partial(random_basis_sampler))
+register_sampler('x_z_noisy_basis_sampler')(
+    functools.partial(random_basis_noisy_sampler,
+        x_y_z_probabilities=[0.5, 0.0, 0.5],
+        noise_probabilities=[0.003, 0.002]  # flip 0 with 0.3%, 1 with 0.2%
+    )
+)
