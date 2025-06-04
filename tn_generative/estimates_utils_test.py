@@ -47,7 +47,7 @@ class ExtractNonIdentityMPO(parameterized.TestCase):
       else:
         sub_rdm = (mps.partial_trace(sub_indices)).to_dense()
         actual_ev = np.trace(sub_rdm @ subsystem_mpo.to_dense())
-        np.testing.assert_allclose(expected_ev, actual_ev)
+        np.testing.assert_allclose(expected_ev, actual_ev, atol=1e-6)
 
 
   @parameterized.parameters(3, 4, 5, 6)

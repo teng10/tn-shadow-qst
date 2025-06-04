@@ -232,5 +232,5 @@ register_sampler('x_z_noisy_basis_sampler')(
     functools.partial(random_basis_noisy_sampler,
         x_y_z_probabilities=[0.5, 0.0, 0.5],
         noise_probabilities=[0.003, 0.002]  # flip 0 with 0.3%, 1 with 0.2%
-    )
+    )  # This error rate is taken from https://arxiv.org/abs/2112.03923
 )

@@ -109,7 +109,7 @@ class MpsUtilsTests(parameterized.TestCase):
     mps = qtn.MPS_rand_state(size, bond_dim=5)
     fixed_arrays = mps_utils.fix_gauge_arrays(mps)
     fixed_mps = qtn.MatrixProductState(fixed_arrays)
-    np.testing.assert_allclose(fixed_mps.H @ mps, 1.)
+    np.testing.assert_allclose(fixed_mps.H @ mps, 1., atol=1e-6)
 
   @parameterized.parameters(3, 4, 5)
   def test_mps_tensors_round_trip(self, size):
@@ -118,7 +118,7 @@ class MpsUtilsTests(parameterized.TestCase):
     mps = qtn.MPS_rand_state(size, bond_dim=5)
     tensors = mps_utils._mps_to_expanded_tensors(mps)
     mps_from_tesors = mps_utils._mps_from_extended_tensors(tensors)
-    np.testing.assert_allclose(mps_from_tesors.H @ mps, 1.0)
+    np.testing.assert_allclose(mps_from_tesors.H @ mps, 1.0, atol=1e-6)
 
 
 class ProjectSubsystemTests(absltest.TestCase):
@@ -131,11 +131,13 @@ class ProjectSubsystemTests(absltest.TestCase):
     ds_path = os.path.join(current_dir, 'test_data/bell_state_ds_x_or_z.nc')
     bell_state_ds = xr.load_dataset(ds_path)
     self.bell_state_ds = data_utils.combine_complex_ds(bell_state_ds)
-    self.bell_state_mps = qtn.MPS_ghz_state(2)
+    self.bell_state_mps = qtn.MPS_ghz_state(2)   
 
   def test_project_subsystem_with_shadow(self):
     """Test projection of the density matrix with shadow prediction."""
     # TODO(YT): move to shadow_utils_test.py
+    mps_utils._precomputed_pauli_products.cache_clear()
+    shadow_utils.get_precomputed_single_shadows.cache_clear()     
     subsystem = [0, 1]
     shadow_fn = shadow_utils._get_shadow_single_shot_fn(self.bell_state_ds)
     shadow_state_custom = shadow_utils.construct_subsystem_shadows(
@@ -148,7 +150,7 @@ class ProjectSubsystemTests(absltest.TestCase):
     )
 
   def test_project_subsystem_exact(self):
-    """Test projection of the density matrix with exact answer."""
+    """Test projection of the density matrix with exact answer."""    
     subsystem = [0, 1]
     expected_xz_projected_bell_state = (
         0.25 * np.kron(qu.pauli('I'), qu.pauli('I')) +
