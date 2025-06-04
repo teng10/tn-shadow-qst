@@ -203,9 +203,12 @@ SWEEP_FN_REGISTRY = {
         ) for x in [3, 5, 7, 9, 15]],
         start=[]
     ),        
-    #TODO(YT): eventually generate this dataset.
-    # 'sweep_sc_35x3_fn': list(surface_code_nxm_sweep_fn(35, 3, (5, ),
-    # onsite_z_fields=(0., 0.1), )),
+    'sweep_sc_3x3_fn_noise': list(
+        surface_code_nxm_sweep_fn(3, 3, train_bond_dims=(10, 20), 
+        num_seeds=1, onsite_z_fields=(0.1,), samplers=('x_or_z_basis_sampler',),
+        train_betas=(0.,) 
+        )
+    ),    
 }
 
 
@@ -244,6 +247,10 @@ def get_config():
   config.sweep_fn_registry = SWEEP_FN_REGISTRY
   # training.
   config.training = config_dict.ConfigDict()
+  # Add noise to the dataset used for training.
+  config.training.data_noise = config_dict.ConfigDict()
+  config.training.data_noise.name = 'bitflip'  # default noise is None.
+  config.training.data_noise.probabilities = (0.0, 0.0)  # no noise by default.  
   # minibatch pre-training config.
   minibatch_pretrain_config = config_dict.ConfigDict()
   minibatch_pretrain_config.training_scheme = 'minibatch'

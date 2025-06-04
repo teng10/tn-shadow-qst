@@ -236,6 +236,10 @@ def get_config():
   config.sweep_fn_registry = SWEEP_FN_REGISTRY
   # training.
   config.training = config_dict.ConfigDict()
+  # Add noise to the dataset used for training.
+  config.training.data_noise = config_dict.ConfigDict()
+  config.training.data_noise.name = 'bitflip'  # default noise is None.
+  config.training.data_noise.probabilities = (0.0, 0.0)  # no noise by default.   
   # minibatch pre-training config.
   minibatch_pretrain_config = config_dict.ConfigDict()
   minibatch_pretrain_config.training_scheme = 'minibatch'
@@ -248,7 +252,8 @@ def get_config():
   lbfgs_finetune_config = config_dict.ConfigDict()
   lbfgs_finetune_config.training_scheme = 'lbfgs'
   lbfgs_finetune_config.training_kwargs = {}
-  lbfgs_finetune_config.reg_name = 'hamiltonian'
+  lbfgs_finetune_config.reg_name = 'reduced_density_matrices' 
+  # 06/04 YT: changed `hamiltonian` to `reduced_density_matrices`
   lbfgs_finetune_config.reg_kwargs = {
       'beta': 0., 'method': 'mps', 'subsystem_kwargs': {'method': 'default'}
   }
