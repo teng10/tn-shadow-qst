@@ -204,8 +204,9 @@ SWEEP_FN_REGISTRY = {
         start=[]
     ),        
     'sweep_sc_3x3_fn_noise': list(
-        surface_code_nxm_sweep_fn(3, 3, train_bond_dims=(10, 20), 
-        num_seeds=1, onsite_z_fields=(0.1,), samplers=('x_or_z_basis_sampler',),
+        surface_code_nxm_sweep_fn(3, 3, train_bond_dims=(10,), 
+        num_seeds=1, onsite_z_fields=(0.1,),
+        samplers=('x_or_z_basis_sampler', 'xz_basis_sampler'),
         train_betas=(0.,) 
         )
     ),    
