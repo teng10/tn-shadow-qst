@@ -71,5 +71,14 @@ The results are saved in directory specified by `train_config.results.experiment
 2. `530_0_mps_lbfgs_1.nc`: Contains the trained MPS state after the L-BFGS sequence.
 3. `530_0_train.csv`: Contains the training results, containing `loss` for each training step, as well as comprehensive descriptions of all the parameter configurations for the training process.
 
+## Citation
+If you find the current codebase useful, please consider cite our work.
+@article{teng2024learning,
+  title={Learning topological states from randomized measurements using variational tensor network tomography},
+  author={Teng, Yanting and Samajdar, Rhine and Van Kirk, Katherine and Wilde, Frederik and Sachdev, Subir and Eisert, Jens and Sweke, Ryan and Najafi, Khadijeh},
+  journal={arXiv preprint arXiv:2406.00193},
+  year={2024}
+}
+
 ## Dependencies
 This project relies on a third-party package for the tensor network calculations. We would like to acknowledge and thank the developers of [quimb](https://quimb.readthedocs.io/en/latest/#).
